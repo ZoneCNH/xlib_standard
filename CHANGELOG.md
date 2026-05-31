@@ -19,6 +19,7 @@
 - 添加 `scripts/render_template.sh`，支持生成 `foundationx` 等具体基础库。
 - 添加 `examples/basic`、`examples/config` 和 `examples/health` smoke 测试，锁定文档示例输出。
 - 添加 `testkit` 夹具和断言回归测试。
+- 添加配置属性测试、配置 fuzz smoke 测试、健康状态 golden 测试和 `testkit` golden 文件工具。
 
 ### 安全
 
@@ -32,4 +33,12 @@
 - 添加 Evidence 和复盘模板。
 - CI 在 `make ci` 前安装 `golangci-lint` 和 `govulncheck`，与 Makefile 强制 gate 对齐。
 - `make release-check` 统一执行 CI、integration 和 manifest 生成。
-- `make integration` 通过临时 `foundationx` 渲染和测试验证模板链路。
+- `make release-final-check` 在发布前串联 `release-check`、release Evidence 校验和工作区洁净校验。
+- `make integration` 通过临时 `foundationx` 和 `corekit` 渲染、测试、contracts、boundary 与 Evidence 生成验证模板链路。
+- `release/manifest/latest.json` 作为生成产物保留在源码历史之外，避免 release Evidence 与源码提交互相污染。
+
+### 验证
+
+- 发布前已运行 `GOWORK=off make release-final-check`。
+- `go fmt ./...`、`go vet ./...`、`golangci-lint run ./...`、`go test ./...`、`go test -race ./...`、Boundary、Security、contracts、integration 和 release Evidence 校验均通过。
+- `v0.1.0` 为 annotated tag，指向提交 `b6dfe9b93e4417a3b7e077cec1b4c0fffdc37240`。
