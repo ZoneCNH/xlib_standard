@@ -2,7 +2,7 @@
 
 ## 架构
 
-生成的库是独立 Go 模块。公共 API 位于 `pkg/{{PACKAGE_NAME}}`，内部辅助代码位于 `internal/`，契约位于 `contracts/`，运行证据位于 `release/manifest/`。
+生成的库是独立 Go module。公共 API 位于 `pkg/{{PACKAGE_NAME}}`，内部辅助代码位于 `internal/`，contracts 位于 `contracts/`，运行 Evidence 位于 `release/manifest/`。
 
 ## 公共 API
 
@@ -30,4 +30,4 @@
 
 ## 发布
 
-发布前必须通过 Harness Gates，并生成 `release/manifest/latest.json`。
+发布前必须通过 Harness Gate，并生成 `release/manifest/latest.json`。

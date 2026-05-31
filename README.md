@@ -25,7 +25,7 @@
 - `docs/`：规格、设计、API、配置、测试和发布模板。
 - `scripts/`：Harness Gate 脚本。
 - `.agent/`：Goal Runtime 工件、证据、评审、发布和复盘模板。
-- `release/manifest/`：发布清单模板和生成的证据。
+- `release/manifest/`：release manifest 模板和生成的证据。
 
 ## 命令
 
@@ -37,4 +37,4 @@ make evidence
 
 ## 证据
 
-完成需要发布清单和 CI 证据。最终完成声明必须包含 `DONE with evidence:`。
+完成需要 release manifest 和 CI 证据。最终完成声明必须包含 `DONE with evidence:`。

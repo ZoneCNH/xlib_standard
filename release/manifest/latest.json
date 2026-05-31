@@ -1,9 +1,9 @@
 {
   "module": "github.com/bytechainx/baselib-template",
   "version": "v0.1.0",
-  "commit": "aade0ae4f44f84a7e35a6652a26d59186dca5d7b",
+  "commit": "aa82a8b7f58a7d1141e03f0046fee07a41b13da4",
   "go_version": "go1.26.3",
-  "generated_at": "2026-05-31T20:58:20Z",
+  "generated_at": "2026-05-31T21:08:35Z",
   "checks": {
     "fmt": "manual-or-ci",
     "vet": "manual-or-ci",

@@ -3,7 +3,7 @@
 ## 改进项
 
 - 基础库创建从手工变成模板化。
-- 后续 `foundationx`、`postgresx`、`kafkax`、`redisx` 可复用目录、脚本、CI、文档和证据。
+- 后续 `foundationx`、`postgresx`、`kafkax`、`redisx` 可复用目录、脚本、CI、文档和 Evidence。
 
 ## 失败项
 
@@ -13,18 +13,18 @@
 ## 提示补丁
 
 - 后续创建基础库时必须从 `baselib-template` 复制。
-- 所有基础库必须保留边界门禁和密钥门禁。
+- 所有基础库必须保留 Boundary Gate 和 Secret Gate。
 
 ## Harness 补丁
 
-- 后续加入公共 API 哈希门禁。
+- 后续加入 public API hash gate。
 - 后续加入配置 schema 哈希门禁。
 
 ## 规则补丁
 
 - 禁止基础库依赖 `x.go`。
 - 禁止基础库承载业务语义。
-- 禁止无证据声称 `DONE`。
+- 禁止无 Evidence 声称 `DONE`。
 
 ## CI 门禁建议
 

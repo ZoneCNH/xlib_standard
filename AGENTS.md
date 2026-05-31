@@ -13,7 +13,7 @@
 - `make lint`：本机安装 `golangci-lint` 时执行静态检查。
 - `make ci`：运行格式化、vet、lint、测试、race、边界、安全和契约检查。
 - `make release-check`：运行 CI、集成测试和证据生成。
-- `make evidence`：生成发布 manifest。
+- `make evidence`：生成 release manifest。
 
 ## 编码风格与命名约定
 
@@ -33,7 +33,7 @@
 
 ## 文档语言规则
 
-所有仓库文档必须默认使用中文，包括 `README.md`、`docs/`、`.agent/`、`contracts/*.md`、变更日志、发布说明、PR 描述模板和贡献指南。仅代码标识符、命令、路径、包名、外部专有名词、协议固定短语和提交标题可保留英文原文。新增或更新文档时，先检查是否存在英文说明；除非用户明确要求英文，否则应改写为中文。
+所有仓库文档必须默认使用中文叙述，包括 `README.md`、`docs/`、`.agent/`、`contracts/*.md`、变更日志、发布说明、PR 描述模板和贡献指南。专业术语、代码标识符、命令、路径、包名、外部专有名词、协议固定短语和提交标题必须保留项目惯用原文，例如 Agent、Harness、manifest、schema、CI、PR、Issue、Go module。新增或更新文档时，先检查是否存在整段英文说明；除非用户明确要求英文，否则应改写为中文，但不要翻译专业术语。
 
 ## Agent 专用说明
 

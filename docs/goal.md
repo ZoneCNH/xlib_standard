@@ -28,30 +28,30 @@
 你必须按照 Goal Runtime Prompt v3.1 执行，完整走完：
 
 ```text
-目标
- → 上下文恢复
- → 规格
+Goal
+ → Context Recovery
+ → Spec
  → Design
- → 计划
- → 任务
- → 执行
- → 验证
- → 证据
- → 评审
- → 发布
- → 复盘
- → 自我改进
+ → Plan
+ → Tasks
+ → Execute
+ → Verify
+ → Evidence
+ → Review
+ → Release
+ → Retrospective
+ → Self-Improvement
 ```
 
-你不得只输出计划。你必须创建文件、脚本、目录、CI、文档模板、Harness 门禁、证据模板和发布清单模板。
+你不得只输出计划。你必须创建文件、脚本、目录、CI、文档模板、Harness Gate、Evidence 模板和 release manifest 模板。
 
 ---
 
-# 1. Goal
+# 1. 目标
 
 ```text
 GOAL-20260601-001
-建立 baselib-template 独立基础库模板仓库，为 x.go 及其周边基础设施库提供统一模块脚手架、目录规范、公共文档、CI/Harness 门禁、发布证据、复盘和自我改进机制，使后续 foundationx/postgresx/kafkax/redisx/taosx 等基础库可以低成本、标准化、可验证地生成。
+建立 baselib-template 独立基础库模板仓库，为 x.go 及其周边基础设施库提供统一模块脚手架、目录规范、公共文档、CI/Harness Gate、release evidence、复盘和自我改进机制，使后续 foundationx/postgresx/kafkax/redisx/taosx 等基础库可以低成本、标准化、可验证地生成。
 ```
 
 ---
@@ -81,23 +81,23 @@ GOAL-20260601-001
 
 # 3. 执行模式
 
-采用完整模式（Full）。
+采用 Full 模式。
 
-完整模式要求：
+Full 模式要求：
 
 1. 必须创建完整目录结构。
 2. 必须创建可执行 Makefile。
 3. 必须创建 CI 工作流。
-4. 必须创建 Harness 门禁脚本。
+4. 必须创建 Harness Gate 脚本。
 5. 必须创建文档模板。
 6. 必须创建 `.agent/` Goal Runtime 文件。
 7. 必须创建 contracts 模板。
 8. 必须创建 release manifest 模板。
 9. 必须创建 examples 模板。
 10. 必须运行验证命令。
-11. 必须输出证据。
+11. 必须输出 Evidence。
 12. 必须输出复盘。
-13. 不允许没有证据就声称完成。
+13. 不允许没有 Evidence 就声称完成。
 
 ---
 
@@ -114,13 +114,13 @@ GOAL-20260601-001
 4. 不包含 BTCUSDT、Kline、MacroRegime、TradingSignal、OrderBook、Position、RiskGate 等业务语义。
 5. 不持有隐式全局 client。
 6. 不默认读取生产密钥。
-7. 不把密钥写入源码、README、测试日志、Release Manifest、PR 描述或 Issue。
+7. 不把密钥写入源码、README、测试日志、release manifest、PR 描述或 Issue。
 8. 公共 API 必须稳定、可测试、可文档化。
 9. Config 必须 Validate + Sanitize。
 10. 有资源的 client 必须支持 Close，并且 Close 幂等。
 11. L2 基础设施库必须支持 HealthCheck。
-12. 必须支持 Harness 门禁。
-13. 必须支持证据。
+12. 必须支持 Harness Gate。
+13. 必须支持 Evidence。
 ```
 
 ## 4.2 x.go 密钥路径约束
@@ -254,21 +254,21 @@ AC-REQ-BT-003-001: pkg/{{module}} 下存在 config.go/client.go/options.go/healt
 AC-REQ-BT-003-002: go test ./... 通过。
 ```
 
-### REQ-BT-004：Harness 门禁
+### REQ-BT-004：Harness Gate
 
 必须提供：
 
 ```text
-边界门禁
-密钥门禁
-契约门禁
-格式门禁
-静态检查门禁
-单元测试门禁
-竞态测试门禁
-安全门禁
-证据门禁
-发布门禁
+Boundary Gate
+Secret Gate
+Contract Gate
+Format Gate
+Static Check Gate
+Unit Test Gate
+Race Test Gate
+Security Gate
+Evidence Gate
+Release Gate
 ```
 
 验收标准：
@@ -338,7 +338,7 @@ scripts/generate_manifest.sh
 
 ```text
 AC-REQ-BT-007-001: make evidence 能生成 release/manifest/latest.json。
-AC-REQ-BT-007-002: Manifest 包含 module/version/commit/checks/artifacts。
+AC-REQ-BT-007-002: manifest 包含 module/version/commit/checks/artifacts。
 ```
 
 ### REQ-BT-008：自我改进
@@ -352,12 +352,12 @@ AC-REQ-BT-007-002: Manifest 包含 module/version/commit/checks/artifacts。
 验收标准：
 
 ```text
-AC-REQ-BT-008-001: 复盘包含提示补丁、Harness 补丁、规则补丁、CI 门禁建议和新 Issue 候选。
+AC-REQ-BT-008-001: 复盘包含 prompt patch、Harness patch、rule patch、CI Gate 建议和新 Issue 候选。
 ```
 
 ---
 
-# 7. Design
+# 7. 设计
 
 ```text
 DESIGN-baselib-template-v1.0
@@ -1157,7 +1157,7 @@ make release-check
 
 ## 证据
 
-完成声明必须包含发布清单和 CI 证据。
+完成声明必须包含 release manifest 和 CI Evidence。
 ```
 
 ## 12.2 docs/spec.md 必须包含
@@ -1253,18 +1253,18 @@ make release-check
 
 ## 门禁
 
-- 上下文门禁
-- 目标门禁
-- 规格门禁
-- 设计门禁
-- 计划门禁
-- 任务门禁
-- 实现门禁
-- 测试门禁
-- 证据门禁
-- 评审门禁
-- 发布门禁
-- 复盘门禁
+- Context Gate
+- Goal Gate
+- Spec Gate
+- Design Gate
+- Plan Gate
+- Task Gate
+- Implementation Gate
+- Test Gate
+- Evidence Gate
+- Review Gate
+- Release Gate
+- Retrospective Gate
 ```
 
 ## 13.3 .agent/evidence.md
@@ -1563,12 +1563,12 @@ DONE with evidence:
 - 已创建标准目录结构。
 - 已创建 pkg/templatex 最小可编译包。
 - 已创建测试。
-- go test ./... 已通过。
-- go test -race ./... 已通过。
-- make boundary 已通过。
-- make security 已通过。
-- make contracts 已通过。
-- make evidence 已生成 release/manifest/latest.json。
+- go test ./...: passed。
+- go test -race ./...: passed。
+- make boundary: passed。
+- make security: passed。
+- make contracts: passed。
+- make evidence: generated release/manifest/latest.json。
 - 未依赖 github.com/bytechainx/x.go。
 - pkg/internal 中没有业务语义。
 - 未检测到密钥。
@@ -1615,13 +1615,13 @@ Review 必须检查：
 Release 前必须满足：
 
 ```text
-go test ./... 已通过
-go test -race ./... 已通过
-make boundary 已通过
-make security 已通过
-make contracts 已通过
-make evidence 已通过
-CHANGELOG.md 已更新
+go test ./...: passed
+go test -race ./...: passed
+make boundary: passed
+make security: passed
+make contracts: passed
+make evidence: passed
+CHANGELOG.md: updated
 release/manifest/latest.json 存在
 ```
 
@@ -1640,17 +1640,17 @@ v0.1.0
 - 初始 baselib-template 结构。
 - 标准 Go 基础库包骨架。
 - Makefile 命令。
-- Harness 门禁脚本。
+- Harness Gate 脚本。
 - GitHub Actions 工作流。
-- 契约。
+- contracts。
 - Agent 运行时模板。
-- 发布清单模板。
+- release manifest 模板。
 
 ### 安全
-- 新增密钥扫描门禁。
+- 新增 Secret Scan Gate。
 
 ### 治理
-- 新增证据和复盘模板。
+- 新增 Evidence 和复盘模板。
 ```
 
 ---
@@ -1671,7 +1671,7 @@ v0.1.0
 - 后续 foundationx/postgresx/kafkax/redisx 可复用目录、脚本、CI、文档和 Evidence。
 
 ## 失败项
-- 记录执行中失败或跳过的 gate。
+- 记录执行中失败或跳过的 Gate。
 
 ## 提示补丁
 - 后续创建基础库时必须从 baselib-template 复制。
@@ -1751,7 +1751,7 @@ retrospective
 合并顺序：
 
 ```text
-A → B → C → D → 验证 → 评审 → 发布
+A → B → C → D → Verify → Review → Release
 ```
 
 ---
@@ -1844,7 +1844,7 @@ NOT DONE:
 
 # 25. 开始执行
 
-现在开始执行，不要停留在解释层。请实际创建 `baselib-template` 的目录、文件、脚本、CI、文档、contracts、.agent、release manifest，并运行验证命令。
+现在开始执行，不要停留在解释层。请实际创建 `baselib-template` 的目录、文件、脚本、CI、文档、contracts、`.agent`、release manifest，并运行验证命令。
 
 优先原则：
 

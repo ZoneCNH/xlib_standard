@@ -18,4 +18,4 @@
 
 ## 证据
 
-链接到测试、Harness Gates、发布清单和评审记录。
+链接到测试、Harness、manifest 和评审记录。

@@ -3,7 +3,7 @@
 ## 占位符
 
 - `{{MODULE_NAME}}`：生成的仓库名称。
-- `{{MODULE_PATH}}`：生成的 Go 模块路径。
+- `{{MODULE_PATH}}`：生成的 Go module 路径。
 - `{{PACKAGE_NAME}}`：生成的包名。
 
 ## 公共 API

@@ -11,7 +11,7 @@
 - 添加 GitHub Actions 工作流。
 - 添加契约文件。
 - 添加 Agent 运行时模板。
-- 添加发布清单模板。
+- 添加 release manifest 模板。
 
 ### 安全
 
