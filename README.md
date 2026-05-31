@@ -46,6 +46,8 @@
 
 ## 命令
 
+本地运行完整 gate 前需要安装 `golangci-lint` 和 `govulncheck`；CI 会显式安装这两个工具。
+
 ```bash
 make ci
 make release-check

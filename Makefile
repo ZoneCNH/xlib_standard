@@ -19,7 +19,8 @@ lint:
 	@if command -v golangci-lint >/dev/null 2>&1; then \
 		golangci-lint run ./...; \
 	else \
-		echo "golangci-lint not installed, skipping"; \
+		echo "golangci-lint not installed"; \
+		exit 1; \
 	fi
 
 .PHONY: integration
@@ -31,7 +32,8 @@ security:
 	@if command -v govulncheck >/dev/null 2>&1; then \
 		govulncheck ./...; \
 	else \
-		echo "govulncheck not installed, skipping"; \
+		echo "govulncheck not installed"; \
+		exit 1; \
 	fi
 	./scripts/check_secrets.sh
 
