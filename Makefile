@@ -49,9 +49,18 @@ contracts:
 evidence:
 	./scripts/generate_manifest.sh
 
+.PHONY: release-evidence-check
+release-evidence-check:
+	RELEASE_EVIDENCE_REQUIRE_PASSED=1 ./scripts/check_release_evidence.sh
+
 .PHONY: ci
 ci: fmt vet lint test race boundary security contracts
 
 .PHONY: release-check
 release-check: ci integration
 	CHECK_STATUS=passed $(MAKE) evidence
+	$(MAKE) release-evidence-check
+
+.PHONY: release-final-check
+release-final-check: release-check
+	RELEASE_EVIDENCE_REQUIRE_PASSED=1 RELEASE_EVIDENCE_REQUIRE_CLEAN=1 ./scripts/check_release_evidence.sh

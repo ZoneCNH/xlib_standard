@@ -33,7 +33,31 @@ scripts/render_template.sh \
 GOWORK=off make release-check
 ```
 
-模板自身的 `make integration` 会渲染一个临时 `foundationx`，并运行 `GOWORK=off go test ./...`，用于防止生成脚本、包路径和 imports 回归。
+模板自身的 `make integration` 会渲染两个临时下游库：
+
+- `foundationx`：目标仓库路径 `github.com/ZoneCNH/foundationx`，用于证明真实迁移目标仍可生成。
+- `corekit`：中性路径 `example.com/acme/corekit`，用于证明替换逻辑不依赖特定组织或包名。
+
+每个临时库都会运行以下验证：
+
+- `scripts/check_rendered_template.sh`：确认 `go.mod` module path、`pkg/<package>` 目录、旧模板目录、旧 module path、占位符和 `templatex` 标识。
+- `GOWORK=off go test ./...`
+- `GOWORK=off make contracts`
+- `GOWORK=off make boundary`
+- `CHECK_STATUS=passed GOWORK=off make evidence`
+- `RELEASE_EVIDENCE_REQUIRE_PASSED=1 GOWORK=off make release-evidence-check`
+
+这组验证用于防止生成脚本、包路径、imports、contract gate、boundary gate 和生成后 Evidence 回归。
+
+## 生成后 Release Evidence
+
+生成后的库会继承 `internal/tools/releasemanifest`。该工具会生成并校验 `release/manifest/latest.json`，其中包括当前 HEAD、tree SHA、源码摘要、contract SHA256、依赖清单和工具版本。发布前应使用：
+
+```bash
+GOWORK=off make release-final-check
+```
+
+`release-final-check` 要求所有 gate 状态为 `passed`，并要求 git 工作区为 `clean`。如果只是开发中自测，`make release-check` 已足够；它允许工作区显示 `dirty`，但仍会验证 manifest 和当前源码内容一致。
 
 ## 边界
 
