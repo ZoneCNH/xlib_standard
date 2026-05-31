@@ -84,3 +84,8 @@ release-check-extended: ci-extended integration
 .PHONY: release-final-check
 release-final-check: release-check
 	RELEASE_EVIDENCE_REQUIRE_PASSED=1 RELEASE_EVIDENCE_REQUIRE_CLEAN=1 ./scripts/check_release_evidence.sh
+
+.PHONY: release-preflight
+release-preflight:
+	./scripts/check_release_preflight.sh "$(VERSION)"
+	GOWORK=off $(MAKE) release-final-check
