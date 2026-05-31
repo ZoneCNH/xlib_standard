@@ -1,6 +1,6 @@
 # 评审
 
-## 检查清单
+## Checklist
 
 - 独立 Go module。
 - 不依赖 `x.go`。

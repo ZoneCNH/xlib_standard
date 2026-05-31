@@ -156,7 +156,7 @@ x.go 的 Redis / Kafka / PostgreSQL / TDengine / OSS 等配置和密钥位于：
 - 在模板中定义 x.go 业务模型。
 - 使用 todo!/panic/未实现占位作为完成状态。
 - 只创建 README，不创建可执行脚本。
-- 只说“已完成”，不提供证据。
+- 只说“已完成”，不提供 Evidence。
 ```
 
 ---
@@ -324,7 +324,7 @@ AC-REQ-BT-006-002: 文档包含占位符说明。
 AC-REQ-BT-006-003: 文档明确基础库不得依赖 x.go。
 ```
 
-### REQ-BT-007：发布证据
+### REQ-BT-007：发布 Evidence
 
 必须提供：
 
@@ -1155,7 +1155,7 @@ jobs:
 make ci
 make release-check
 
-## 证据
+## Evidence
 
 完成声明必须包含 release manifest 和 CI Evidence。
 ```
@@ -1211,7 +1211,7 @@ make release-check
 
 ## 后果
 
-## 证据
+## Evidence
 ```
 
 ---
@@ -1251,7 +1251,7 @@ make release-check
 ```markdown
 # Harness 协议
 
-## 门禁
+## Gate
 
 - Context Gate
 - Goal Gate
@@ -1272,7 +1272,7 @@ make release-check
 包含：
 
 ```markdown
-# 证据
+# Evidence
 
 完成声明必须包含：
 
@@ -1306,14 +1306,14 @@ DONE with evidence:
 
 ## 规则补丁
 
-## CI 门禁建议
+## CI Gate 建议
 
 ## 新 Issue 候选
 ```
 
 ---
 
-# 14. 契约
+# 14. Contracts
 
 ## 14.1 contracts/config.schema.json
 
@@ -1410,7 +1410,7 @@ DONE with evidence:
 必须包含：
 
 ```markdown
-# 指标契约
+# Metrics Contract
 
 标准指标：
 
@@ -1515,7 +1515,7 @@ TASK-BT-028 创建 .agent/*
 TASK-BT-029 创建 release/manifest/template.json
 ```
 
-## 里程碑 7：验证和证据
+## 里程碑 7：验证和 Evidence
 
 ```text
 TASK-BT-030 运行 go test ./...
@@ -1543,7 +1543,7 @@ make evidence
 make release-check
 ```
 
-如果本地缺少 `golangci-lint` 或 `govulncheck`，可以跳过，但必须在证据中说明：
+如果本地缺少 `golangci-lint` 或 `govulncheck`，可以跳过，但必须在 Evidence 中说明：
 
 ```text
 golangci-lint 未安装，由 Makefile fallback 跳过
@@ -1552,7 +1552,7 @@ govulncheck 未安装，由 Makefile fallback 跳过
 
 ---
 
-# 18. 证据协议
+# 18. Evidence 协议
 
 最终必须输出：
 
@@ -1578,7 +1578,7 @@ DONE with evidence:
 
 ```text
 NOT DONE:
-- 失败门禁：
+- 失败 Gate：
 - 原因：
 - 已应用修复：
 - 剩余风险：
@@ -1588,7 +1588,7 @@ NOT DONE:
 
 ---
 
-# 19. 评审门禁
+# 19. Review Gate
 
 Review 必须检查：
 
@@ -1610,7 +1610,7 @@ Review 必须检查：
 
 ---
 
-# 20. 发布门禁
+# 20. Release Gate
 
 Release 前必须满足：
 
@@ -1686,7 +1686,7 @@ v0.1.0
 - 禁止基础库承载业务语义。
 - 禁止无 Evidence 声称 DONE。
 
-## CI 门禁建议
+## CI Gate 建议
 - 加入 CodeQL。
 - 加入 govulncheck 强制模式。
 - 加入覆盖率阈值。
@@ -1814,7 +1814,7 @@ DONE with evidence:
 - make contracts: passed
 - make evidence: passed
 
-证据：
+Evidence：
 - release/manifest/latest.json
 
 已知风险：
@@ -1830,10 +1830,10 @@ DONE with evidence:
 ```text
 NOT DONE:
 
-阻塞或失败门禁：
+阻塞或失败 Gate：
 - ...
 
-部分证据：
+部分 Evidence：
 - ...
 
 必需的下一项修复：

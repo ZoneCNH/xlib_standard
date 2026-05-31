@@ -1,16 +1,16 @@
 # Harness 协议
 
-## 门禁
+## Gate
 
-- 上下文门禁
-- 目标门禁
-- 规格门禁
-- 设计门禁
-- 计划门禁
-- 任务门禁
-- 实现门禁
-- 测试门禁
-- 证据门禁
-- 评审门禁
-- 发布门禁
-- 复盘门禁
+- Context Gate
+- Goal Gate
+- Spec Gate
+- Design Gate
+- Plan Gate
+- Task Gate
+- Implementation Gate
+- Test Gate
+- Evidence Gate
+- Review Gate
+- Release Gate
+- Retrospective Gate

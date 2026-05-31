@@ -5,7 +5,7 @@
 - `{{MODULE_NAME}}`
 - `{{PACKAGE_NAME}}`
 
-## 必需门禁
+## 必需 Gate
 
 - `go test ./...`
 - `go test -race ./...`

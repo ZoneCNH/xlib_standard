@@ -9,14 +9,14 @@
 - 添加 Makefile 命令。
 - 添加 Harness Gate 脚本。
 - 添加 GitHub Actions 工作流。
-- 添加契约文件。
+- 添加 contracts 文件。
 - 添加 Agent 运行时模板。
 - 添加 release manifest 模板。
 
 ### 安全
 
-- 添加密钥扫描门禁。
+- 添加 Secret Gate。
 
 ### 治理
 
-- 添加证据和复盘模板。
+- 添加 Evidence 和复盘模板。

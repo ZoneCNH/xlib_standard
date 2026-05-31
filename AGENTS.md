@@ -2,7 +2,7 @@
 
 ## 项目结构与模块组织
 
-本仓库是 Go 1.23 基础库模板，模块路径为 `github.com/bytechainx/baselib-template`。公共 API 位于 `pkg/templatex`；仅供内部使用的实现放在 `internal/`，当前包括 `sanitize`、`validation` 和 `runtime`。可复用测试工具在 `testkit/`，示例程序在 `examples/basic`、`examples/config` 和 `examples/health`。契约文件位于 `contracts/`，项目说明在 `docs/`，自动化脚本在 `scripts/`，发布证据生成到 `release/manifest/`。
+本仓库是 Go 1.23 基础库模板，模块路径为 `github.com/bytechainx/baselib-template`。公共 API 位于 `pkg/templatex`；仅供内部使用的实现放在 `internal/`，当前包括 `sanitize`、`validation` 和 `runtime`。可复用测试工具在 `testkit/`，示例程序在 `examples/basic`、`examples/config` 和 `examples/health`。contracts 文件位于 `contracts/`，项目说明在 `docs/`，自动化脚本在 `scripts/`，发布 Evidence 生成到 `release/manifest/`。
 
 ## 构建、测试与开发命令
 
@@ -11,8 +11,8 @@
 - `make test`：运行全部单元测试。
 - `make race`：使用 race detector 运行测试。
 - `make lint`：本机安装 `golangci-lint` 时执行静态检查。
-- `make ci`：运行格式化、vet、lint、测试、race、边界、安全和契约检查。
-- `make release-check`：运行 CI、集成测试和证据生成。
+- `make ci`：运行格式化、vet、lint、测试、race、Boundary、Security 和 contracts 检查。
+- `make release-check`：运行 CI、集成测试和 Evidence 生成。
 - `make evidence`：生成 release manifest。
 
 ## 编码风格与命名约定
@@ -25,7 +25,7 @@
 
 ## 提交与 Pull Request 规范
 
-当前 Git 历史较少，仅有 `Initial commit`，后续提交请使用简洁、祈使式、说明意图的标题，例如 `Add config validation boundary checks`。PR 需要说明对模板或库行为的影响，关联相关 issue，列出已运行命令，并说明生成的证据文件，例如 `release/manifest/latest.json`。只有文档渲染或界面变化需要截图。
+当前 Git 历史较少，仅有 `Initial commit`，后续提交请使用简洁、祈使式、说明意图的标题，例如 `Add config validation boundary checks`。PR 需要说明对模板或库行为的影响，关联相关 issue，列出已运行命令，并说明生成的 Evidence 文件，例如 `release/manifest/latest.json`。只有文档渲染或界面变化需要截图。
 
 ## 安全与边界规则
 

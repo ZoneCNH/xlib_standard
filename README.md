@@ -21,7 +21,7 @@
 - `internal/`：脱敏、校验和运行时说明等内部辅助代码。
 - `testkit/`：可复用测试夹具和断言。
 - `examples/`：最小使用示例。
-- `contracts/`：JSON schema 和指标契约。
+- `contracts/`：JSON schema 和 metrics contract。
 - `docs/`：规格、设计、API、配置、测试和发布模板。
 - `scripts/`：Harness Gate 脚本。
 - `.agent/`：Goal Runtime 工件、Evidence、评审、发布和复盘模板。

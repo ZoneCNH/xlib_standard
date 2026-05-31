@@ -7,7 +7,7 @@
 
 ## 指标
 
-使用 `contracts/metrics.md` 中的指标契约。
+使用 `contracts/metrics.md` 中的 metrics contract。
 
 ## 健康检查
 

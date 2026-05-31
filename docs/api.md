@@ -10,11 +10,11 @@
 
 - `Config`：由用户显式提供的配置。
 - `Validate`：拒绝无效配置。
-- `Sanitize`：在日志或证据采集前屏蔽敏感值。
+- `Sanitize`：在日志或 Evidence 采集前屏蔽敏感值。
 - `New`：基于显式配置创建客户端。
 - `Close`：释放资源，并且必须幂等。
 - `HealthCheck`：报告客户端健康状态。
-- `Error`：稳定错误契约。
+- `Error`：稳定 error contract。
 - `Metrics`：注入式指标钩子。
 - `Version`：发布版本。
 

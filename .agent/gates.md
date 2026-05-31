@@ -1,4 +1,4 @@
-# 门禁
+# Gate
 
 - Boundary Gate：`make boundary`
 - Secret Gate：`make security`
