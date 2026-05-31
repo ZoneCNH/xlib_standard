@@ -54,6 +54,7 @@
 make ci
 make ci-extended
 make release-check
+make release-preflight VERSION=v0.1.0
 make evidence
 ```
 

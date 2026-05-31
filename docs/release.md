@@ -29,6 +29,14 @@ GOWORK=off make release-final-check
 
 `release-final-check` 会在完整 gate 之后要求 `release/manifest/latest.json` 与当前 HEAD、源码摘要、contract 指纹和依赖清单一致，并要求 git 工作区为 `clean`。它适合在打 tag 或发布前运行；开发中的 `release-check` 允许工作区因为未提交改动显示为 `dirty`，但仍会校验 manifest 与当前内容一致。
 
+打 tag 前推荐使用 release preflight：
+
+```bash
+make release-preflight VERSION=v0.1.0
+```
+
+`release-preflight` 会先检查版本号、当前分支、工作区洁净状态、`main` 与 `origin/main` 是否一致、目标 tag 是否已存在、`CHANGELOG.md` 是否包含目标版本，以及 `golangci-lint` / `govulncheck` 是否已安装；随后以 `GOWORK=off` 运行 `release-final-check`。tag 应在该入口通过后再创建和推送。
+
 ## Required Release Check
 
 `make release-check` 是默认发布门禁，必须通过：
