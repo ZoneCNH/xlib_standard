@@ -1,5 +1,11 @@
 # 变更日志
 
+## 未发布
+
+### 修复
+
+- Release Check workflow 在运行 `make release-check` 前安装 `golangci-lint` 和 `govulncheck`，并使用 `GOWORK=off`，与 CI 的强制 gate 环境保持一致。
+
 ## v0.1.0 - 2026-06-01
 
 ### 新增
