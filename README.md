@@ -42,6 +42,7 @@
 - [错误模型](docs/errors.md)：`ErrorKind`、`NewError`、`WrapError` 和重试语义。
 - [可观测性](docs/observability.md)：指标名、健康状态和 JSON 字段。
 - [测试](docs/testing.md)：单元、race、contracts、boundary 和 release 验证要求。
+- [供应链](docs/supply-chain.md)：可校验 release Evidence、源码摘要、contract 指纹、依赖清单和 CI artifact。
 - [发布](docs/release.md)：`release-check`、manifest 字段和 Evidence 规则。
 
 ## 命令
@@ -72,7 +73,7 @@ GOWORK=off make release-check
 
 ## Evidence
 
-完成需要 release manifest 和 CI Evidence。`release/manifest/latest.json` 是生成产物，不提交到源码历史；它会记录 module、commit、Go 版本、生成时间、工作区状态和 gate 结果，并由 CI release workflow 上传为 artifact。最终完成声明必须包含 `DONE with evidence:`。
+完成需要 release manifest 和 CI Evidence。`release/manifest/latest.json` 是生成产物，不提交到源码历史；它会记录 module、commit、tree SHA、源码摘要、contract 指纹、依赖清单、工具版本、生成时间、工作区状态和 gate 结果，并由 CI 上传为 artifact。`make release-evidence-check` 会验证 manifest 与当前仓库事实一致，`make release-final-check` 会额外要求工作区为 `clean`。最终完成声明必须包含 `DONE with evidence:`。
 
 ## Smoke 覆盖
 
