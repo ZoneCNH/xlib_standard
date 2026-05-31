@@ -20,6 +20,17 @@ GOWORK=off make release-check
 
 `GOWORK=off` 用于证明模板不依赖父级 workspace。
 
+## Gate 工具契约
+
+`make ci` 中的 `make lint` 和 `make security` 是强制 gate。运行前必须可用：
+
+- `golangci-lint`
+- `govulncheck`
+
+缺少任一工具时，本地 Makefile 必须硬失败。GitHub Actions CI 会在运行 `make ci` 前安装 `golangci-lint` 和 `govulncheck`，以保证本地与 CI 对同一组强制 gate 负责。
+
+`make security` 必须同时运行 `govulncheck ./...` 和 `scripts/check_secrets.sh`；不得把漏洞扫描降级为可选检查。
+
 ## Evidence
 
 发布 Evidence 生成到 `release/manifest/latest.json`，该文件是生成产物，不提交到源码历史。提交到仓库的是 `release/manifest/template.json`；CI release workflow 会上传 `latest.json` 作为 artifact。
