@@ -7,5 +7,5 @@
 - TASK-BT-005：创建 Harness Gate 脚本。
 - TASK-BT-006：创建 CI 工作流。
 - TASK-BT-007：创建文档和 contracts。
-- TASK-BT-008：创建证据和 release manifest。
+- TASK-BT-008：创建 Evidence 和 release manifest。
 - TASK-BT-009：运行验证。

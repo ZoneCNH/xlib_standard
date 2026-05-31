@@ -18,7 +18,7 @@
 ## Harness 补丁
 
 - 后续加入 public API hash gate。
-- 后续加入配置 schema 哈希门禁。
+- 后续加入 config schema hash gate。
 
 ## 规则补丁
 

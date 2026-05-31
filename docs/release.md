@@ -6,7 +6,7 @@
 - `{{MODULE_PATH}}`
 - `{{PACKAGE_NAME}}`
 
-## 发布门禁
+## Release Gate
 
 - `go test ./...`
 - `go test -race ./...`
@@ -15,12 +15,12 @@
 - `make contracts`
 - `make evidence`
 
-## 证据
+## Evidence
 
-发布证据生成到 `release/manifest/latest.json`。
+发布 Evidence 生成到 `release/manifest/latest.json`。
 
 ## 规则
 
-- 没有证据不得发布。
-- 不得在清单、PR、Issue 或变更日志条目中包含原始凭据。
+- 没有 Evidence 不得发布。
+- 不得在 release manifest、PR、Issue 或变更日志条目中包含原始凭据。
 - 不得依赖 `x.go`。
