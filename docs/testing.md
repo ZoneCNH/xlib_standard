@@ -27,6 +27,7 @@
 
 ## 必需覆盖范围
 
+- `go test ./...` 必须覆盖公共包、`internal/`、`contracts/`、`testkit/` 和 `examples/`。
 - 配置校验。
 - 配置脱敏。
 - typed error kind 和 wrapped cause。
@@ -38,5 +39,13 @@
 - `contracts/` 与公共常量同步。
 - `contracts/config.schema.json` 与 `Config` 字段映射同步。
 - `scripts/render_template.sh` 生成的临时 `foundationx` 可以通过 `GOWORK=off go test ./...`。
+
+## 示例与 testkit Smoke
+
+- `examples/basic` 必须输出当前 module name。
+- `examples/config` 必须输出脱敏后的 secret 值。
+- `examples/health` 必须输出 `healthy`。
+- `testkit` 必须验证 `Config("fixture")` 生成可通过 `Validate` 的测试配置。
+- `testkit.RequireNoError` 必须接受 `nil`，作为生成库测试断言的最小契约。
 
 生成的基础库必须保持测试独立于 `x.go`。

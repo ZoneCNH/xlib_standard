@@ -10,7 +10,8 @@
 - `make vet`：执行 `go vet ./...`。
 - `make test`：运行全部单元测试。
 - `make race`：使用 race detector 运行测试。
-- `make lint`：本机安装 `golangci-lint` 时执行静态检查。
+- `make lint`：执行 `golangci-lint run ./...`；缺少 `golangci-lint` 时必须失败。
+- `make security`：执行 `govulncheck ./...` 和 `scripts/check_secrets.sh`；缺少 `govulncheck` 时必须失败。
 - `make ci`：运行格式化、vet、lint、测试、race、Boundary、Security 和 contracts 检查。
 - `make release-check`：运行 CI、集成测试和 Evidence 生成。
 - `make evidence`：生成 release manifest。
@@ -21,11 +22,11 @@
 
 ## 测试规范
 
-测试使用 Go 标准 `testing` 包，命名遵循 `TestXxx`；场景较多时优先使用表驱动测试。必须覆盖配置校验、配置脱敏、客户端创建、幂等关闭，以及健康和非健康状态检查。小改动至少运行 `go test ./...`；涉及并发时运行 `make race`；影响发布流程时运行 `make integration`。
+测试使用 Go 标准 `testing` 包，命名遵循 `TestXxx`；场景较多时优先使用表驱动测试。必须覆盖配置校验、配置脱敏、客户端创建、幂等关闭、健康和非健康状态检查、示例 smoke 输出、`testkit` 夹具和 contracts 映射。小改动至少运行 `go test ./...`；涉及并发时运行 `make race`；影响发布流程时运行 `make integration`。
 
 ## 提交与 Pull Request 规范
 
-当前 Git 历史较少，仅有 `Initial commit`，后续提交请使用简洁、祈使式、说明意图的标题，例如 `Add config validation boundary checks`。PR 需要说明对模板或库行为的影响，关联相关 issue，列出已运行命令，并说明生成的 Evidence 文件，例如 `release/manifest/latest.json`。只有文档渲染或界面变化需要截图。
+提交信息必须遵循 Lore protocol：第一行说明变更意图，正文使用 `Constraint:`、`Rejected:`、`Confidence:`、`Scope-risk:`、`Directive:`、`Tested:` 和 `Not-tested:` 等 trailer 记录决策和验证。PR 需要说明对模板或库行为的影响，关联相关 issue，列出已运行命令，并说明生成的 Evidence artifact，例如 `release/manifest/latest.json`。`latest.json` 是生成产物，不提交到源码历史；只有文档渲染或界面变化需要截图。
 
 ## 安全与边界规则
 

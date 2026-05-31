@@ -46,7 +46,7 @@
 
 ## 命令
 
-本地运行完整 gate 前需要安装 `golangci-lint` 和 `govulncheck`；CI 会显式安装这两个工具。
+本地运行完整 gate 前需要安装 `golangci-lint` 和 `govulncheck`；CI 会显式安装这两个工具。缺少任一工具时，`make lint` 或 `make security` 必须失败，不允许把必需 gate 记录为跳过。
 
 ```bash
 make ci
@@ -73,3 +73,7 @@ GOWORK=off make release-check
 ## Evidence
 
 完成需要 release manifest 和 CI Evidence。`release/manifest/latest.json` 是生成产物，不提交到源码历史；它会记录 module、commit、Go 版本、生成时间、工作区状态和 gate 结果，并由 CI release workflow 上传为 artifact。最终完成声明必须包含 `DONE with evidence:`。
+
+## Smoke 覆盖
+
+`go test ./...` 必须覆盖公共包、`internal/`、`contracts/`、`testkit/` 和 `examples/`。当前示例 smoke 测试会验证 `examples/basic` 输出模块名、`examples/config` 输出脱敏值、`examples/health` 输出健康状态，防止文档示例和模板行为漂移。

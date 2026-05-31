@@ -8,7 +8,7 @@
 ## 失败项
 
 - 最终验证运行中没有必需 Gate 失败。
-- 可选的 `govulncheck` 因本地未安装而跳过。
+- `govulncheck` 已从可选检查收紧为强制 Security Gate；缺失时必须失败，不能跳过。
 
 ## 提示补丁
 
@@ -29,7 +29,7 @@
 ## CI Gate 建议
 
 - 加入 CodeQL。
-- 加入 govulncheck 强制模式。
+- 保留 govulncheck 强制模式。
 - 加入覆盖率阈值。
 
 ## 新 Issue 候选
