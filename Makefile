@@ -51,4 +51,5 @@ evidence:
 ci: fmt vet lint test race boundary security contracts
 
 .PHONY: release-check
-release-check: ci integration evidence
+release-check: ci integration
+	CHECK_STATUS=passed $(MAKE) evidence

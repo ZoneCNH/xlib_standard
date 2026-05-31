@@ -7,6 +7,8 @@
 > 默认执行模式：Full。
 > 完成声明必须使用：`DONE with evidence:`。
 
+> 当前实现对齐说明：本文件保留为完整 Goal Prompt 和历史蓝图，当前仓库实现已经在 `README.md`、`docs/api.md`、`docs/design.md`、`docs/observability.md`、`docs/release.md`、`docs/testing.md`、`contracts/` 和 `release/manifest/template.json` 中收敛为可执行事实。以当前代码为准的差异包括：`make release-check` 先运行 CI 与 integration，再以 `CHECK_STATUS=passed` 生成 Evidence；manifest 包含 `generated_by`、`go_version`、`tree_state`、`lint`、`security` 和 `integration`；`HealthStatus` 使用 snake_case JSON 字段；metrics contract 覆盖 client 创建、关闭、错误、健康、请求、重试和 inflight 指标；错误模型公开 `NewError`、`WrapError` 和 `IsKind`。
+
 ---
 
 # 0. 执行总提示
@@ -109,7 +111,7 @@ Full 模式要求：
 
 ```text
 1. 独立 Go module。
-2. 不依赖 github.com/bytechainx/x.go。
+2. 不依赖 github.com/bytechainx/x.go 或 github.com/ZoneCNH/x.go。
 3. 不依赖 x.go/internal/*。
 4. 不包含 BTCUSDT、Kline、MacroRegime、TradingSignal、OrderBook、Position、RiskGate 等业务语义。
 5. 不持有隐式全局 client。
@@ -152,7 +154,7 @@ x.go 的 Redis / Kafka / PostgreSQL / TDengine / OSS 等配置和密钥位于：
 ```text
 - 在模板中写入任何真实密钥。
 - 在模板中硬编码生产连接地址。
-- 在模板中 import github.com/bytechainx/x.go。
+- 在模板中 import github.com/bytechainx/x.go 或 github.com/ZoneCNH/x.go。
 - 在模板中定义 x.go 业务模型。
 - 使用 todo!/panic/未实现占位作为完成状态。
 - 只创建 README，不创建可执行脚本。
@@ -459,7 +461,7 @@ baselib-template/
 
 ```text
 templatex 是模板自身可编译示例包。
-后续生成 foundationx/postgresx 等库时，可以把 templatex 替换为实际包名。
+后续生成 foundationx/postgresx 等库时，应使用 scripts/render_template.sh 统一替换 module path、package name、目录名、imports 和文档占位符。
 ```
 
 ---
@@ -622,48 +624,90 @@ const (
 )
 
 type HealthStatus struct {
-	Name      string
-	Status    HealthStatusValue
-	Message   string
-	CheckedAt time.Time
-	LatencyMs int64
-	Metadata  map[string]string
+	Name      string            `json:"name"`
+	Status    HealthStatusValue `json:"status"`
+	Message   string            `json:"message,omitempty"`
+	CheckedAt time.Time         `json:"checked_at"`
+	LatencyMs int64             `json:"latency_ms"`
+	Metadata  map[string]string `json:"metadata,omitempty"`
 }
 
 func (c *Client) HealthCheck(ctx context.Context) HealthStatus {
 	start := time.Now()
+	name := "templatex"
+	var metrics Metrics
+	initialized := false
+	closed := true
+
+	if c != nil {
+		c.mu.Lock()
+		name = c.cfg.Name
+		metrics = c.metrics
+		initialized = c.initialized
+		closed = c.closed
+		c.mu.Unlock()
+		if name == "" {
+			name = "templatex"
+		}
+	}
+
+	if ctx == nil {
+		status := HealthStatus{
+			Name:      name,
+			Status:    HealthUnhealthy,
+			Message:   "context is required",
+			CheckedAt: time.Now(),
+			LatencyMs: time.Since(start).Milliseconds(),
+		}
+		recordHealthMetric(metrics, status)
+		return status
+	}
 
 	if err := ctx.Err(); err != nil {
-		return HealthStatus{
-			Name:      "templatex",
+		status := HealthStatus{
+			Name:      name,
 			Status:    HealthUnhealthy,
 			Message:   err.Error(),
 			CheckedAt: time.Now(),
 			LatencyMs: time.Since(start).Milliseconds(),
 		}
+		recordHealthMetric(metrics, status)
+		return status
 	}
 
-	c.mu.Lock()
-	closed := c.closed
-	c.mu.Unlock()
+	if !initialized {
+		status := HealthStatus{
+			Name:      name,
+			Status:    HealthUnhealthy,
+			Message:   "client is not initialized",
+			CheckedAt: time.Now(),
+			LatencyMs: time.Since(start).Milliseconds(),
+		}
+		recordHealthMetric(metrics, status)
+		return status
+	}
 
 	if closed {
-		return HealthStatus{
-			Name:      "templatex",
+		status := HealthStatus{
+			Name:      name,
 			Status:    HealthUnhealthy,
 			Message:   "client is closed",
 			CheckedAt: time.Now(),
 			LatencyMs: time.Since(start).Milliseconds(),
 		}
+		recordHealthMetric(metrics, status)
+		return status
 	}
 
-	return HealthStatus{
-		Name:      "templatex",
+	status := HealthStatus{
+		Name:      name,
 		Status:    HealthHealthy,
 		Message:   "ok",
 		CheckedAt: time.Now(),
 		LatencyMs: time.Since(start).Milliseconds(),
 	}
+	recordHealthMetric(metrics, status)
+	return status
 }
 ```
 
@@ -767,7 +811,8 @@ const (
 // Config, Validate, Sanitize, New, Close, HealthCheck, Error model, Metrics hooks,
 // tests, examples, contracts, CI gates, release manifest, and agent evidence.
 //
-// This package must not depend on github.com/bytechainx/x.go or any x.go internal package.
+// This package must not depend on github.com/bytechainx/x.go, github.com/ZoneCNH/x.go,
+// or any x.go internal package.
 package templatex
 ```
 
@@ -785,10 +830,18 @@ set -euo pipefail
 
 echo "checking forbidden dependency on x.go..."
 
-if go list -deps ./... | grep -q "github.com/bytechainx/x.go"; then
-  echo "ERROR: base library template must not depend on x.go"
-  exit 1
-fi
+FORBIDDEN_DEPS=(
+  "github.com/bytechainx/x.go"
+  "github.com/ZoneCNH/x.go"
+)
+
+DEPS="$(go list -deps ./...)"
+for dep in "${FORBIDDEN_DEPS[@]}"; do
+  if grep -Fq "$dep" <<<"$DEPS"; then
+    echo "ERROR: base library template must not depend on x.go dependency: $dep"
+    exit 1
+  fi
+done
 
 echo "checking forbidden business terms..."
 
@@ -894,6 +947,23 @@ VERSION="${VERSION:-v0.1.0}"
 COMMIT="$(git rev-parse HEAD 2>/dev/null || echo unknown)"
 GO_VERSION="$(go version | awk '{print $3}')"
 GENERATED_AT="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+GENERATED_BY="${GENERATED_BY:-scripts/generate_manifest.sh}"
+CHECK_STATUS="${CHECK_STATUS:-unknown}"
+FMT_STATUS="${FMT_STATUS:-$CHECK_STATUS}"
+VET_STATUS="${VET_STATUS:-$CHECK_STATUS}"
+LINT_STATUS="${LINT_STATUS:-$CHECK_STATUS}"
+UNIT_TEST_STATUS="${UNIT_TEST_STATUS:-$CHECK_STATUS}"
+RACE_TEST_STATUS="${RACE_TEST_STATUS:-$CHECK_STATUS}"
+BOUNDARY_STATUS="${BOUNDARY_STATUS:-$CHECK_STATUS}"
+SECRET_SCAN_STATUS="${SECRET_SCAN_STATUS:-$CHECK_STATUS}"
+SECURITY_STATUS="${SECURITY_STATUS:-$CHECK_STATUS}"
+CONTRACT_STATUS="${CONTRACT_STATUS:-$CHECK_STATUS}"
+INTEGRATION_STATUS="${INTEGRATION_STATUS:-$CHECK_STATUS}"
+if [[ -z "$(git status --porcelain --untracked-files=all 2>/dev/null)" ]]; then
+  TREE_STATE="clean"
+else
+  TREE_STATE="dirty"
+fi
 
 cat > release/manifest/latest.json <<JSON
 {
@@ -902,14 +972,19 @@ cat > release/manifest/latest.json <<JSON
   "commit": "${COMMIT}",
   "go_version": "${GO_VERSION}",
   "generated_at": "${GENERATED_AT}",
+  "generated_by": "${GENERATED_BY}",
+  "tree_state": "${TREE_STATE}",
   "checks": {
-    "fmt": "manual-or-ci",
-    "vet": "manual-or-ci",
-    "unit_test": "manual-or-ci",
-    "race_test": "manual-or-ci",
-    "boundary": "manual-or-ci",
-    "secret_scan": "manual-or-ci",
-    "contract": "manual-or-ci"
+    "fmt": "${FMT_STATUS}",
+    "vet": "${VET_STATUS}",
+    "lint": "${LINT_STATUS}",
+    "unit_test": "${UNIT_TEST_STATUS}",
+    "race_test": "${RACE_TEST_STATUS}",
+    "boundary": "${BOUNDARY_STATUS}",
+    "secret_scan": "${SECRET_SCAN_STATUS}",
+    "security": "${SECURITY_STATUS}",
+    "contract": "${CONTRACT_STATUS}",
+    "integration": "${INTEGRATION_STATUS}"
   },
   "artifacts": [
     "release/manifest/latest.json"
@@ -996,7 +1071,8 @@ evidence:
 ci: fmt vet lint test race boundary security contracts
 
 .PHONY: release-check
-release-check: ci integration evidence
+release-check: ci integration
+	CHECK_STATUS=passed $(MAKE) evidence
 ```
 
 ---
@@ -1419,7 +1495,10 @@ DONE with evidence:
 - client_errors_total
 - client_retries_total
 - client_inflight
+- client_created_total
+- client_closed_total
 - client_health_status
+- client_health_latency_ms
 ```
 
 ---
@@ -1569,7 +1648,7 @@ DONE with evidence:
 - make security: passed。
 - make contracts: passed。
 - make evidence: generated release/manifest/latest.json。
-- 未依赖 github.com/bytechainx/x.go。
+- 未依赖 github.com/bytechainx/x.go 或 github.com/ZoneCNH/x.go。
 - pkg/internal 中没有业务语义。
 - 未检测到密钥。
 ```

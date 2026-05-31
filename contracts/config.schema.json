@@ -10,6 +10,9 @@
     "timeout_ms": {
       "type": "integer",
       "minimum": 0
+    },
+    "secret": {
+      "type": "string"
     }
   },
   "additionalProperties": true
