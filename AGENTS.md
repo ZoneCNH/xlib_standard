@@ -2,7 +2,7 @@
 
 ## 项目结构与模块组织
 
-本仓库是 Go 1.23 基础库模板，模块路径为 `github.com/bytechainx/baselib-template`。公共 API 位于 `pkg/templatex`；仅供内部使用的实现放在 `internal/`，当前包括 `sanitize`、`validation` 和 `runtime`。可复用测试工具在 `testkit/`，示例程序在 `examples/basic`、`examples/config` 和 `examples/health`。contracts 文件位于 `contracts/`，项目说明在 `docs/`，自动化脚本在 `scripts/`，发布 Evidence 生成到 `release/manifest/`。
+本仓库是 Go 1.23 基础库模板，模块路径为 `github.com/ZoneCNH/baselib-template`。公共 API 位于 `pkg/templatex`；仅供内部使用的实现放在 `internal/`，当前包括 `sanitize`、`validation` 和 `runtime`。可复用测试工具在 `testkit/`，示例程序在 `examples/basic`、`examples/config` 和 `examples/health`。contracts 文件位于 `contracts/`，项目说明在 `docs/`，自动化脚本在 `scripts/`，发布 Evidence 生成到 `release/manifest/`。
 
 ## 构建、测试与开发命令
 

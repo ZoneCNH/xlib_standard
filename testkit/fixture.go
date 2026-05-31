@@ -3,7 +3,7 @@ package testkit
 import (
 	"time"
 
-	"github.com/bytechainx/baselib-template/pkg/templatex"
+	"github.com/ZoneCNH/baselib-template/pkg/templatex"
 )
 
 func Config(name string) templatex.Config {

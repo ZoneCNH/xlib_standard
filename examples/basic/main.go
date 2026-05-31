@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/bytechainx/baselib-template/pkg/templatex"
+	"github.com/ZoneCNH/baselib-template/pkg/templatex"
 )
 
 func main() {

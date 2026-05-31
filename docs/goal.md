@@ -178,7 +178,7 @@ x.go 的 Redis / Kafka / PostgreSQL / TDengine / OSS 等配置和密钥位于：
 如果某个上下文缺失，不要停止执行。使用合理默认值继续：
 
 ```text
-module path 默认：github.com/bytechainx/baselib-template
+module path 默认：github.com/ZoneCNH/baselib-template
 Go 版本默认：1.23
 许可证默认：MIT 或当前组织默认许可证
 模板占位符：{{MODULE_NAME}}, {{MODULE_PATH}}, {{PACKAGE_NAME}}
@@ -471,7 +471,7 @@ templatex 是模板自身可编译示例包。
 必须创建：
 
 ```go
-module github.com/bytechainx/baselib-template
+module github.com/ZoneCNH/baselib-template
 
 go 1.23
 ```
@@ -751,7 +751,7 @@ func (NoopMetrics) SetGauge(name string, value float64, labels map[string]string
 package templatex
 
 const (
-	ModuleName = "github.com/bytechainx/baselib-template"
+	ModuleName = "github.com/ZoneCNH/baselib-template"
 	Version    = "v0.1.0"
 )
 ```

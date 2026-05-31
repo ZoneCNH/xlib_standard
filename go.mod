@@ -1,3 +1,3 @@
-module github.com/bytechainx/baselib-template
+module github.com/ZoneCNH/baselib-template
 
 go 1.23
