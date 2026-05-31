@@ -17,4 +17,6 @@ for file in "${REQUIRED_FILES[@]}"; do
   fi
 done
 
+go test ./contracts
+
 echo "contract check passed"

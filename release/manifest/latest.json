@@ -1,17 +1,22 @@
 {
   "module": "github.com/ZoneCNH/baselib-template",
   "version": "v0.1.0",
-  "commit": "1c71d2ea7d7ad2622d351892f21fe34f6c2d031a",
+  "commit": "b9c397fa0aa240d92489dd83510e52f105af0e25",
   "go_version": "go1.26.3",
-  "generated_at": "2026-05-31T21:16:35Z",
+  "generated_at": "2026-05-31T22:04:38Z",
+  "generated_by": "scripts/generate_manifest.sh",
+  "tree_state": "dirty",
   "checks": {
-    "fmt": "manual-or-ci",
-    "vet": "manual-or-ci",
-    "unit_test": "manual-or-ci",
-    "race_test": "manual-or-ci",
-    "boundary": "manual-or-ci",
-    "secret_scan": "manual-or-ci",
-    "contract": "manual-or-ci"
+    "fmt": "passed",
+    "vet": "passed",
+    "lint": "passed",
+    "unit_test": "passed",
+    "race_test": "passed",
+    "boundary": "passed",
+    "secret_scan": "passed",
+    "security": "passed",
+    "contract": "passed",
+    "integration": "passed"
   },
   "artifacts": [
     "release/manifest/latest.json"

@@ -10,12 +10,18 @@ func TestConfigValidateRequiresName(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected missing name to fail validation")
 	}
+	if !IsKind(err, ErrorKindValidation) {
+		t.Fatalf("expected validation error, got %T %[1]v", err)
+	}
 }
 
 func TestConfigValidateRejectsNegativeTimeout(t *testing.T) {
 	err := Config{Name: "templatex", Timeout: -time.Second}.Validate()
 	if err == nil {
 		t.Fatal("expected negative timeout to fail validation")
+	}
+	if !IsKind(err, ErrorKindValidation) {
+		t.Fatalf("expected validation error, got %T %[1]v", err)
 	}
 }
 

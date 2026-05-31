@@ -3,6 +3,9 @@ package templatex
 import (
 	"errors"
 	"time"
+
+	"github.com/ZoneCNH/baselib-template/internal/sanitize"
+	"github.com/ZoneCNH/baselib-template/internal/validation"
 )
 
 type Config struct {
@@ -18,23 +21,20 @@ type SanitizedConfig struct {
 }
 
 func (c Config) Validate() error {
-	if c.Name == "" {
-		return errors.New("name is required")
+	if err := validation.RequireNonEmpty("name", c.Name); err != nil {
+		return validationError("Config.Validate", err.Error(), err)
 	}
 	if c.Timeout < 0 {
-		return errors.New("timeout must not be negative")
+		err := errors.New("timeout must not be negative")
+		return validationError("Config.Validate", err.Error(), err)
 	}
 	return nil
 }
 
 func (c Config) Sanitize() SanitizedConfig {
-	secret := ""
-	if c.Secret != "" {
-		secret = "***"
-	}
 	return SanitizedConfig{
 		Name:    c.Name,
 		Timeout: c.Timeout,
-		Secret:  secret,
+		Secret:  sanitize.Secret(c.Secret),
 	}
 }

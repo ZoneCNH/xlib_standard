@@ -7,19 +7,29 @@
 
 ## 必需 Gate
 
-- `go test ./...`
-- `go test -race ./...`
+- `make fmt`
+- `make vet`
+- `make lint`
+- `make test`
+- `make race`
 - `make boundary`
 - `make security`
 - `make contracts`
+- `make integration`
 - `make evidence`
 
 ## 必需覆盖范围
 
 - 配置校验。
 - 配置脱敏。
-- 客户端创建。
-- 幂等关闭。
+- typed error kind 和 wrapped cause。
+- 客户端创建、取消 context、过期 context。
+- 幂等关闭、zero-value client、取消 context。
 - 健康与非健康状态检查。
+- 健康检查 JSON 字段 contract。
+- 生命周期 metrics 和健康 metrics。
+- `contracts/` 与公共常量同步。
+- `contracts/config.schema.json` 与 `Config` 字段映射同步。
+- `scripts/render_template.sh` 生成的临时 `foundationx` 可以通过 `GOWORK=off go test ./...`。
 
 生成的基础库必须保持测试独立于 `x.go`。

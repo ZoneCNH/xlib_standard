@@ -2,14 +2,21 @@
   "module": "{{MODULE_PATH}}",
   "version": "v0.1.0",
   "commit": "{{COMMIT}}",
+  "go_version": "{{GO_VERSION}}",
+  "generated_at": "{{GENERATED_AT}}",
+  "generated_by": "scripts/generate_manifest.sh",
+  "tree_state": "{{TREE_STATE}}",
   "checks": {
     "fmt": "{{CHECK_STATUS}}",
     "vet": "{{CHECK_STATUS}}",
+    "lint": "{{CHECK_STATUS}}",
     "unit_test": "{{CHECK_STATUS}}",
     "race_test": "{{CHECK_STATUS}}",
     "boundary": "{{CHECK_STATUS}}",
     "secret_scan": "{{CHECK_STATUS}}",
-    "contract": "{{CHECK_STATUS}}"
+    "security": "{{CHECK_STATUS}}",
+    "contract": "{{CHECK_STATUS}}",
+    "integration": "{{CHECK_STATUS}}"
   },
   "artifacts": [
     "release/manifest/latest.json"

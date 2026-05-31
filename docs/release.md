@@ -8,19 +8,40 @@
 
 ## Release Gate
 
-- `go test ./...`
-- `go test -race ./...`
-- `make boundary`
-- `make security`
-- `make contracts`
+- `make ci`
+- `make integration`
 - `make evidence`
+
+推荐入口是：
+
+```bash
+GOWORK=off make release-check
+```
+
+`GOWORK=off` 用于证明模板不依赖父级 workspace。
 
 ## Evidence
 
-发布 Evidence 生成到 `release/manifest/latest.json`。
+发布 Evidence 生成到 `release/manifest/latest.json`，至少包含：
+
+- `module`
+- `version`
+- `commit`
+- `go_version`
+- `generated_at`
+- `generated_by`
+- `tree_state`
+- `checks`
+- `artifacts`
+- `notes`
+
+`make release-check` 成功后会以 `CHECK_STATUS=passed` 生成 manifest。若单独运行 `make evidence`，未显式传入的检查状态默认为 `unknown`。
+
+`make integration` 会调用 `scripts/render_template.sh` 生成临时 `foundationx`，并在生成目录内运行 `GOWORK=off go test ./...`。这一步用于证明模板替换、包目录迁移和 imports 对齐仍然可用。
 
 ## 规则
 
 - 没有 Evidence 不得发布。
+- `tree_state` 为 `dirty` 时可以生成 Evidence，但发布前必须明确说明未提交或生成中的文件。
 - 不得在 release manifest、PR、Issue 或变更日志条目中包含原始凭据。
-- 不得依赖 `x.go`。
+- 不得依赖 `github.com/bytechainx/x.go` 或 `github.com/ZoneCNH/x.go`。
