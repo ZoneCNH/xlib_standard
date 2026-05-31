@@ -7,6 +7,13 @@
 
 ## 必需 Gate
 
+本地执行 gate 前必须可用：
+
+- `golangci-lint`
+- `govulncheck`
+
+缺少上述工具时，`make lint` 或 `make security` 必须失败。
+
 - `make fmt`
 - `make vet`
 - `make lint`

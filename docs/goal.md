@@ -1039,7 +1039,8 @@ lint:
 	@if command -v golangci-lint >/dev/null 2>&1; then \
 		golangci-lint run ./...; \
 	else \
-		echo "golangci-lint not installed, skipping"; \
+		echo "golangci-lint not installed"; \
+		exit 1; \
 	fi
 
 .PHONY: integration
@@ -1051,7 +1052,8 @@ security:
 	@if command -v govulncheck >/dev/null 2>&1; then \
 		govulncheck ./...; \
 	else \
-		echo "govulncheck not installed, skipping"; \
+		echo "govulncheck not installed"; \
+		exit 1; \
 	fi
 	./scripts/check_secrets.sh
 
@@ -1110,6 +1112,12 @@ jobs:
             ~/.cache/go-build
             ~/go/pkg/mod
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+
+      - name: Install golangci-lint
+        run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6
+
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
 
       - name: CI
         run: make ci
@@ -1622,11 +1630,11 @@ make evidence
 make release-check
 ```
 
-如果本地缺少 `golangci-lint` 或 `govulncheck`，可以跳过，但必须在 Evidence 中说明：
+本地必须安装 `golangci-lint` 和 `govulncheck`。缺失时 Makefile 必须硬失败，不能把必需 gate 记录为跳过：
 
 ```text
-golangci-lint 未安装，由 Makefile fallback 跳过
-govulncheck 未安装，由 Makefile fallback 跳过
+golangci-lint not installed
+govulncheck not installed
 ```
 
 ---
@@ -1767,7 +1775,7 @@ v0.1.0
 
 ## CI Gate 建议
 - 加入 CodeQL。
-- 加入 govulncheck 强制模式。
+- 保留 govulncheck 强制模式。
 - 加入覆盖率阈值。
 
 ## 新 Issue 候选
