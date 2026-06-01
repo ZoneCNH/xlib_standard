@@ -1,0 +1,44 @@
+# Release Scorecard
+
+`go run ./cmd/xlibgate score --min 9.8` 是发布质量分的可执行入口，默认输出 JSON，并在分数低于 `--min` 时以非零状态失败。分数不会替代 `make ci`、`make security` 或 `make release-final-check`，而是把 release manifest、workflow artifact、security gate、retrospective patch 和文档约束汇总为一个可审计信号。
+
+## 评分规则
+
+当前满分为 10.0，默认发布阈值为 9.8。每个维度权重为 1.0，全部通过时得到 10.0；缺失任一维度会按权重扣分。评分维度如下：
+
+| 维度 | 证明内容 |
+| --- | --- |
+| `scorecard_doc` | 本文件记录评分规则和阈值。 |
+| `manifest_score_schema` | `release/manifest/template.json` 包含 `score`、`workflow_run_id`、`artifact_url`。 |
+| `score_cli` | `cmd/xlibgate` 提供 `score --min` 命令。 |
+| `score_gate` | `Makefile` 在 release gate 中执行 score threshold。 |
+| `manifest_min_score_verify` | `scripts/check_release_evidence.sh` 把 `RELEASE_EVIDENCE_MIN_SCORE` 传入 manifest 校验。 |
+| `security_gate` | secret scan 覆盖 provider token 与 private key 模式。 |
+| `release_docs` | 发布文档要求 score、workflow run 和 artifact URL。 |
+| `supply_chain_docs` | 供应链文档说明 score/workflow evidence。 |
+| `retrospective_template` | retrospective 模板记录 Gate、Score 与 Patch rationale。 |
+| `release_template` | release 模板要求本地 score 与 CI artifact evidence。 |
+
+## Gate 契约
+
+- `GOWORK=off make release-check` 会运行 `score-check`，默认要求 `score >= 9.8`。
+- `GOWORK=off make release-final-check` 会再次运行 `go run ./cmd/xlibgate score --min 9.5`，并要求 release manifest 内记录的 `score.value` 满足 `RELEASE_EVIDENCE_MIN_SCORE=9.5`。
+- `release/manifest/latest.json` 会记录 `score` 和 `workflow`，其中 `workflow_run_id`、`artifact_name`、`artifact_url` 用于连接 CI artifact；本地运行时使用 `local:*` evidence URL。
+
+## JSON 形状
+
+```json
+{
+  "value": 10,
+  "threshold": 9.8,
+  "status": "passed",
+  "dimensions": [
+    {
+      "name": "scorecard_doc",
+      "weight": 1,
+      "passed": true,
+      "detail": "scorecard rubric is documented"
+    }
+  ]
+}
+```

@@ -2,20 +2,33 @@
 
 Harness Gate 把 `xlib-standard` 的标准、模板、generator、Evidence 和 release 要求变成可执行检查。
 
+Full Goal Runtime v3.1 以 `cmd/xlibgate` 作为 Go gate runtime。Makefile target 是推荐的人机入口，内部必须委托到 `GOWORK=off go run ./cmd/xlibgate ...`；`scripts/*.sh` 是兼容实现层，不再作为 CI/发布文档中的唯一权威入口。
+
 ## Required Gates
 
-- `GOWORK=off make fmt`
-- `GOWORK=off make vet`
-- `GOWORK=off make lint`
-- `GOWORK=off make test`
-- `GOWORK=off make race`
-- `GOWORK=off make boundary`
-- `GOWORK=off make security`
-- `GOWORK=off make contracts`
-- `GOWORK=off make docs-check`
-- `GOWORK=off make integration`
-- `CHECK_STATUS=passed GOWORK=off make evidence`
-- `RELEASE_EVIDENCE_REQUIRE_PASSED=1 GOWORK=off make release-evidence-check`
+| Gate | 命令 | 目的 |
+| --- | --- | --- |
+| Format | `GOWORK=off make fmt` | 保持 Go 格式稳定 |
+| Vet | `GOWORK=off make vet` | 基础静态检查 |
+| Lint | `GOWORK=off make lint` | `golangci-lint` 强制检查，缺失时失败 |
+| Unit | `GOWORK=off make test` | 单元和示例 smoke |
+| Race | `GOWORK=off make race` | 并发安全基线 |
+| Boundary | `GOWORK=off make boundary` | 模块边界和模板禁止项 |
+| Security | `GOWORK=off make security` | `govulncheck` 和 secret scan |
+| Contracts | `GOWORK=off make contracts` | schema、metrics 和 manifest contract |
+| Docs Check | `GOWORK=off make docs-check` | 文档、链接、v3.1 runtime 和 release protocol |
+| Integration | `GOWORK=off make integration` | generator 和 downstream smoke |
+| Score | `GOWORK=off make score` / `GOWORK=off go run ./cmd/xlibgate score --min 9.8` | 校验 v3.1 gate runtime、CI 和文档契约一致性 |
+| Evidence | `CHECK_STATUS=passed GOWORK=off make evidence` | 生成 release manifest |
+| Release Evidence | `RELEASE_EVIDENCE_REQUIRE_PASSED=1 GOWORK=off make release-evidence-check` | 校验 manifest 与仓库事实 |
+
+## Extended Gate
+
+- `GOWORK=off make property`
+- `GOWORK=off make golden`
+- `GOWORK=off make fuzz-smoke`
+- `GOWORK=off make ci-extended`
+- `GOWORK=off make release-check-extended`
 
 ## Generator Gate
 
@@ -32,7 +45,8 @@ Generator gate 必须证明模板能生成代表性下游，而不是只证明 `
 
 - `GOWORK=off make release-final-check`
 - `GOWORK=off make release-preflight VERSION=<version>`
-- `xlibgate score --min 9.8`
+- `GOWORK=off go run ./cmd/xlibgate score --min 9.8`
+- `GOWORK=off make integration DOWNSTREAM=kernel`
 
 ## Secret Gate
 

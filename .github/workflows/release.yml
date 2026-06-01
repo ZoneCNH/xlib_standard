@@ -23,7 +23,22 @@ jobs:
         run: go install golang.org/x/vuln/cmd/govulncheck@latest
 
       - name: Release Check
-        run: VERSION="${{ github.ref_name }}" GOWORK=off make release-final-check
+        run: |
+          VERSION="${{ github.ref_name }}" \
+          GOWORK=off \
+          WORKFLOW_RUN_ID="${{ github.run_id }}" \
+          ARTIFACT_NAME="release-manifest-${{ github.run_id }}" \
+          ARTIFACT_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+          make release-final-check
+
+      - name: Full Goal Runtime score
+        run: GOWORK=off go run ./cmd/xlibgate score --min 9.8
+
+      - name: Full Goal Runtime score
+        run: GOWORK=off go run ./cmd/xlibgate score --min 9.8
+
+      - name: Full Goal Runtime score
+        run: GOWORK=off go run ./cmd/xlibgate score --min 9.8
 
       - name: Hash release evidence
         if: always()

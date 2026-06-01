@@ -5,7 +5,7 @@ tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
 
 cases=(
-  "foundationx|github.com/ZoneCNH/foundationx|foundationx"
+  "kernel|github.com/ZoneCNH/kernel|kernel"
   "corekit|example.com/acme/corekit|corekit"
 )
 
