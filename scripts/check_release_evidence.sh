@@ -3,6 +3,10 @@ set -euo pipefail
 
 args=(--verify release/manifest/latest.json)
 
+if [[ -n "${VERSION:-}" ]]; then
+  args+=(--expect-version "$VERSION")
+fi
+
 if [[ "${RELEASE_EVIDENCE_REQUIRE_PASSED:-0}" == "1" ]]; then
   args+=(--require-passed)
 fi

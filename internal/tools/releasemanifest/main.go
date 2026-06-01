@@ -104,6 +104,7 @@ func runCLI(name string, args []string, stdout io.Writer, stderr io.Writer) int 
 	verify := flags.String("verify", "", "verify an existing release manifest instead of generating one")
 	requirePassed := flags.Bool("require-passed", false, "require all release checks to be passed during verification")
 	requireClean := flags.Bool("require-clean", false, "require a clean git tree during verification")
+	expectVersion := flags.String("expect-version", "", "require the manifest version to match this release version during verification")
 	if err := flags.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			return 0
@@ -112,7 +113,7 @@ func runCLI(name string, args []string, stdout io.Writer, stderr io.Writer) int 
 	}
 
 	if *verify != "" {
-		if err := verifyManifest(*verify, *requirePassed, *requireClean); err != nil {
+		if err := verifyManifest(*verify, *requirePassed, *requireClean, *expectVersion); err != nil {
 			return printCLIError(stderr, err)
 		}
 		return printCLIStatus(stdout, "release evidence verified: %s\n", *verify)
@@ -192,7 +193,7 @@ func buildManifest() (Manifest, error) {
 	}, nil
 }
 
-func verifyManifest(path string, requirePassed bool, requireClean bool) error {
+func verifyManifest(path string, requirePassed bool, requireClean bool, expectVersion string) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return err
@@ -219,8 +220,12 @@ func verifyManifest(path string, requirePassed bool, requireClean bool) error {
 	requireNonEmpty(&failures, "generated_by", got.GeneratedBy)
 	requireNonEmpty(&failures, "tree_state", got.TreeState)
 
+	expectVersion = strings.TrimSpace(expectVersion)
 	if _, err := time.Parse(time.RFC3339, got.GeneratedAt); err != nil {
 		failures = append(failures, "generated_at must be RFC3339")
+	}
+	if expectVersion != "" && got.Version != expectVersion {
+		failures = append(failures, fmt.Sprintf("version mismatch: got %q, want %q", got.Version, expectVersion))
 	}
 	if got.Module != current.Module {
 		failures = append(failures, fmt.Sprintf("module mismatch: got %q, want %q", got.Module, current.Module))
