@@ -35,7 +35,7 @@ func Compute(threshold float64) Report {
 		textDimension("score_cli", 1, "cmd/xlibgate/main.go", []string{"score", "--min"}, "xlibgate score command is runnable"),
 		textDimension("score_gate", 1, "Makefile", []string{"score-check", "score --min 9.5", "release-final-check"}, "release targets enforce score thresholds"),
 		textDimension("manifest_min_score_verify", 1, "scripts/check_release_evidence.sh", []string{"RELEASE_EVIDENCE_MIN_SCORE", "--min-score"}, "release evidence verification passes score threshold"),
-		textDimension("security_gate", 1, "scripts/check_secrets.sh", []string{"github_pat_", "ghp_[A-Za-z0-9_]{36,}", "BEGIN OPENSSH PRIVATE KEY"}, "secret scanner covers provider tokens and private keys"),
+		textDimension("security_gate", 1, "scripts/check_secrets.sh", []string{"github_pat_", "ghp_[A-Za-z0-9_]{36,}", "PRIVATE KEY-----"}, "secret scanner covers provider tokens and private keys"),
 		textDimension("release_docs", 1, "docs/release.md", []string{"go run ./cmd/xlibgate score --min 9.8", "workflow_run_id", "artifact_url"}, "release docs bind score and CI artifact evidence"),
 		textDimension("supply_chain_docs", 1, "docs/supply-chain.md", []string{"score", "workflow_run_id", "artifact_url"}, "supply-chain docs include score/workflow evidence"),
 		textDimension("retrospective_template", 1, ".agent/retrospective-template.md", []string{"Score", "Gate", "Patch"}, "retrospectives capture gate score and patch rationale"),
