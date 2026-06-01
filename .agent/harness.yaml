@@ -1,62 +1,79 @@
-schema_version: "1.0"
-module: "{{MODULE_NAME}}"
+schema_version: "3.1"
+module: "xlib-standard"
 default_env:
   GOWORK: "off"
 required_gates:
   - id: fmt
     command: "make fmt"
-    purpose: "Go 格式化"
+    purpose: "Go formatting"
   - id: vet
     command: "make vet"
-    purpose: "Go 静态检查"
+    purpose: "Go static analysis"
   - id: lint
     command: "make lint"
-    purpose: "golangci-lint 强制检查，缺失时失败"
+    purpose: "golangci-lint required; missing tool fails"
   - id: test
     command: "make test"
-    purpose: "单元测试和示例 smoke"
+    purpose: "unit tests and example smoke"
   - id: race
     command: "make race"
     purpose: "race detector"
+  - id: docs_check
+    command: "GOWORK=off make docs-check"
+    purpose: "required docs, links, v3.1 runtime and release protocol"
   - id: boundary
-    command: "make boundary"
-    purpose: "模块边界和模板禁止项"
+    command: "GOWORK=off make boundary"
+    purpose: "module boundary, x.go import ban, business-layer ban"
   - id: security
-    command: "make security"
-    purpose: "govulncheck 和 secret scan"
+    command: "GOWORK=off make security"
+    purpose: "govulncheck and secret scan; no /home/k8s/secrets/env/* contents"
   - id: contracts
-    command: "make contracts"
-    purpose: "contracts schema 和 metrics 校验"
+    command: "GOWORK=off make contracts"
+    purpose: "contracts schema and metrics contract validation"
   - id: integration
-    command: "make integration"
-    purpose: "generator 和 downstream smoke"
+    command: "GOWORK=off make integration"
+    purpose: "generator and downstream smoke; kernel is required v3.1 downstream"
   - id: evidence
-    command: "CHECK_STATUS=passed make evidence"
-    purpose: "生成 release manifest"
+    command: "CHECK_STATUS=passed GOWORK=off make evidence"
+    purpose: "generate release manifest"
   - id: release_evidence_check
-    command: "RELEASE_EVIDENCE_REQUIRE_PASSED=1 make release-evidence-check"
-    purpose: "校验 release manifest"
+    command: "RELEASE_EVIDENCE_REQUIRE_PASSED=1 GOWORK=off make release-evidence-check"
+    purpose: "validate release manifest and checksum"
 extended_gates:
   - id: property
-    command: "make property"
+    command: "GOWORK=off make property"
   - id: golden
-    command: "make golden"
+    command: "GOWORK=off make golden"
   - id: fuzz_smoke
-    command: "make fuzz-smoke"
+    command: "GOWORK=off make fuzz-smoke"
   - id: ci_extended
-    command: "make ci-extended"
+    command: "GOWORK=off make ci-extended"
   - id: release_check_extended
-    command: "make release-check-extended"
+    command: "GOWORK=off make release-check-extended"
 final_gates:
   - id: release_final_check
-    command: "make release-final-check"
+    command: "GOWORK=off make release-final-check"
   - id: release_preflight
-    command: "make release-preflight VERSION=v1.0.0"
+    command: "GOWORK=off make release-preflight VERSION=v0.2.0"
+  - id: score
+    command: "xlibgate score --min 9.8"
+  - id: kernel_downstream
+    command: "GOWORK=off make integration DOWNSTREAM=kernel"
 evidence:
   manifest: "release/manifest/latest.json"
+  checksum: "release/manifest/latest.json.sha256"
   done_format: "DONE with evidence:"
+  required_fields:
+    - commit
+    - tree_sha
+    - workflow_run_id
+    - artifact_url
+    - sha256
+    - gates
 forbidden:
   - "x.go dependency in base libraries"
-  - "production secrets in source, docs, CI, manifest, Issue, or PR"
+  - "production secrets in source, docs, CI, manifest, Issue, PR, or test logs"
+  - "/home/k8s/secrets/env/* contents in any repository artifact"
   - "hidden global clients"
-  - "business-domain models in baselib-template"
+  - "business-domain models in xlib-standard, kernel, or generated base libraries"
+  - "legacy baselib-template/foundationx as primary identity outside migration context"

@@ -2,16 +2,16 @@
 
 ## 用途
 
-`scripts/render_template.sh` 用于把 `baselib-template` 渲染为具体基础库，例如 `foundationx`。标准源仓库是 [`xlib-standard`](https://github.com/ZoneCNH/xlib-standard)；本仓库只负责把标准源落到模板、generator、Harness 和 Evidence 实现。脚本负责同步替换 module name、module path、package name、`pkg/` 目录名、imports、文档占位符和脚本中的模板名称。
+`scripts/render_template.sh` 用于把 `xlib-standard` 参考模板渲染为具体基础库，例如 `kernel`。标准源仓库是 [`xlib-standard`](https://github.com/ZoneCNH/xlib-standard)，并同时承载模板、generator、Harness 和 Evidence 实现。旧 `baselib-template` / `foundationx` 名称只作为迁移上下文保留。脚本负责同步替换 module name、module path、package name、`pkg/` 目录名、imports、文档占位符和脚本中的模板名称。
 
 ## 示例
 
 ```bash
 scripts/render_template.sh \
-  --module-name foundationx \
-  --module-path github.com/ZoneCNH/foundationx \
-  --package-name foundationx \
-  --out ../foundationx
+  --module-name kernel \
+  --module-path github.com/ZoneCNH/kernel \
+  --package-name kernel \
+  --out ../kernel
 ```
 
 `--out` 必须指向不存在或为空的目录，避免覆盖已有仓库内容。
@@ -35,7 +35,7 @@ GOWORK=off make release-check
 
 模板自身的 `make integration` 会渲染两个临时下游库：
 
-- `foundationx`：目标仓库路径 `github.com/ZoneCNH/foundationx`，用于证明真实迁移目标仍可生成。
+- `kernel`：目标仓库路径 `github.com/ZoneCNH/kernel`，用于证明默认 L0 下游目标仍可生成。
 - `corekit`：中性路径 `example.com/acme/corekit`，用于证明替换逻辑不依赖特定组织或包名。
 
 每个临时库都会运行以下验证：
