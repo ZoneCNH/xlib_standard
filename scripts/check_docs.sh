@@ -16,6 +16,7 @@ required_files=(
   "docs/standard/template-generation-contract.md"
   "docs/standard/dod.md"
   "docs/standard/downstream-compatibility.md"
+  "cmd/xlibgate/main.go"
 )
 
 for file in "${required_files[@]}"; do
@@ -54,12 +55,28 @@ require_text "docs/standard/evidence-protocol.md" "workflow_run_id"
 require_text "docs/standard/release-standard.md" "release/manifest/latest.json.sha256"
 require_text "release/manifest/template.json" "release/manifest/latest.json.sha256"
 require_text "internal/tools/releasemanifest/main.go" "release/manifest/latest.json.sha256"
+require_text "cmd/xlibgate/main.go" "docs-check"
+require_text "cmd/xlibgate/main.go" "boundary"
+require_text "cmd/xlibgate/main.go" "contracts"
+require_text "cmd/xlibgate/main.go" "render-check"
+require_text "cmd/xlibgate/main.go" "release-final-check"
+require_text "cmd/xlibgate/main.go" "score"
+require_text "cmd/xlibgate/main.go" "--min"
 require_text "Makefile" "GOWORK=off is required for release targets"
-require_text "Makefile" "./scripts/hash_release_evidence.sh --check"
+require_text "Makefile" "XLIBGATE ?= go run ./cmd/xlibgate"
+require_text "Makefile" '$(XLIBGATE) docs-check'
+require_text "Makefile" '$(XLIBGATE) boundary'
+require_text "Makefile" '$(XLIBGATE) contracts'
+require_text "Makefile" '$(XLIBGATE) integration'
+require_text "Makefile" '$(XLIBGATE) score --min 9.8'
+require_text "Makefile" '$(XLIBGATE) release-evidence-checksum-check'
 require_text "scripts/run_fuzz_smoke.sh" 'fuzz_time="${FUZZ_SMOKE_TIME:-10s}"'
+require_text "scripts/run_integration.sh" "github.com/ZoneCNH/kernel"
 require_text ".github/workflows/ci.yml" "GOWORK=off make release-check"
+require_text ".github/workflows/ci.yml" "go run ./cmd/xlibgate score --min 9.8"
 require_text ".github/workflows/ci.yml" "release/manifest/latest.json.sha256"
 require_text ".github/workflows/release.yml" "GOWORK=off make release-final-check"
+require_text ".github/workflows/release.yml" "go run ./cmd/xlibgate score --min 9.8"
 require_text ".github/workflows/release.yml" "release/manifest/latest.json.sha256"
 
 xlib_standard_url="https://github.com/ZoneCNH/xlib-standard"

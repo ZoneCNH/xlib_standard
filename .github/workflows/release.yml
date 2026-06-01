@@ -25,6 +25,9 @@ jobs:
       - name: Release Check
         run: VERSION="${{ github.ref_name }}" GOWORK=off make release-final-check
 
+      - name: Full Goal Runtime score
+        run: GOWORK=off go run ./cmd/xlibgate score --min 9.8
+
       - name: Hash release evidence
         if: always()
         id: release-evidence
