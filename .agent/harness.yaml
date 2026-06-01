@@ -31,10 +31,10 @@ required_gates:
     command: "GOWORK=off make contracts"
     purpose: "contracts schema and metrics contract validation"
   - id: integration
-    command: "GOWORK=off make integration"
-    purpose: "generator and downstream smoke; kernel/corekit are required v3.1 downstream representatives"
+    command: "make integration"
+    purpose: "generator 和 downstream smoke"
   - id: score_check
-    command: "GOWORK=off go run ./cmd/xlibgate score --min 9.8"
+    command: "go run ./cmd/xlibgate score --min 9.8"
     purpose: "Release Score 达到 9.8 基准"
   - id: evidence
     command: "CHECK_STATUS=passed GOWORK=off make evidence"

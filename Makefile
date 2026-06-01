@@ -67,6 +67,14 @@ golden:
 evidence:
 	$(XLIBGATE) evidence
 
+.PHONY: score
+score:
+	go run ./cmd/xlibgate score
+
+.PHONY: score-check
+score-check:
+	go run ./cmd/xlibgate score --min 9.8
+
 .PHONY: release-evidence-hash
 release-evidence-hash:
 	$(XLIBGATE) release-evidence-hash >/dev/null
@@ -117,7 +125,7 @@ release-check-extended: require-gowork-off ci-extended integration docs-check sc
 .PHONY: release-final-check
 release-final-check: release-check
 	go run ./cmd/xlibgate score --min 9.5
-	RELEASE_EVIDENCE_REQUIRE_PASSED=1 RELEASE_EVIDENCE_REQUIRE_CLEAN=1 RELEASE_EVIDENCE_MIN_SCORE=9.5 $(XLIBGATE) release-evidence-check
+	RELEASE_EVIDENCE_REQUIRE_PASSED=1 RELEASE_EVIDENCE_REQUIRE_CLEAN=1 RELEASE_EVIDENCE_MIN_SCORE=9.5 ./scripts/check_release_evidence.sh
 	$(MAKE) release-evidence-checksum-check
 
 .PHONY: release-preflight
