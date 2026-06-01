@@ -4,6 +4,8 @@ Harness Gate 把 `xlib-standard` 的标准、模板、generator、Evidence 和 r
 
 Full Goal Runtime v3.1 以 `cmd/xlibgate` 作为 Go gate runtime。Makefile target 是推荐的人机入口，内部必须委托到 `go run ./cmd/xlibgate ...`；`scripts/*.sh` 是兼容实现层，不再作为 CI/发布文档中的唯一权威入口。
 
+Full Goal Runtime v3.1 以 `cmd/xlibgate` 作为 Go gate runtime。Makefile target 是推荐的人机入口，内部必须委托到 `go run ./cmd/xlibgate ...`；`scripts/*.sh` 是兼容实现层，不再作为 CI/发布文档中的唯一权威入口。
+
 ## Required Gate
 
 | Gate | 命令 | 目的 |
