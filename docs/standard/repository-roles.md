@@ -4,7 +4,7 @@
 
 | 仓库 | 角色 | 必须包含 | 禁止包含 |
 | --- | --- | --- | --- |
-| `xlib-standard` (`https://github.com/ZoneCNH/xlib-standard`) | 标准权威源 + Go 参考模板 + generator + Harness + Evidence 实现仓库 | P0 标准文档、仓库角色、分层、模块边界、contracts 规范源、模板包、generator、CI、release manifest、`.agent/` runtime、Evidence 生成器 | 真实 L1/L2 runtime、业务模型、`x.go` 依赖、生产凭据、把旧名作为主身份 |
+| `xlib-standard` (`https://github.com/ZoneCNH/xlib-standard`) | 标准权威源 + Go 参考模板 + 模板、generator、Harness、Evidence 实现仓库 | P0 标准文档、仓库角色、分层、模块边界、contracts 规范源、模板包、generator、CI、release manifest、`.agent/` runtime、Evidence 生成器 | 真实 L1/L2 runtime、业务模型、`x.go` 依赖、生产凭据、把旧名作为主身份 |
 | `kernel` | L0 通用基础能力库 | context、error、config、logging、metrics、lifecycle、health、test helper 等通用 runtime primitives | 存储、消息、业务语义、应用框架耦合、`x.go` 反向依赖 |
 | `configx` | L1 配置基础库 | 显式配置加载/校验、脱敏、配置来源 contract | 生产密钥默认值、业务配置语义、隐式读取 `/home/k8s/secrets/env/*` |
 | `observex` | L1 可观测基础库 | logging、metrics、tracing contract、health 输出规范 | 业务指标模型、应用告警策略 |
