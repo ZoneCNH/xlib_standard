@@ -11,6 +11,10 @@ PATTERNS=(
   "access_key="
   "secret_key="
   "AKIA[0-9A-Z]{16}"
+  "ghp_[A-Za-z0-9_]{36,}"
+  "github_pat_[A-Za-z0-9_]{20,}"
+  "xox[baprs]-[A-Za-z0-9-]{10,}"
+  "-----BEGIN [A-Z ]*PRIVATE KEY-----"
   "BEGIN RSA PRIVATE KEY"
   "BEGIN OPENSSH PRIVATE KEY"
 )

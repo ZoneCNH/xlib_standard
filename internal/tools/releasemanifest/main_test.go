@@ -450,7 +450,7 @@ func TestVerifyManifestAcceptsFreshManifestAndRejectsDrift(t *testing.T) {
 	if err := writeManifest(goodPath, manifest); err != nil {
 		t.Fatal(err)
 	}
-	if err := verifyManifest(goodPath, true, false, ""); err != nil {
+	if err := verifyManifest(goodPath, true, false, "", 0); err != nil {
 		t.Fatalf("verify fresh manifest: %v", err)
 	}
 
@@ -462,7 +462,7 @@ func TestVerifyManifestAcceptsFreshManifestAndRejectsDrift(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = verifyManifest(badPath, true, false, "")
+	err = verifyManifest(badPath, true, false, "", 0)
 	if err == nil {
 		t.Fatal("verify stale manifest succeeded, want error")
 	}
@@ -494,7 +494,7 @@ func TestVerifyManifestRequiresCleanTree(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = verifyManifest(path, true, true, "")
+	err = verifyManifest(path, true, true, "", 0)
 	if err == nil {
 		t.Fatal("verify dirty manifest with requireClean succeeded, want error")
 	}

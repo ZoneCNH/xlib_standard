@@ -67,6 +67,14 @@ golden:
 evidence:
 	$(XLIBGATE) evidence
 
+.PHONY: score
+score:
+	go run ./cmd/xlibgate score
+
+.PHONY: score-check
+score-check:
+	go run ./cmd/xlibgate score --min 9.8
+
 .PHONY: release-evidence-hash
 release-evidence-hash:
 	$(XLIBGATE) release-evidence-hash >/dev/null
@@ -97,14 +105,14 @@ ci: fmt vet lint test race boundary security contracts score
 ci-extended: ci property golden fuzz-smoke
 
 .PHONY: release-check
-release-check: require-gowork-off ci integration docs-check
+release-check: require-gowork-off ci integration docs-check score-check
 	CHECK_STATUS=passed $(MAKE) evidence
 	$(MAKE) release-evidence-hash
 	$(MAKE) release-evidence-check
 	$(MAKE) release-evidence-checksum-check
 
 .PHONY: release-check-extended
-release-check-extended: require-gowork-off ci-extended integration docs-check
+release-check-extended: require-gowork-off ci-extended integration docs-check score-check
 	CHECK_STATUS=passed $(MAKE) evidence
 	$(MAKE) release-evidence-hash
 	$(MAKE) release-evidence-check
@@ -112,7 +120,8 @@ release-check-extended: require-gowork-off ci-extended integration docs-check
 
 .PHONY: release-final-check
 release-final-check: release-check
-	RELEASE_EVIDENCE_REQUIRE_PASSED=1 RELEASE_EVIDENCE_REQUIRE_CLEAN=1 $(XLIBGATE) release-evidence-check
+	go run ./cmd/xlibgate score --min 9.5
+	RELEASE_EVIDENCE_REQUIRE_PASSED=1 RELEASE_EVIDENCE_REQUIRE_CLEAN=1 RELEASE_EVIDENCE_MIN_SCORE=9.5 ./scripts/check_release_evidence.sh
 	$(MAKE) release-evidence-checksum-check
 
 .PHONY: release-preflight
