@@ -7,7 +7,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/ZoneCNH/baselib-template/internal/releasequality"
+	"github.com/ZoneCNH/xlib-standard/internal/releasequality"
 )
 
 func main() {
