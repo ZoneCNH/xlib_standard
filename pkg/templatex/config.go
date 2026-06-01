@@ -4,8 +4,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/ZoneCNH/baselib-template/internal/sanitize"
-	"github.com/ZoneCNH/baselib-template/internal/validation"
+	"github.com/ZoneCNH/xlib-standard/internal/sanitize"
+	"github.com/ZoneCNH/xlib-standard/internal/validation"
 )
 
 type Config struct {

@@ -19,9 +19,10 @@ scripts/render_template.sh \
 ## 渲染范围
 
 - `{{MODULE_NAME}}` 替换为 `--module-name`。
-- `{{MODULE_PATH}}` 和 `github.com/ZoneCNH/baselib-template` 替换为 `--module-path`。
+- `{{MODULE_PATH}}`、`github.com/ZoneCNH/xlib-standard` 和迁移兼容的 `github.com/ZoneCNH/baselib-template` 替换为 `--module-path`。
+- `xlib-standard` 和迁移兼容的 `baselib-template` 替换为 `--module-name`。
 - `{{PACKAGE_NAME}}`、`pkg/templatex` 和 `templatex` imports 替换为 `--package-name`。
-- 文档、Go 代码、JSON contract、shell 脚本、Makefile 和 CI 配置同步更新；标准源链接保留为 [`https://github.com/ZoneCNH/xlib-standard`](https://github.com/ZoneCNH/xlib-standard)，不随生成目标 module path 改写。
+- 文档、Go 代码、JSON contract、shell 脚本、Makefile 和 CI 配置同步更新；标准源仓库仍是 [`https://github.com/ZoneCNH/xlib-standard`](https://github.com/ZoneCNH/xlib-standard)，渲染产物中的源身份会改写为下游 module identity，避免残留模板仓库名称。
 
 脚本不会复制 `.git`、`.omx`、`.worktree` 和 `release/manifest/latest.json`。`latest.json` 是生成产物，生成后的库必须自己运行 release gate 生成新的 Evidence artifact。
 

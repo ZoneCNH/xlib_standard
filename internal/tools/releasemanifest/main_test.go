@@ -440,8 +440,8 @@ func TestBuildManifestRecordsCurrentRepositoryFacts(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if manifest.Module != "github.com/ZoneCNH/baselib-template" {
-		t.Fatalf("module = %q, want github.com/ZoneCNH/baselib-template", manifest.Module)
+	if manifest.Module != "github.com/ZoneCNH/xlib-standard" {
+		t.Fatalf("module = %q, want github.com/ZoneCNH/xlib-standard", manifest.Module)
 	}
 	if manifest.Version != "v9.9.9-test" {
 		t.Fatalf("version = %q, want v9.9.9-test", manifest.Version)

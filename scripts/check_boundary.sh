@@ -41,7 +41,7 @@ fi
 echo "checking forbidden rendered runtime dependency on template package..."
 
 module_path="$(go list -m)"
-template_module_path="github.com/ZoneCNH/baselib-template"
+template_module_path="github.com/ZoneCNH/xlib-standard"
 
 if [[ "$module_path" != "$template_module_path" ]]; then
   search_roots=()
