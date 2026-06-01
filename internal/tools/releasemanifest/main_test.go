@@ -18,6 +18,7 @@ import (
 func TestBuildChecksUsesGlobalAndSpecificStatus(t *testing.T) {
 	t.Setenv("CHECK_STATUS", "passed")
 	t.Setenv("LINT_STATUS", "failed")
+	t.Setenv("DOCS_CHECK_STATUS", "skipped")
 
 	checks := buildChecks()
 
@@ -26,6 +27,37 @@ func TestBuildChecksUsesGlobalAndSpecificStatus(t *testing.T) {
 	}
 	if checks["lint"] != "failed" {
 		t.Fatalf("lint status = %q, want failed", checks["lint"])
+	}
+	if checks["docs_check"] != "skipped" {
+		t.Fatalf("docs_check status = %q, want skipped", checks["docs_check"])
+	}
+}
+
+func TestCheckNamesCoverReleaseTargets(t *testing.T) {
+	wantNames := []string{
+		"fmt",
+		"vet",
+		"lint",
+		"unit_test",
+		"race_test",
+		"boundary",
+		"secret_scan",
+		"security",
+		"contract",
+		"integration",
+		"docs_check",
+		"property",
+		"golden",
+		"fuzz_smoke",
+	}
+
+	if strings.Join(checkNames, ",") != strings.Join(wantNames, ",") {
+		t.Fatalf("checkNames = %v, want %v", checkNames, wantNames)
+	}
+	for _, name := range wantNames {
+		if checkEnvNames[name] == "" {
+			t.Fatalf("checkEnvNames[%q] is empty", name)
+		}
 	}
 }
 
@@ -389,8 +421,10 @@ func TestBuildManifestRecordsCurrentRepositoryFacts(t *testing.T) {
 	if manifest.Tools["go"] == "" {
 		t.Fatal("tools.go is empty")
 	}
-	if !contains(manifest.Artifacts, "release/manifest/latest.json") {
-		t.Fatalf("artifacts = %v, want release/manifest/latest.json", manifest.Artifacts)
+	for _, artifact := range requiredArtifacts {
+		if !contains(manifest.Artifacts, artifact) {
+			t.Fatalf("artifacts = %v, want %s", manifest.Artifacts, artifact)
+		}
 	}
 	for _, name := range checkNames {
 		if manifest.Checks[name] != "passed" {
@@ -422,6 +456,7 @@ func TestVerifyManifestAcceptsFreshManifestAndRejectsDrift(t *testing.T) {
 
 	manifest.SourceDigest = "sha256:bad"
 	manifest.Checks["lint"] = "unknown"
+	manifest.Artifacts = []string{"release/manifest/latest.json"}
 	badPath := filepath.Join(t.TempDir(), "stale.json")
 	if err := writeManifest(badPath, manifest); err != nil {
 		t.Fatal(err)
@@ -435,6 +470,7 @@ func TestVerifyManifestAcceptsFreshManifestAndRejectsDrift(t *testing.T) {
 	for _, want := range []string{
 		"source_digest does not match current tracked file contents",
 		`checks.lint must be passed, got "unknown"`,
+		"artifacts must include release/manifest/latest.json.sha256",
 	} {
 		if !strings.Contains(message, want) {
 			t.Fatalf("error = %q, want substring %q", message, want)
@@ -561,7 +597,7 @@ func TestWriteManifestCreatesParentAndWritesIndentedJSON(t *testing.T) {
 		TreeState:        "clean",
 		Checks:           map[string]string{"fmt": "passed"},
 		Tools:            map[string]string{"go": "go version"},
-		Artifacts:        []string{"release/manifest/latest.json"},
+		Artifacts:        append([]string(nil), requiredArtifacts...),
 	}
 	path := filepath.Join(t.TempDir(), "release", "manifest", "latest.json")
 

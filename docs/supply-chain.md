@@ -28,13 +28,13 @@
 - manifest 的 module、commit、tree SHA、源码摘要和受跟踪文件数量与当前仓库一致。
 - contract 指纹和依赖清单与当前文件、当前 Go module 解析结果一致。
 - 必需 check 均存在，且在 release gate 中必须为 `passed`。
-- artifact 列表包含 `release/manifest/latest.json`。
+- artifact 列表包含 `release/manifest/latest.json` 和 `release/manifest/latest.json.sha256`。
 
 `make release-final-check` 在上述校验之外要求 `tree_state=clean`。正式发布、打 tag 或交付给下游基础库前必须使用该入口。
 
 ## CI Artifact
 
-GitHub Actions 运行 `GOWORK=off make release-check`，并上传 `release/manifest/latest.json` 作为 `release-manifest` artifact。CI 中上传的 artifact 是发布 Evidence 的外部留痕；本地生成的 `latest.json` 只用于验证和排障。
+GitHub Actions 运行 `GOWORK=off make release-check`，并上传 `release/manifest/latest.json` 与 `release/manifest/latest.json.sha256` 作为 `release-manifest` artifact。CI 中上传的 artifact 是发布 Evidence 的外部留痕；本地生成的 `latest.json` 和 checksum 用于验证和排障。
 
 ## 下游模板安全线
 

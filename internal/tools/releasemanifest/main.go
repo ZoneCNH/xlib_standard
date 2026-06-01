@@ -30,6 +30,10 @@ var checkNames = []string{
 	"security",
 	"contract",
 	"integration",
+	"docs_check",
+	"property",
+	"golden",
+	"fuzz_smoke",
 }
 
 var checkEnvNames = map[string]string{
@@ -43,6 +47,10 @@ var checkEnvNames = map[string]string{
 	"security":    "SECURITY_STATUS",
 	"contract":    "CONTRACT_STATUS",
 	"integration": "INTEGRATION_STATUS",
+	"docs_check":  "DOCS_CHECK_STATUS",
+	"property":    "PROPERTY_STATUS",
+	"golden":      "GOLDEN_STATUS",
+	"fuzz_smoke":  "FUZZ_SMOKE_STATUS",
 }
 
 var contractFiles = []string{
@@ -50,6 +58,11 @@ var contractFiles = []string{
 	"contracts/error.schema.json",
 	"contracts/health.schema.json",
 	"contracts/metrics.md",
+}
+
+var requiredArtifacts = []string{
+	"release/manifest/latest.json",
+	"release/manifest/latest.json.sha256",
 }
 
 type Manifest struct {
@@ -183,9 +196,7 @@ func buildManifest() (Manifest, error) {
 			"golangci-lint": toolVersion("golangci-lint", "--version"),
 			"govulncheck":   toolVersion("govulncheck", "-version"),
 		},
-		Artifacts: []string{
-			"release/manifest/latest.json",
-		},
+		Artifacts: append([]string(nil), requiredArtifacts...),
 		Notes: Notes{
 			BreakingChanges: "none",
 			KnownRisks:      []string{},
@@ -254,8 +265,10 @@ func verifyManifest(path string, requirePassed bool, requireClean bool, expectVe
 	if !reflect.DeepEqual(got.Dependencies, current.Dependencies) {
 		failures = append(failures, "dependency inventory does not match go list -m -json all")
 	}
-	if !contains(got.Artifacts, "release/manifest/latest.json") {
-		failures = append(failures, "artifacts must include release/manifest/latest.json")
+	for _, artifact := range requiredArtifacts {
+		if !contains(got.Artifacts, artifact) {
+			failures = append(failures, fmt.Sprintf("artifacts must include %s", artifact))
+		}
 	}
 	if got.Tools["go"] == "" {
 		failures = append(failures, "tools.go must be recorded")

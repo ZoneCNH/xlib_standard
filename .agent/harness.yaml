@@ -1,0 +1,62 @@
+schema_version: "1.0"
+module: "{{MODULE_NAME}}"
+default_env:
+  GOWORK: "off"
+required_gates:
+  - id: fmt
+    command: "make fmt"
+    purpose: "Go 格式化"
+  - id: vet
+    command: "make vet"
+    purpose: "Go 静态检查"
+  - id: lint
+    command: "make lint"
+    purpose: "golangci-lint 强制检查，缺失时失败"
+  - id: test
+    command: "make test"
+    purpose: "单元测试和示例 smoke"
+  - id: race
+    command: "make race"
+    purpose: "race detector"
+  - id: boundary
+    command: "make boundary"
+    purpose: "模块边界和模板禁止项"
+  - id: security
+    command: "make security"
+    purpose: "govulncheck 和 secret scan"
+  - id: contracts
+    command: "make contracts"
+    purpose: "contracts schema 和 metrics 校验"
+  - id: integration
+    command: "make integration"
+    purpose: "generator 和 downstream smoke"
+  - id: evidence
+    command: "CHECK_STATUS=passed make evidence"
+    purpose: "生成 release manifest"
+  - id: release_evidence_check
+    command: "RELEASE_EVIDENCE_REQUIRE_PASSED=1 make release-evidence-check"
+    purpose: "校验 release manifest"
+extended_gates:
+  - id: property
+    command: "make property"
+  - id: golden
+    command: "make golden"
+  - id: fuzz_smoke
+    command: "make fuzz-smoke"
+  - id: ci_extended
+    command: "make ci-extended"
+  - id: release_check_extended
+    command: "make release-check-extended"
+final_gates:
+  - id: release_final_check
+    command: "make release-final-check"
+  - id: release_preflight
+    command: "make release-preflight VERSION=v1.0.0"
+evidence:
+  manifest: "release/manifest/latest.json"
+  done_format: "DONE with evidence:"
+forbidden:
+  - "x.go dependency in base libraries"
+  - "production secrets in source, docs, CI, manifest, Issue, or PR"
+  - "hidden global clients"
+  - "business-domain models in baselib-template"

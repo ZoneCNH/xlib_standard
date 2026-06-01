@@ -2,6 +2,19 @@
 
 ## 未发布
 
+## v0.3.0 - 2026-06-01
+
+### 新增
+
+- Release Evidence 现在同时生成并校验 `release/manifest/latest.json.sha256`，确保发布 manifest 和 checksum artifact 成对存在。
+- `release/manifest/template.json` 将 checksum 纳入必需 artifacts，发布产物清单能完整描述可验证 Evidence。
+
+### 治理
+
+- `make release-check`、`make release-check-extended` 和 `make release-final-check` 强制要求 `GOWORK=off`，避免发布门禁受外部 workspace 污染。
+- `docs-check` 新增标准源、checksum artifact、`GOWORK=off` 发布命令和 fuzz smoke 文档约束，防止文档与发布 Harness 漂移。
+- 扩展 `golangci-lint` 规则集，提高模板基础库的静态质量门槛。
+
 ## v0.2.0 - 2026-06-01
 
 ### 新增

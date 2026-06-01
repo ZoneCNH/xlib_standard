@@ -2,7 +2,7 @@
 
 ## 用途
 
-`scripts/render_template.sh` 用于把 `baselib-template` 渲染为具体基础库，例如 `foundationx`。脚本负责同步替换 module name、module path、package name、`pkg/` 目录名、imports、文档占位符和脚本中的模板名称。
+`scripts/render_template.sh` 用于把 `baselib-template` 渲染为具体基础库，例如 `foundationx`。标准源仓库是 [`xlib-standard`](https://github.com/ZoneCNH/xlib-standard)；本仓库只负责把标准源落到模板、generator、Harness 和 Evidence 实现。脚本负责同步替换 module name、module path、package name、`pkg/` 目录名、imports、文档占位符和脚本中的模板名称。
 
 ## 示例
 
@@ -21,7 +21,7 @@ scripts/render_template.sh \
 - `{{MODULE_NAME}}` 替换为 `--module-name`。
 - `{{MODULE_PATH}}` 和 `github.com/ZoneCNH/baselib-template` 替换为 `--module-path`。
 - `{{PACKAGE_NAME}}`、`pkg/templatex` 和 `templatex` imports 替换为 `--package-name`。
-- 文档、Go 代码、JSON contract、shell 脚本、Makefile 和 CI 配置同步更新。
+- 文档、Go 代码、JSON contract、shell 脚本、Makefile 和 CI 配置同步更新；标准源链接保留为 [`https://github.com/ZoneCNH/xlib-standard`](https://github.com/ZoneCNH/xlib-standard)，不随生成目标 module path 改写。
 
 脚本不会复制 `.git`、`.omx`、`.worktree` 和 `release/manifest/latest.json`。`latest.json` 是生成产物，生成后的库必须自己运行 release gate 生成新的 Evidence artifact。
 
@@ -41,6 +41,7 @@ GOWORK=off make release-check
 每个临时库都会运行以下验证：
 
 - `scripts/check_rendered_template.sh`：确认 `go.mod` module path、`pkg/<package>` 目录、旧模板目录、旧 module path、占位符和 `templatex` 标识。
+- `GOWORK=off go mod tidy` 后检查 `go.mod` / `go.sum` 没有未提交差异。
 - `GOWORK=off go test ./...`
 - `GOWORK=off make contracts`
 - `GOWORK=off make boundary`
@@ -61,4 +62,4 @@ GOWORK=off make release-final-check
 
 ## 边界
 
-生成后的基础库仍必须保持独立，不能依赖 `github.com/bytechainx/x.go`、`github.com/ZoneCNH/x.go` 或任何 `x.go/internal/*` 包。
+生成后的基础库仍必须保持独立，不能依赖 `github.com/bytechainx/x.go`、`github.com/ZoneCNH/x.go` 或任何 `x.go/internal/*` 包；标准规则继续引用独立仓库 [`xlib-standard`](https://github.com/ZoneCNH/xlib-standard)。
