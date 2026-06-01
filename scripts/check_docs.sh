@@ -16,7 +16,7 @@ required_files=(
   "docs/standard/template-generation-contract.md"
   "docs/standard/dod.md"
   "docs/standard/downstream-compatibility.md"
-  "docs/scorecard.md"
+  "cmd/xlibgate/main.go"
 )
 
 for file in "${required_files[@]}"; do
@@ -81,9 +81,12 @@ require_text "Makefile" '$(XLIBGATE) integration'
 require_text "Makefile" '$(XLIBGATE) score --min 9.8'
 require_text "Makefile" '$(XLIBGATE) release-evidence-checksum-check'
 require_text "scripts/run_fuzz_smoke.sh" 'fuzz_time="${FUZZ_SMOKE_TIME:-10s}"'
-require_text ".github/workflows/ci.yml" "make release-check"
+require_text "scripts/run_integration.sh" "github.com/ZoneCNH/kernel"
+require_text ".github/workflows/ci.yml" "GOWORK=off make release-check"
+require_text ".github/workflows/ci.yml" "go run ./cmd/xlibgate score --min 9.8"
 require_text ".github/workflows/ci.yml" "release/manifest/latest.json.sha256"
-require_text ".github/workflows/release.yml" "make release-final-check"
+require_text ".github/workflows/release.yml" "GOWORK=off make release-final-check"
+require_text ".github/workflows/release.yml" "go run ./cmd/xlibgate score --min 9.8"
 require_text ".github/workflows/release.yml" "release/manifest/latest.json.sha256"
 require_text ".github/workflows/release.yml" "ARTIFACT_URL"
 require_text ".github/workflows/ci.yml" "ARTIFACT_URL"
