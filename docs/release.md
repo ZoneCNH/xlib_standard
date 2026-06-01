@@ -139,3 +139,13 @@ Extended Evidence 推荐额外记录：
 - 不得在 release manifest、PR、Issue 或变更日志条目中包含原始凭据。
 - 不得依赖 `github.com/bytechainx/x.go` 或 `github.com/ZoneCNH/x.go`。
 - public API、config schema、error kind、health JSON、metrics name 或 release manifest schema 变更必须在 release notes 或 release manifest 中显式标记 breaking change。
+
+## Release Score 与 Workflow Evidence
+
+发布分数是 release gate 的显式合同：
+
+```bash
+go run ./cmd/xlibgate score --min 9.8
+```
+
+`release/manifest/latest.json` 必须记录 `score` 与 `workflow` 字段。`workflow_run_id`、`artifact_name`、`artifact_url` 用来把本地 manifest 与 GitHub Actions 上传的 `release-manifest-${{ github.run_id }}` artifact 对齐；本地运行时允许使用 `local:*` artifact URL。`release-final-check` 会在 clean tree 要求之外校验 manifest 内的 score threshold。
