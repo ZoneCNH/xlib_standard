@@ -28,6 +28,7 @@ func (c *Client) HealthCheck(ctx context.Context) HealthStatus {
 	var metrics Metrics
 	initialized := false
 	closed := true
+	var timeout time.Duration
 
 	if c != nil {
 		c.mu.Lock()
@@ -35,6 +36,7 @@ func (c *Client) HealthCheck(ctx context.Context) HealthStatus {
 		metrics = c.metrics
 		initialized = c.initialized
 		closed = c.closed
+		timeout = c.cfg.Timeout
 		c.mu.Unlock()
 		if name == "" {
 			name = "templatex"
@@ -87,6 +89,42 @@ func (c *Client) HealthCheck(ctx context.Context) HealthStatus {
 		}
 		recordHealthMetric(metrics, status)
 		return status
+	}
+
+	if timeout > 0 {
+		if deadline, ok := ctx.Deadline(); ok {
+			remaining := time.Until(deadline)
+			if remaining <= 0 {
+				message := context.DeadlineExceeded.Error()
+				if err := ctx.Err(); err != nil {
+					message = err.Error()
+				}
+				status := HealthStatus{
+					Name:      name,
+					Status:    HealthUnhealthy,
+					Message:   message,
+					CheckedAt: time.Now(),
+					LatencyMs: time.Since(start).Milliseconds(),
+				}
+				recordHealthMetric(metrics, status)
+				return status
+			}
+			if remaining < timeout {
+				status := HealthStatus{
+					Name:      name,
+					Status:    HealthDegraded,
+					Message:   "context deadline is shorter than client timeout",
+					CheckedAt: time.Now(),
+					LatencyMs: time.Since(start).Milliseconds(),
+					Metadata: map[string]string{
+						"reason":  "deadline_below_timeout",
+						"timeout": timeout.String(),
+					},
+				}
+				recordHealthMetric(metrics, status)
+				return status
+			}
+		}
 	}
 
 	status := HealthStatus{

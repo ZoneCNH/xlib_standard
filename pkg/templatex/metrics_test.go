@@ -66,6 +66,17 @@ func (m *recordingMetrics) hasGauge(name string) bool {
 	return false
 }
 
+func (m *recordingMetrics) gaugeWithLabels(name string, value float64, labels map[string]string) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, call := range m.gauges {
+		if call.name == name && call.value == value && sameLabels(call.labels, labels) {
+			return true
+		}
+	}
+	return false
+}
+
 func (m *recordingMetrics) hasHistogram(name string) bool {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -75,6 +86,29 @@ func (m *recordingMetrics) hasHistogram(name string) bool {
 		}
 	}
 	return false
+}
+
+func (m *recordingMetrics) histogramWithLabels(name string, labels map[string]string) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, call := range m.histograms {
+		if call.name == name && sameLabels(call.labels, labels) {
+			return true
+		}
+	}
+	return false
+}
+
+func sameLabels(actual map[string]string, expected map[string]string) bool {
+	if len(actual) != len(expected) {
+		return false
+	}
+	for key, value := range expected {
+		if actual[key] != value {
+			return false
+		}
+	}
+	return true
 }
 
 func cloneLabels(labels map[string]string) map[string]string {

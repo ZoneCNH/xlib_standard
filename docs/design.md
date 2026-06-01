@@ -18,7 +18,7 @@
 
 ## 健康检查
 
-持有资源的客户端暴露 `HealthCheck(context.Context)`，并返回 `healthy`、`degraded` 或 `unhealthy`。返回结构使用 `name`、`status`、`message`、`checked_at`、`latency_ms` 和 `metadata` JSON 字段；nil client、零值 client、已关闭 client、nil context 和已取消 context 都必须返回 `unhealthy`。
+持有资源的客户端暴露 `HealthCheck(context.Context)`，并返回 `healthy`、`degraded` 或 `unhealthy`。返回结构使用 `name`、`status`、`message`、`checked_at`、`latency_ms` 和 `metadata` JSON 字段；nil client、零值 client、已关闭 client、nil context 和已取消 context 都必须返回 `unhealthy`。已初始化且未关闭的 client 如果本次检查的 context deadline 预算短于 `Config.Timeout`，必须返回 `degraded`，并在 `metadata` 中记录降级原因。
 
 ## 指标
 

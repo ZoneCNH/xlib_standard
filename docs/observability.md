@@ -32,7 +32,7 @@
 - `latency_ms`
 - `metadata`
 
-`status` 只能是 `healthy`、`degraded` 或 `unhealthy`。未初始化、已关闭、`nil` context、canceled context 都必须返回 `unhealthy`。
+`status` 只能是 `healthy`、`degraded` 或 `unhealthy`。未初始化、已关闭、`nil` context、canceled context 都必须返回 `unhealthy`。已初始化且未关闭的 client 如果本次检查的 context deadline 预算短于 `Config.Timeout`，必须返回 `degraded`，并继续记录 `client_health_status` 和 `client_health_latency_ms`，其中 `status` label 为 `degraded`。
 
 ## 日志
 
