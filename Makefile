@@ -67,10 +67,6 @@ golden:
 evidence:
 	$(XLIBGATE) evidence
 
-.PHONY: score
-score:
-	go run ./cmd/xlibgate score
-
 .PHONY: score-check
 score-check:
 	go run ./cmd/xlibgate score --min 9.8
@@ -97,10 +93,6 @@ require-gowork-off:
 .PHONY: score
 score:
 	$(XLIBGATE) score --min 9.8
-
-.PHONY: score-check
-score-check:
-	go run ./cmd/xlibgate score --min 9.8
 
 .PHONY: ci
 ci: fmt vet lint test race boundary security contracts score
