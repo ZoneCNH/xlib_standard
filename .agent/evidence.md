@@ -1,27 +1,29 @@
 # Evidence
 
-2026-06-01 采集的完成 Evidence 需要区分 required gate 和 extended gate。
+Full Goal Runtime v3.1 的完成 Evidence 必须区分 required、extended、final 和下游集成 gate。
 
 ## Required Evidence
 
-- `go test ./...`：通过。
-- `go test -race ./...`：通过。
-- `make boundary`：通过。
-- `make security`：通过；`govulncheck` 和密钥扫描均已通过。
-- `make contracts`：通过。
-- `make evidence`：通过，并生成 `release/manifest/latest.json`。
-- `make release-check`：通过。
+- `GOWORK=off go test ./...`：通过。
+- `GOWORK=off make boundary`：通过。
+- `GOWORK=off make contracts`：通过。
+- `GOWORK=off make docs-check`：通过。
+- `GOWORK=off make security`：`govulncheck` 和 secret scan 均通过。
+- `GOWORK=off make release-check`：通过，并生成 `release/manifest/latest.json` 与 `.sha256`。
 
-## Extended Evidence
+## Final Evidence
 
-推荐在发布前强验证中记录：
+- `GOWORK=off make release-final-check`：通过且工作区 clean。
+- `GOWORK=off make release-preflight VERSION=<version>`：通过。
+- `xlibgate score --min 9.8`：通过。
+- kernel downstream smoke：通过。
 
-- `make property`。
-- `make golden`。
-- `make fuzz-smoke`。
-- `make ci-extended`。
-- `make release-check-extended`。
+## Declaration
 
 最终声明必须使用：
 
+```text
 DONE with evidence:
+```
+
+Evidence、manifest、PR 描述、日志和复盘不得包含 `/home/k8s/secrets/env/*` 下任何文件内容。

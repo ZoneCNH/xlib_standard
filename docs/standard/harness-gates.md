@@ -1,60 +1,39 @@
-# Harness Gate 标准
+# Harness Gates
 
-Harness gate 是完成声明的证据来源。所有命令默认在仓库根目录运行；验证模板独立性时使用 `GOWORK=off`。
+Harness Gate 把 `xlib-standard` 的标准、模板、generator、Evidence 和 release 要求变成可执行检查。
 
-## Required Gate
+## Required Gates
 
-| Gate | 命令 | 目的 |
-| --- | --- | --- |
-| Format | `GOWORK=off make fmt` | 保持 Go 格式稳定 |
-| Vet | `GOWORK=off make vet` | 基础静态检查 |
-| Lint | `GOWORK=off make lint` | `golangci-lint` 强制检查，缺失时失败 |
-| Unit | `GOWORK=off make test` | 单元和示例 smoke |
-| Race | `GOWORK=off make race` | 并发安全基线 |
-| Boundary | `GOWORK=off make boundary` | 模块边界和模板禁止项 |
-| Security | `GOWORK=off make security` | `govulncheck` 和 secret scan |
-| Contracts | `GOWORK=off make contracts` | schema、metrics 和 manifest contract |
-| Integration | `GOWORK=off make integration` | generator 和 downstream smoke |
-| Evidence | `CHECK_STATUS=passed GOWORK=off make evidence` | 生成 release manifest |
-| Release Evidence | `RELEASE_EVIDENCE_REQUIRE_PASSED=1 GOWORK=off make release-evidence-check` | 校验 manifest 与仓库事实 |
-
-## Extended Gate
-
-- `GOWORK=off make property`
-- `GOWORK=off make golden`
-- `GOWORK=off make fuzz-smoke`
-- `GOWORK=off make ci-extended`
-- `GOWORK=off make release-check-extended`
+- `GOWORK=off make fmt`
+- `GOWORK=off make vet`
+- `GOWORK=off make lint`
+- `GOWORK=off make test`
+- `GOWORK=off make race`
+- `GOWORK=off make boundary`
+- `GOWORK=off make security`
+- `GOWORK=off make contracts`
+- `GOWORK=off make docs-check`
+- `GOWORK=off make integration`
+- `CHECK_STATUS=passed GOWORK=off make evidence`
+- `RELEASE_EVIDENCE_REQUIRE_PASSED=1 GOWORK=off make release-evidence-check`
 
 ## Generator Gate
 
-Generator gate 必须证明模板能生成代表性下游，而不是只证明 `baselib-template` 自身可用。
+Generator gate 必须证明模板能生成代表性下游，而不是只证明 `xlib-standard` 自身可用。
 
-必须渲染：
+代表下游：
 
-- `foundationx`
+- `kernel`
 - `corekit`
 
-每个渲染结果必须满足：
+旧 `foundationx` 只作为迁移兼容扫描项，不再作为默认下游。
 
-- 无 module name、module path、package name 等模板 token 残留。
-- 无旧 module path import。
-- 无 `pkg/templatex` 或 `package templatex` 残留。
-- `GOWORK=off go test ./...` 通过。
-- `GOWORK=off make contracts` 通过。
-- `GOWORK=off make boundary` 通过。
-- `CHECK_STATUS=passed GOWORK=off make evidence` 通过。
-- `RELEASE_EVIDENCE_REQUIRE_PASSED=1 GOWORK=off make release-evidence-check` 通过。
-
-## Final Gate
+## Final Gates
 
 - `GOWORK=off make release-final-check`
 - `GOWORK=off make release-preflight VERSION=<version>`
+- `xlibgate score --min 9.8`
 
-Final gate 要求工作区状态、版本参数、release Evidence 和所有 required gate 都满足发布条件。开发中有未提交变更时可以运行前置 gate，但不能宣称 final release ready。
+## Secret Gate
 
-## 失败处理
-
-- 缺工具导致失败时，记录工具名和失败命令。
-- gate 失败后先修复根因，再重新运行最小可证明命令。
-- 不得把 required gate 降级为 optional。
+Secret Gate 必须确认源码、README、测试日志、release manifest、PR 描述和 Evidence 不包含 `/home/k8s/secrets/env/*` 的真实内容。该路径只能在文档中作为调用方部署路径名出现。

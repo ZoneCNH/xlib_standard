@@ -2,37 +2,29 @@
 
 ## 改进项
 
-- 基础库创建从手工变成模板化。
-- 后续 `foundationx`、`postgresx`、`kafkax`、`redisx` 可复用目录、脚本、CI、文档和 Evidence。
+- `xlib-standard` 的身份统一为 Standard Source、Go Reference Template、Generator、Harness 和 Evidence Runtime。
+- 默认下游从旧示例名迁移为 `kernel`，并通过下游矩阵约束 `configx`、`observex`、`testkitx` 和 profile 库。
+- `.agent` 运行时从单一目标说明升级为 Full Goal Runtime v3.1 的对象、状态、traceability、gate、Evidence、release、review、rollback 和 patch 集合。
 
-## 失败项
+## 失败项记录规则
 
-- 最终验证运行中没有必需 Gate 失败。
-- `govulncheck` 已从可选检查收紧为强制 Security Gate；缺失时必须失败，不能跳过。
+- 任一 required/final gate 失败不得声明完成。
+- 缺少 `golangci-lint`、`govulncheck` 或 `xlibgate` 必须作为 blocker 记录。
+- `/home/k8s/secrets/env/*` 内容进入源码、日志、manifest、PR 或 Evidence 时必须回滚并补充规则补丁。
 
 ## 提示补丁
 
-- 后续创建基础库时必须从 `baselib-template` 复制。
-- 所有基础库必须保留 Boundary Gate 和 Secret Gate。
+- 后续创建基础库必须从 `xlib-standard` 生成，旧名仅可作为迁移历史引用。
+- 所有基础库必须保留 Boundary Gate、Secret Gate、Evidence Gate 和 Retrospective Patch 入口。
 
 ## Harness 补丁
 
-- 后续加入 public API hash gate。
-- 后续加入 config schema hash gate。
+- 保持 `xlibgate score --min 9.8` 为最终门禁。
+- 保持 kernel downstream smoke 为默认下游集成门禁。
 
 ## 规则补丁
 
 - 禁止基础库依赖 `x.go`。
 - 禁止基础库承载业务语义。
 - 禁止无 Evidence 声称 `DONE`。
-
-## CI Gate 建议
-
-- 加入 CodeQL。
-- 保留 govulncheck 强制模式。
-- 加入覆盖率阈值。
-
-## 新 Issue 候选
-
-- ISSUE-FOUNDATIONX-001 从 `baselib-template` 生成 `foundationx`。
-- ISSUE-POSTGRESX-001 从 `baselib-template` 生成 `postgresx`。
+- 禁止读取或泄露调用方生产密钥路径 `/home/k8s/secrets/env/*`。
