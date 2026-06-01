@@ -6,7 +6,7 @@
 
 当前代表性下游：
 
-- `foundationx`：组织内常规 module path，使用 `github.com/ZoneCNH/foundationx`。
+- `kernel`：组织内常规 module path，使用 `github.com/ZoneCNH/kernel`，作为 Full Goal Runtime v3.1 的默认下游集成目标。
 - `corekit`：中性 module path，使用 `example.com/acme/corekit`，用于证明 generator 不依赖固定组织、GitHub owner 或 module prefix。
 
 未来 L1/L2 profile 可以扩展：
@@ -46,7 +46,7 @@
 
 ## 验证方式
 
-`GOWORK=off make integration` 是默认下游兼容 gate。它应覆盖 generator smoke、foundationx/corekit 代表路径和关键边界检查。
+`GOWORK=off make integration` 是默认下游兼容 gate。它通过 `cmd/xlibgate integration` 覆盖 generator smoke、kernel/corekit 代表路径和关键边界检查。
 
 当新增 profile 时，在不污染默认 `make ci` 的前提下补充 profile-specific smoke 或 extended gate。
 
@@ -61,7 +61,7 @@ CHECK_STATUS=passed GOWORK=off make evidence
 RELEASE_EVIDENCE_REQUIRE_PASSED=1 GOWORK=off make release-evidence-check
 ```
 
-这些命令需要在 `foundationx` 和 `corekit` 的渲染结果中通过，失败时不得宣称 downstream compatible。
+这些命令需要在 `kernel` 和 `corekit` 的渲染结果中通过，失败时不得宣称 downstream compatible。
 
 ## 兼容破坏
 
