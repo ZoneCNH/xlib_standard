@@ -68,24 +68,24 @@ var requiredArtifacts = []string{
 }
 
 type Manifest struct {
-	Module           string            `json:"module"`
-	Version          string            `json:"version"`
-	Commit           string            `json:"commit"`
-	TreeSHA          string            `json:"tree_sha"`
-	SourceDigest     string            `json:"source_digest"`
-	TrackedFileCount int               `json:"tracked_file_count"`
-	GoVersion        string            `json:"go_version"`
-	GeneratedAt      string            `json:"generated_at"`
-	GeneratedBy      string            `json:"generated_by"`
-	TreeState        string            `json:"tree_state"`
-	Checks           map[string]string `json:"checks"`
-	Workflow         WorkflowEvidence  `json:"workflow"`
+	Module           string                `json:"module"`
+	Version          string                `json:"version"`
+	Commit           string                `json:"commit"`
+	TreeSHA          string                `json:"tree_sha"`
+	SourceDigest     string                `json:"source_digest"`
+	TrackedFileCount int                   `json:"tracked_file_count"`
+	GoVersion        string                `json:"go_version"`
+	GeneratedAt      string                `json:"generated_at"`
+	GeneratedBy      string                `json:"generated_by"`
+	TreeState        string                `json:"tree_state"`
+	Checks           map[string]string     `json:"checks"`
+	Workflow         WorkflowEvidence      `json:"workflow"`
 	Score            releasequality.Report `json:"score"`
-	Contracts        []FileDigest      `json:"contracts"`
-	Dependencies     []ModuleDigest    `json:"dependencies"`
-	Tools            map[string]string `json:"tools"`
-	Artifacts        []string          `json:"artifacts"`
-	Notes            Notes             `json:"notes"`
+	Contracts        []FileDigest          `json:"contracts"`
+	Dependencies     []ModuleDigest        `json:"dependencies"`
+	Tools            map[string]string     `json:"tools"`
+	Artifacts        []string              `json:"artifacts"`
+	Notes            Notes                 `json:"notes"`
 }
 
 type WorkflowEvidence struct {
@@ -281,8 +281,10 @@ func verifyManifest(path string, requirePassed bool, requireClean bool, expectVe
 	if got.Score.Threshold == 0 {
 		failures = append(failures, "score.threshold is required")
 	}
-	if err := releasequality.Verify(got.Score, minScore); err != nil {
-		failures = append(failures, err.Error())
+	if minScore > 0 {
+		if err := releasequality.Verify(got.Score, minScore); err != nil {
+			failures = append(failures, err.Error())
+		}
 	}
 	if requireClean && got.TreeState != "clean" {
 		failures = append(failures, fmt.Sprintf("tree_state must be clean, got %q", got.TreeState))

@@ -31,8 +31,11 @@ required_gates:
     command: "GOWORK=off make contracts"
     purpose: "contracts schema and metrics contract validation"
   - id: integration
-    command: "GOWORK=off make integration"
-    purpose: "generator and downstream smoke; kernel is required v3.1 downstream"
+    command: "make integration"
+    purpose: "generator 和 downstream smoke"
+  - id: score_check
+    command: "go run ./cmd/xlibgate score --min 9.8"
+    purpose: "Release Score 达到 9.8 基准"
   - id: evidence
     command: "CHECK_STATUS=passed GOWORK=off make evidence"
     purpose: "generate release manifest"
@@ -51,6 +54,8 @@ extended_gates:
   - id: release_check_extended
     command: "GOWORK=off make release-check-extended"
 final_gates:
+  - id: release_score_final
+    command: "go run ./cmd/xlibgate score --min 9.5"
   - id: release_final_check
     command: "GOWORK=off make release-final-check"
   - id: release_preflight

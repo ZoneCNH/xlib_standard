@@ -141,6 +141,12 @@ func TestRunCLIGeneratesManifestToOut(t *testing.T) {
 	if manifest.GeneratedBy != "releasemanifest-cli-test" {
 		t.Fatalf("generated_by = %q, want releasemanifest-cli-test", manifest.GeneratedBy)
 	}
+	if manifest.Workflow.WorkflowRunID == "" || manifest.Workflow.ArtifactName == "" || manifest.Workflow.ArtifactURL == "" {
+		t.Fatalf("workflow evidence is incomplete: %+v", manifest.Workflow)
+	}
+	if manifest.Score.Threshold != 9.8 || manifest.Score.Status == "" || len(manifest.Score.Dimensions) == 0 {
+		t.Fatalf("score report is incomplete: %+v", manifest.Score)
+	}
 	for _, name := range checkNames {
 		if manifest.Checks[name] != "passed" {
 			t.Fatalf("checks[%q] = %q, want passed", name, manifest.Checks[name])
@@ -225,6 +231,46 @@ func TestRunCLIVerifiesManifestWithRequirePassed(t *testing.T) {
 	}
 	if want := "release evidence verified: " + outPath; !strings.Contains(stdout.String(), want) {
 		t.Fatalf("stdout = %q, want substring %q", stdout.String(), want)
+	}
+}
+
+func TestRunCLIVerifyRejectsScoreBelowMinimum(t *testing.T) {
+	t.Setenv("GOWORK", "off")
+	t.Setenv("CHECK_STATUS", "passed")
+	chdir(t, releaseManifestFixtureRepo(t))
+
+	outPath := filepath.Join(t.TempDir(), "latest.json")
+	var generateStdout bytes.Buffer
+	var generateStderr bytes.Buffer
+	if code := runCLI("releasemanifest", []string{"-out", outPath}, &generateStdout, &generateStderr); code != 0 {
+		t.Fatalf("runCLI generate exit code = %d, want 0; stderr: %s", code, generateStderr.String())
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := runCLI("releasemanifest", []string{"-verify", outPath, "-min-score", "9.8"}, &stdout, &stderr)
+	if code != 1 {
+		t.Fatalf("runCLI verify exit code = %d, want 1; stdout: %s; stderr: %s", code, stdout.String(), stderr.String())
+	}
+	if stdout.Len() != 0 {
+		t.Fatalf("stdout = %q, want empty", stdout.String())
+	}
+	for _, want := range []string{"release score", "below minimum"} {
+		if !strings.Contains(stderr.String(), want) {
+			t.Fatalf("stderr = %q, want substring %q", stderr.String(), want)
+		}
+	}
+}
+
+func TestBuildWorkflowEvidencePrefersExplicitEnvironment(t *testing.T) {
+	t.Setenv("WORKFLOW_RUN_ID", "12345")
+	t.Setenv("ARTIFACT_NAME", "manifest-artifact")
+	t.Setenv("ARTIFACT_URL", "https://example.invalid/artifacts/manifest")
+
+	got := buildWorkflowEvidence()
+
+	if got.WorkflowRunID != "12345" || got.ArtifactName != "manifest-artifact" || got.ArtifactURL != "https://example.invalid/artifacts/manifest" {
+		t.Fatalf("workflow evidence = %+v, want explicit env values", got)
 	}
 }
 
