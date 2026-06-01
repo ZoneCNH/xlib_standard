@@ -88,4 +88,4 @@ release-final-check: release-check
 .PHONY: release-preflight
 release-preflight:
 	./scripts/check_release_preflight.sh "$(VERSION)"
-	GOWORK=off $(MAKE) release-final-check
+	GOWORK=off VERSION="$(VERSION)" $(MAKE) release-final-check

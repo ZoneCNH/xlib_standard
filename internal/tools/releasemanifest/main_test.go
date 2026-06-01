@@ -171,6 +171,7 @@ func TestRunCLIGenerateReportsWriteManifestFailure(t *testing.T) {
 
 func TestRunCLIVerifiesManifestWithRequirePassed(t *testing.T) {
 	t.Setenv("GOWORK", "off")
+	t.Setenv("VERSION", "v1.2.3")
 	t.Setenv("CHECK_STATUS", "passed")
 	chdir(t, releaseManifestFixtureRepo(t))
 
@@ -183,7 +184,7 @@ func TestRunCLIVerifiesManifestWithRequirePassed(t *testing.T) {
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := runCLI("releasemanifest", []string{"-verify", outPath, "-require-passed"}, &stdout, &stderr)
+	code := runCLI("releasemanifest", []string{"-verify", outPath, "-require-passed", "-expect-version", "v1.2.3"}, &stdout, &stderr)
 	if code != 0 {
 		t.Fatalf("runCLI verify exit code = %d, want 0; stderr: %s", code, stderr.String())
 	}
@@ -192,6 +193,33 @@ func TestRunCLIVerifiesManifestWithRequirePassed(t *testing.T) {
 	}
 	if want := "release evidence verified: " + outPath; !strings.Contains(stdout.String(), want) {
 		t.Fatalf("stdout = %q, want substring %q", stdout.String(), want)
+	}
+}
+
+func TestRunCLIVerifyRejectsExpectedVersionMismatch(t *testing.T) {
+	t.Setenv("GOWORK", "off")
+	t.Setenv("VERSION", "v1.2.3")
+	t.Setenv("CHECK_STATUS", "passed")
+	chdir(t, releaseManifestFixtureRepo(t))
+
+	outPath := filepath.Join(t.TempDir(), "latest.json")
+	var generateStdout bytes.Buffer
+	var generateStderr bytes.Buffer
+	if code := runCLI("releasemanifest", []string{"-out", outPath}, &generateStdout, &generateStderr); code != 0 {
+		t.Fatalf("runCLI generate exit code = %d, want 0; stderr: %s", code, generateStderr.String())
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := runCLI("releasemanifest", []string{"-verify", outPath, "-expect-version", "v9.9.9"}, &stdout, &stderr)
+	if code != 1 {
+		t.Fatalf("runCLI verify exit code = %d, want 1; stdout: %s; stderr: %s", code, stdout.String(), stderr.String())
+	}
+	if stdout.Len() != 0 {
+		t.Fatalf("stdout = %q, want empty", stdout.String())
+	}
+	if want := `version mismatch: got "v1.2.3", want "v9.9.9"`; !strings.Contains(stderr.String(), want) {
+		t.Fatalf("stderr = %q, want substring %q", stderr.String(), want)
 	}
 }
 
@@ -388,7 +416,7 @@ func TestVerifyManifestAcceptsFreshManifestAndRejectsDrift(t *testing.T) {
 	if err := writeManifest(goodPath, manifest); err != nil {
 		t.Fatal(err)
 	}
-	if err := verifyManifest(goodPath, true, false); err != nil {
+	if err := verifyManifest(goodPath, true, false, ""); err != nil {
 		t.Fatalf("verify fresh manifest: %v", err)
 	}
 
@@ -399,7 +427,7 @@ func TestVerifyManifestAcceptsFreshManifestAndRejectsDrift(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = verifyManifest(badPath, true, false)
+	err = verifyManifest(badPath, true, false, "")
 	if err == nil {
 		t.Fatal("verify stale manifest succeeded, want error")
 	}
@@ -430,7 +458,7 @@ func TestVerifyManifestRequiresCleanTree(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = verifyManifest(path, true, true)
+	err = verifyManifest(path, true, true, "")
 	if err == nil {
 		t.Fatal("verify dirty manifest with requireClean succeeded, want error")
 	}
