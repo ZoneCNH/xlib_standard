@@ -83,7 +83,7 @@ Goal 或 Release 级完成声明必须覆盖以下字段，缺失项要写入 `k
 - `dependency list`：manifest 中的依赖清单状态。
 - `tool versions`：manifest 中的 Go、工具链和 gate 工具版本状态。
 - `gates`：`fmt`、`vet`、`test`、`race`、`lint`、`security`、`contracts`、`boundary`、`integration`、`evidence`、`release-evidence-check`、`release-final-check`。
-- `rendered downstream`：`foundationx` 和 `corekit` 的 generator 验证状态。
+- `rendered downstream`：`kernel` 和 `corekit` 的 generator 验证状态；旧 `foundationx` 仅作为迁移扫描项记录。
 - `workspace`：clean、dirty 或 blocked，并说明 dirty 原因。
 
 ## 禁止声明
