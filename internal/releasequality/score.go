@@ -60,12 +60,12 @@ func Compute(threshold float64) Report {
 	return Report{Value: value, Threshold: threshold, Status: status, Dimensions: dimensions}
 }
 
-func Verify(report Report, min float64) error {
-	if min <= 0 {
-		min = report.Threshold
+func Verify(report Report, minimum float64) error {
+	if minimum <= 0 {
+		minimum = report.Threshold
 	}
-	if report.Value < min {
-		return fmt.Errorf("release score %.1f is below minimum %.1f", report.Value, min)
+	if report.Value < minimum {
+		return fmt.Errorf("release score %.1f is below minimum %.1f", report.Value, minimum)
 	}
 	if report.Status != "passed" && report.Value < report.Threshold {
 		return fmt.Errorf("release score status is %q at %.1f below threshold %.1f", report.Status, report.Value, report.Threshold)
