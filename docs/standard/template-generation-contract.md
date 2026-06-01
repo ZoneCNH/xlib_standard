@@ -32,14 +32,6 @@ scripts/render_template.sh \
 
 Metrics Prefix 必须跟随 package name 替换。模板中的 `templatex_` prefix 在 `kernel` 渲染后必须变为 `kernel_`，在 `example.com/acme/corekit` 渲染后必须变为 `corekit_`。metrics contract、README、docs、examples、测试和 snapshot 中不得残留 `templatex_`，除非某个文件被明确 allowlist 为模板来源说明。
 
-## Release 验证
-
-任何 generator 修改必须附带 integration Evidence。Release 级验证必须证明渲染出的 `kernel` 和中性路径 `corekit` 可以独立运行：
-
-### Metrics Prefix
-
-Metrics Prefix 必须跟随 package name 替换。模板中的 `templatex_` prefix 在 `kernel` 渲染后必须变为 `kernel_`，在 `example.com/acme/corekit` 渲染后必须变为 `corekit_`。metrics contract、README、docs、examples、测试和 snapshot 中不得残留 `templatex_`，除非某个文件被明确 allowlist 为模板来源说明。
-
 ## 排除规则
 
 generator 不得复制：
@@ -80,7 +72,20 @@ generator 不得复制：
 
 扫描失败时 integration gate 必须失败。
 
-## 验证
+## Release 验证
+
+任何 generator 修改必须附带 integration Evidence。Release 级验证必须证明渲染出的 `kernel` 和中性路径 `corekit` 可以独立运行：
+
+```bash
+GOWORK=off go mod tidy
+GOWORK=off go test ./...
+GOWORK=off make contracts
+GOWORK=off make boundary
+CHECK_STATUS=passed GOWORK=off make evidence
+RELEASE_EVIDENCE_REQUIRE_PASSED=1 GOWORK=off make release-evidence-check
+```
+
+模板仓库侧验证入口：
 
 ```bash
 GOWORK=off make integration
@@ -88,5 +93,3 @@ GOWORK=off make boundary
 GOWORK=off make contracts
 GOWORK=off make release-check
 ```
-
-任何 generator 修改必须附带 integration Evidence。Release 级验证还必须证明渲染出的 `kernel` 和 `corekit` 可以独立运行 `go mod tidy`、`go test ./...`、`make contracts`、`make boundary`、`make evidence` 和 `make release-evidence-check`，且所有命令都在 `GOWORK=off` 下执行。
