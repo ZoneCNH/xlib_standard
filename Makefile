@@ -27,6 +27,10 @@ lint:
 integration:
 	./scripts/run_integration.sh
 
+.PHONY: docs-check
+docs-check:
+	./scripts/check_docs.sh
+
 .PHONY: security
 security:
 	@if command -v govulncheck >/dev/null 2>&1; then \
@@ -61,9 +65,24 @@ golden:
 evidence:
 	./scripts/generate_manifest.sh
 
+.PHONY: release-evidence-hash
+release-evidence-hash:
+	./scripts/hash_release_evidence.sh >/dev/null
+
 .PHONY: release-evidence-check
 release-evidence-check:
 	RELEASE_EVIDENCE_REQUIRE_PASSED=1 ./scripts/check_release_evidence.sh
+
+.PHONY: release-evidence-checksum-check
+release-evidence-checksum-check:
+	./scripts/hash_release_evidence.sh --check
+
+.PHONY: require-gowork-off
+require-gowork-off:
+	@if [ "$(GOWORK)" != "off" ]; then \
+		echo "GOWORK=off is required for release targets"; \
+		exit 1; \
+	fi
 
 .PHONY: ci
 ci: fmt vet lint test race boundary security contracts
@@ -72,18 +91,23 @@ ci: fmt vet lint test race boundary security contracts
 ci-extended: ci property golden fuzz-smoke
 
 .PHONY: release-check
-release-check: ci integration
+release-check: require-gowork-off ci integration docs-check
 	CHECK_STATUS=passed $(MAKE) evidence
+	$(MAKE) release-evidence-hash
 	$(MAKE) release-evidence-check
+	$(MAKE) release-evidence-checksum-check
 
 .PHONY: release-check-extended
-release-check-extended: ci-extended integration
+release-check-extended: require-gowork-off ci-extended integration docs-check
 	CHECK_STATUS=passed $(MAKE) evidence
+	$(MAKE) release-evidence-hash
 	$(MAKE) release-evidence-check
+	$(MAKE) release-evidence-checksum-check
 
 .PHONY: release-final-check
 release-final-check: release-check
 	RELEASE_EVIDENCE_REQUIRE_PASSED=1 RELEASE_EVIDENCE_REQUIRE_CLEAN=1 ./scripts/check_release_evidence.sh
+	$(MAKE) release-evidence-checksum-check
 
 .PHONY: release-preflight
 release-preflight:

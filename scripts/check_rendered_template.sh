@@ -76,7 +76,46 @@ scan_fixed() {
   fi
 }
 
-scan_regex '\{\{MODULE_NAME\}\}|\{\{MODULE_PATH\}\}|\{\{PACKAGE_NAME\}\}' "template placeholder"
+scan_template_placeholders() {
+  local pattern='\{\{[^}]+\}\}|TODO_TEMPLATE'
+
+  if command -v rg >/dev/null 2>&1; then
+    if rg -n --hidden \
+      --glob '!.git/**' \
+      --glob '!**/.git/**' \
+      --glob '!.github/workflows/**' \
+      --glob '!**/.github/workflows/**' \
+      --glob '!docs/adr/**' \
+      --glob '!**/docs/adr/**' \
+      --glob '!docs/goal.md' \
+      --glob '!**/docs/goal.md' \
+      --glob '!scripts/check_docs.sh' \
+      --glob '!**/scripts/check_docs.sh' \
+      --glob '!scripts/check_rendered_template.sh' \
+      --glob '!**/scripts/check_rendered_template.sh' \
+      --glob '!scripts/run_fuzz_smoke.sh' \
+      --glob '!**/scripts/run_fuzz_smoke.sh' \
+      "$pattern" "$repo_dir"; then
+      echo "ERROR: found stale template placeholder" >&2
+      exit 1
+    fi
+  else
+    if find "$repo_dir" -type f \
+      -not -path '*/.git/*' \
+      -not -path '*/.github/workflows/*' \
+      -not -path '*/docs/adr/*' \
+      -not -path '*/docs/goal.md' \
+      -not -path '*/scripts/check_docs.sh' \
+      -not -path '*/scripts/check_rendered_template.sh' \
+      -not -path '*/scripts/run_fuzz_smoke.sh' \
+      -print0 | xargs -0 grep -InE "$pattern"; then
+      echo "ERROR: found stale template placeholder" >&2
+      exit 1
+    fi
+  fi
+}
+
+scan_template_placeholders
 scan_fixed "github.com/ZoneCNH/baselib-template" "module path"
 
 if [[ "$module_name" != "baselib-template" ]]; then
@@ -84,6 +123,10 @@ if [[ "$module_name" != "baselib-template" ]]; then
 fi
 
 if [[ "$package_name" != "templatex" ]]; then
+  scan_fixed "pkg/templatex" "package directory reference"
+  scan_fixed "templatex_" "metrics prefix"
+  scan_fixed "Templatex" "title-case package name"
+  scan_fixed "TEMPLATEX" "upper-case package name"
   scan_regex '\btemplatex\b' "package name"
 fi
 

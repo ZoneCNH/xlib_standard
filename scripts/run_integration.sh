@@ -29,6 +29,8 @@ for spec in "${cases[@]}"; do
     git add .
     git commit -qm "Initial rendered template"
 
+    GOWORK=off go mod tidy
+    git diff --exit-code -- go.mod go.sum
     GOWORK=off go test ./...
     GOWORK=off make contracts
     GOWORK=off make boundary

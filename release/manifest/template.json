@@ -19,7 +19,11 @@
     "secret_scan": "{{CHECK_STATUS}}",
     "security": "{{CHECK_STATUS}}",
     "contract": "{{CHECK_STATUS}}",
-    "integration": "{{CHECK_STATUS}}"
+    "integration": "{{CHECK_STATUS}}",
+    "docs_check": "{{CHECK_STATUS}}",
+    "property": "{{CHECK_STATUS}}",
+    "golden": "{{CHECK_STATUS}}",
+    "fuzz_smoke": "{{CHECK_STATUS}}"
   },
   "contracts": [
     {
@@ -51,7 +55,8 @@
     "govulncheck": "{{GOVULNCHECK_VERSION}}"
   },
   "artifacts": [
-    "release/manifest/latest.json"
+    "release/manifest/latest.json",
+    "release/manifest/latest.json.sha256"
   ],
   "notes": {
     "breaking_changes": "none",

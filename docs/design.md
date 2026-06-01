@@ -2,7 +2,7 @@
 
 ## 架构
 
-生成的库是独立 Go module。公共 API 位于 `pkg/{{PACKAGE_NAME}}`，内部辅助代码位于 `internal/`，contracts 位于 `contracts/`，运行 Evidence 位于 `release/manifest/`。`scripts/render_template.sh` 是模板到具体基础库的唯一内置渲染入口。
+生成的库是独立 Go module。标准源来自独立仓库 [`xlib-standard`](https://github.com/ZoneCNH/xlib-standard)；`baselib-template` 负责把该标准实现为可编译模板、generator、Harness 和 Evidence 链路。公共 API 位于 `pkg/{{PACKAGE_NAME}}`，内部辅助代码位于 `internal/`，contracts 位于 `contracts/`，运行 Evidence 位于 `release/manifest/`。`scripts/render_template.sh` 是模板到具体基础库的唯一内置渲染入口。
 
 ## 公共 API
 
@@ -30,4 +30,4 @@
 
 ## 发布
 
-发布前必须通过 Harness Gate，并生成 `release/manifest/latest.json`。`latest.json` 是 release Evidence artifact，不提交到源码历史；仓库只提交 `release/manifest/template.json`。`make release-check` 会先运行 CI 和 integration gate，再以 `CHECK_STATUS=passed` 生成 manifest；manifest 记录实际执行 gate 的 `commit`、`generated_by`、`go_version` 和 `tree_state`。integration gate 会渲染临时 `foundationx` 并运行测试，防止模板替换链路回归。
+发布前必须通过 Harness Gate，并确认入口文档仍引用 [`https://github.com/ZoneCNH/xlib-standard`](https://github.com/ZoneCNH/xlib-standard)，然后生成 `release/manifest/latest.json`。`latest.json` 是 release Evidence artifact，不提交到源码历史；仓库只提交 `release/manifest/template.json`。`make release-check` 会先运行 CI 和 integration gate，再以 `CHECK_STATUS=passed` 生成 manifest；manifest 记录实际执行 gate 的 `commit`、`generated_by`、`go_version` 和 `tree_state`。integration gate 会渲染临时 `foundationx` 并运行测试，防止模板替换链路回归。

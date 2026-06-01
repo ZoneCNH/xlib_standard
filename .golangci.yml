@@ -5,9 +5,21 @@ run:
 
 linters:
   enable:
+    - copyloopvar
+    - durationcheck
+    - errorlint
     - govet
     - ineffassign
+    - makezero
+    - nilerr
+    - nilnesserr
+    - nilnil
+    - nolintlint
+    - predeclared
     - staticcheck
+    - unconvert
+    - usetesting
+    - wastedassign
 
 issues:
   max-issues-per-linter: 0
