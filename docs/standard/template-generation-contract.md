@@ -14,7 +14,7 @@ scripts/render_template.sh \
 
 ## 必须替换
 
-- `{{MODULE_NAME}}`、`{{MODULE_PATH}}`、`{{PACKAGE_NAME}}`。
+- Module name、module path 和 package name 占位符必须替换为目标库值。
 - `github.com/ZoneCNH/xlib-standard` 模板自身 import 到目标 module path。
 - 旧迁移扫描项：`github.com/ZoneCNH/baselib-template`、`baselib-template`、`foundationx`。
 - `pkg/templatex` 目录名到 `pkg/<package-name>`。

@@ -1,28 +1,23 @@
-# SPEC-{{MODULE_NAME}}-v1.0
+# 规格
+
+## 目标
+
+对齐独立标准仓库 [`xlib-standard`](https://github.com/ZoneCNH/xlib-standard)，并在同一仓库中提供 Go 参考模板、generator、Harness 和 Evidence Runtime。
 
 ## 需求
 
-- 对齐独立标准仓库 [`xlib-standard`](https://github.com/ZoneCNH/xlib-standard)，并在 `baselib-template` 中提供模板、generator、Harness 和 Evidence 实现。
-- 为可复用基础库提供独立 Go module。
-- 提供 `Config`、`Validate`、`Sanitize`、`Client`、`New`、`Option`、`HealthCheck`、错误模型、指标钩子和版本元数据。
-- `Validate`、`New`、`Close` 和 `HealthCheck` 必须返回或记录可分类的生产语义，包括 typed error、幂等关闭、上下文取消和健康状态。
-- 提供 Harness Gate 脚本、生成脚本、CI 工作流、contracts、examples、Evidence artifact、release 和复盘模板；这些实现属于 `baselib-template`，标准源属于 [`xlib-standard`](https://github.com/ZoneCNH/xlib-standard)。
-
-## 验收标准
-
-- `GOWORK=off go test ./...` 和 `GOWORK=off go test -race ./...` 通过。
-- `GOWORK=off make release-check` 通过，并以 `CHECK_STATUS=passed` 生成未提交的 `release/manifest/latest.json` Evidence artifact。
-- `contracts/config.schema.json` 与 `Config` 字段映射保持一致，`timeout_ms` 映射到 `Config.Timeout`。
-- `contracts/error.schema.json`、`contracts/health.schema.json` 和 `contracts/metrics.md` 与公共常量保持一致。
-- `scripts/render_template.sh` 可以生成 `foundationx` 形态并通过 `GOWORK=off go test ./...`。
-- 模块不得依赖 `github.com/bytechainx/x.go` 或 `github.com/ZoneCNH/x.go`；标准文本引用必须指向 [`https://github.com/ZoneCNH/xlib-standard`](https://github.com/ZoneCNH/xlib-standard)。
-- 模块不得隐式读取生产密钥。
+- 提供可编译 Go 模板、contracts、examples、CI workflow、Harness Gate、Evidence artifact、release 和复盘模板。
+- `scripts/render_template.sh` 可以生成 `kernel` 形态并通过 `GOWORK=off go test ./...`。
+- 默认下游为 `kernel`，中性 smoke 目标为 `corekit`。
+- 旧 `baselib-template` / `foundationx` 只保留在迁移 ADR、迁移指南、历史记录和兼容性说明中。
+- 禁止隐式读取 `/home/k8s/secrets/env/*`；该路径只属于调用方部署配置。
 
 ## 非目标
 
-- 不包含业务模型、生产连接默认值和隐藏全局客户端。
+- 不依赖 `x.go`。
+- 不包含 `x.go` 业务模型。
+- 不把生成库真实 runtime 塞回标准仓库。
 
-## 可追踪性
+## 目标编号
 
-- 目标：`GOAL-20260601-001`
-- 模板占位符：`{{MODULE_NAME}}`、`{{MODULE_PATH}}`、`{{PACKAGE_NAME}}`
+- 目标：`GOAL-20260602-001`

@@ -2,9 +2,7 @@
 
 ## 1. 定位
 
-`baselib-template` 是基础库测试策略母版，不绑定 `x.go` 业务模型。
-
-它定义所有生成基础库必须继承的测试分层、Gate 标准、Evidence 规则和扩展测试 profile。目标不是把所有测试模式机械塞进模板，而是提供可继承、可验证、可发布、可复盘的基础库质量基线。
+`xlib-standard` 是基础库测试策略母版，不绑定 `x.go` 业务模型。它定义所有生成基础库必须继承的测试分层、Gate 标准、Evidence 规则和扩展测试 profile。旧 `baselib-template` 名称只用于迁移说明。
 
 ## 2. 非目标
 
@@ -14,7 +12,7 @@
 - 不默认强制 Mutation Test。
 - 不默认运行长时间 Fuzz。
 - 不绑定 `x.go` 业务模型。
-- 不隐式读取生产密钥。
+- 不隐式读取生产密钥或 `/home/k8s/secrets/env/*`。
 
 ## 3. 测试分层
 
@@ -31,232 +29,25 @@
 
 ## 4. Required Gates
 
-Required Gates 必须由所有生成库继承：
-
 ```text
-make fmt
-make vet
-make lint
-make test
-make race
-make boundary
-make security
-make contracts
-make integration
-make evidence
-make release-check
+GOWORK=off make fmt
+GOWORK=off make vet
+GOWORK=off make lint
+GOWORK=off make test
+GOWORK=off make race
+GOWORK=off make boundary
+GOWORK=off make security
+GOWORK=off make contracts
+GOWORK=off make docs-check
+GOWORK=off make integration
+GOWORK=off make evidence
+GOWORK=off make release-check
 ```
 
-`make ci` 保持快、稳、轻，负责默认开发与 PR 基线。
+## 5. Profile Gates
 
-## 5. Extended Gates
-
-Extended Gates 推荐默认实现，但不进入轻量 `make ci`：
-
-```text
-make property
-make fuzz-smoke
-make golden
-make ci-extended
-make release-check-extended
-```
-
-`make ci-extended` 用于发布前强验证、公共 API 变更、contract 变更、schema 变更、metrics 变更和安全敏感变更。
-
-## 6. Profile Gates
-
-不同派生库按类型启用 profile。
-
-### Pure Library
-
-适用于：
-
-```text
-foundationx
-testkitx
-```
-
-要求：
-
-```text
-unit
-property
-golden
-contract
-security
-```
-
-### Config Library
-
-适用于：
-
-```text
-configx
-```
-
-要求：
-
-```text
-unit
-property
-fuzz-smoke
-golden
-contract
-secret scan
-```
-
-重点：
-
-```text
-config parser 不 panic
-secret 永不泄露
-sanitize 输出稳定
-schema 与 Config 字段同步
-```
-
-### Observability Library
-
-适用于：
-
-```text
-observex
-```
-
-要求：
-
-```text
-unit
-golden
-contract
-compatibility
-integration smoke
-```
-
-重点：
-
-```text
-metrics name 不漂移
-log field 不漂移
-trace context 不丢失
-health JSON 稳定
-```
-
-### Storage Library
-
-适用于：
-
-```text
-postgresx
-redisx
-taosx
-ossx
-```
-
-要求：
-
-```text
-unit
-contract
-integration
-race
-security
-resilience
-timeout/cancel/idempotency
-```
-
-增强：
-
-```text
-chaos-lite
-soak-lite
-compatibility
-```
-
-### Messaging Library
-
-适用于：
-
-```text
-kafkax
-```
-
-要求：
-
-```text
-unit
-contract
-integration
-race
-security
-resilience
-producer/consumer compatibility
-```
-
-增强：
-
-```text
-chaos-lite
-soak-lite
-backpressure
-retry
-idempotency
-```
-
-## 7. Evidence Policy
-
-没有 Evidence 不允许声明完成。
-
-完成声明必须使用：
-
-```text
-DONE with evidence:
-```
-
-Evidence 至少包含：
-
-```text
-commit
-Go version
-tree state
-make ci result
-make release-check result
-manifest path
-artifact path
-```
-
-Extended Evidence 推荐包含：
-
-```text
-make ci-extended result
-property result
-fuzz-smoke result
-golden result
-compatibility result
-```
-
-## 8. Breaking Change Policy
-
-以下变更必须标记 breaking change：
-
-```text
-删除 ErrorKind
-删除 HealthStatus 字段
-修改 metrics 名称
-修改 config schema 字段语义
-修改 public API
-修改 release manifest 字段
-```
-
-## 9. Retrospective Policy
-
-每次 release 后必须记录：
-
-```text
-失败的 Gate
-新增的测试缺口
-Prompt Patch
-Harness Patch
-Rule Patch
-CI Gate Suggestion
-New Issue Candidates
-```
+- Pure Library：`kernel`、`testkitx`。
+- Config Library：`configx`。
+- Observability Library：`observex`。
+- Storage Library：`postgresx`、`redisx`、`taosx`、`ossx`、`clickhousex`。
+- Messaging Library：`kafkax`。
