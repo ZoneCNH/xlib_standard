@@ -151,7 +151,7 @@ classify_file() {
     AGENTS.md|Makefile|.github/workflows/*|.agent/gates.md)
       add_category_file "repository_rules" "$file"
       ;;
-    cmd/xlibgate/*|docs/standard/xlibgate-cli-contract.md|docs/standard/release-standard.md|docs/standard/harness-gates.md|docs/standard/evidence-protocol.md)
+    cmd/xlibgate/*|.agent/context/*|docs/standard/xlibgate-cli-contract.md|docs/standard/release-standard.md|docs/standard/harness-gates.md|docs/standard/evidence-protocol.md)
       add_category_file "context_runtime" "$file"
       ;;
     contracts/*)
