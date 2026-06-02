@@ -63,9 +63,9 @@ make ci-extended
 GOWORK=off make dependency-check
 GOWORK=off make standard-impact-check
 GOWORK=off make docs-check
-GOWORK=off make release-check
-GOWORK=off make release-final-check
-make release-preflight VERSION=v0.2.0
+XLIB_CONTEXT=release_verify GOWORK=off make release-check
+XLIB_CONTEXT=release_verify GOWORK=off make release-final-check
+XLIB_CONTEXT=release_verify GOWORK=off make release-preflight VERSION=v0.2.0
 make evidence
 ```
 
@@ -87,7 +87,7 @@ scripts/render_template.sh \
 
 ```bash
 GOWORK=off make docs-check
-GOWORK=off make release-check
+XLIB_CONTEXT=release_verify GOWORK=off make release-check
 ```
 
 ## Evidence

@@ -24,6 +24,17 @@ Full Goal Runtime v3.1 以 `cmd/xlibgate` 作为 Go gate runtime。Makefile targ
 | Evidence | `CHECK_STATUS=passed GOWORK=off make evidence` | 生成 release manifest |
 | Release Evidence | `RELEASE_EVIDENCE_REQUIRE_PASSED=1 GOWORK=off make release-evidence-check` | 校验 manifest 与仓库事实 |
 
+
+## Goal v2.9.3 Governance Gate
+
+| Gate | 命令 | 目的 |
+| --- | --- | --- |
+| P0 Governance | `XLIB_CONTEXT=local_write GOWORK=off make governance-check` | 执行 main/worktree/evidence/boundary/security/CLI/registry/Makefile baseline；禁止 x.go imports 与真实 secrets。 |
+| P1 Governance Dry Run | `GOWORK=off make p1-governance-check` | 验证 policy schema、GitHub settings intent、toolchain、Evidence artifacts、naming、install/upgrade runtime 与 release-ready 文档，不读取外部 secrets。 |
+| P2 Runtime Dry Run | `GOWORK=off make p2-runtime-check` | 验证 standard-source/l0-kernel conformance、pack-standard/pack-gate/pack-evidence、downstream patch-only、runtime-file-ownership 和 execution-context。 |
+
+这些 target 是 `docs/goal.md` v2.9.3 可执行方案的验收入口；`release-check` 依赖 `governance-check`，CI 额外显式运行 `make p1-governance-check` 与 `make p2-runtime-check`。
+
 ## Extended Gate
 
 - `GOWORK=off make property`
@@ -45,8 +56,8 @@ Generator gate 必须证明模板能生成代表性下游，而不是只证明 `
 
 ## Final Gates
 
-- `GOWORK=off make release-final-check`
-- `GOWORK=off make release-preflight VERSION=<version>`
+- `XLIB_CONTEXT=release_verify GOWORK=off make release-final-check`
+- `XLIB_CONTEXT=release_verify GOWORK=off make release-preflight VERSION=<version>`
 - `GOWORK=off go run ./cmd/xlibgate score --min 9.8`
 - `GOWORK=off make integration DOWNSTREAM=kernel`
 

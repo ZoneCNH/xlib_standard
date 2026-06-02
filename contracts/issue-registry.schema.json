@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "xlib-standard issue registry",
+  "type": "object",
+  "required": ["schema_version", "module", "issues"],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "module": {"type": "string"},
+    "issues": {"type": "array"}
+  },
+  "additionalProperties": true
+}

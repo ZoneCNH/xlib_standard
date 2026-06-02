@@ -1,0 +1,180 @@
+schema_version: "2.9.3"
+module: xlib-standard
+commands:
+  - name: version
+    phase: P0
+    target: version
+  - name: doctor
+    phase: P0
+    target: doctor
+  - name: minimal-kernel
+    phase: P0
+    target: minimal-kernel
+  - name: main-guard
+    phase: P0
+    target: main-guard
+  - name: worktree-guard
+    phase: P0
+    target: worktree-guard
+  - name: evidence-check
+    phase: P0
+    target: evidence-check
+  - name: done-assertion
+    phase: P0
+    target: done-assertion
+  - name: cli-contract
+    phase: P0
+    target: cli-contract
+  - name: issue-registry
+    phase: P0
+    target: issue-registry
+  - name: command-registry
+    phase: P0
+    target: command-registry
+  - name: makefile-baseline
+    phase: P0
+    target: makefile-baseline
+  - name: boundary
+    phase: P0
+    target: boundary
+  - name: contracts
+    phase: P0
+    target: contracts
+  - name: dependency-check
+    phase: P0
+    target: dependency-check
+  - name: docs-check
+    phase: P0
+    target: docs-check
+  - name: evidence
+    phase: P0
+    target: evidence
+  - name: manifest
+    phase: P0
+    target: manifest
+  - name: integration
+    phase: P0
+    target: integration
+  - name: release-evidence-check
+    phase: P0
+    target: release-evidence-check
+  - name: release-evidence-checksum-check
+    phase: P0
+    target: release-evidence-checksum-check
+  - name: release-evidence-hash
+    phase: P0
+    target: release-evidence-hash
+  - name: release-final-check
+    phase: P0
+    target: release-final-check
+  - name: render-check
+    phase: P0
+    target: render-check
+  - name: score
+    phase: P0
+    target: score
+  - name: secrets
+    phase: P0
+    target: secrets
+  - name: security
+    phase: P0
+    target: security
+  - name: standard-impact-check
+    phase: P0
+    target: standard-impact-check
+  - name: agent-team-contract
+    phase: P1
+    target: p1-governance-check
+  - name: scope-lock
+    phase: P1
+    target: p1-governance-check
+  - name: pr-template
+    phase: P1
+    target: p1-governance-check
+  - name: acceptance-matrix
+    phase: P1
+    target: p1-governance-check
+  - name: runtime-health
+    phase: P1
+    target: p1-governance-check
+  - name: goal-runtime
+    phase: P1
+    target: p1-governance-check
+  - name: naming
+    phase: P1
+    target: p1-governance-check
+  - name: upgrade-standard
+    phase: P1
+    target: p1-governance-check
+  - name: conformance-profile
+    phase: P1
+    target: p1-governance-check
+  - name: downstream-registry
+    phase: P1
+    target: p1-governance-check
+  - name: self-healing-skeleton
+    phase: P1
+    target: p1-governance-check
+  - name: policy-schema
+    phase: P1
+    target: p1-governance-check
+  - name: github-settings
+    phase: P1
+    target: p1-governance-check
+  - name: github-governance
+    phase: P1
+    target: p1-governance-check
+  - name: governance-fixture-test
+    phase: P1
+    target: p1-governance-check
+  - name: toolchain
+    phase: P1
+    target: p1-governance-check
+  - name: evidence-artifacts
+    phase: P1
+    target: p1-governance-check
+  - name: supply-chain
+    phase: P1
+    target: p1-governance-check
+  - name: autoresearch
+    phase: P1
+    target: p1-governance-check
+  - name: changelog
+    phase: P1
+    target: p1-governance-check
+  - name: install-runtime
+    phase: P2
+    target: p2-runtime-check
+  - name: upgrade-runtime
+    phase: P2
+    target: p2-runtime-check
+  - name: release-ready
+    phase: P2
+    target: p2-runtime-check
+  - name: evidence-replay
+    phase: P2
+    target: p2-runtime-check
+  - name: attest-conformance
+    phase: P2
+    target: p2-runtime-check
+  - name: pack-standard
+    phase: P2
+    target: p2-runtime-check
+  - name: pack-gate
+    phase: P2
+    target: p2-runtime-check
+  - name: pack-evidence
+    phase: P2
+    target: p2-runtime-check
+  - name: runtime-file-ownership
+    phase: P2
+    target: p2-runtime-check
+  - name: downstream-baseline
+    phase: P2
+    target: downstream-baseline
+  - name: downstream-adoption
+    phase: P2
+    target: downstream-adoption
+  - name: execution-context
+    phase: P2
+    target: p2-runtime-check

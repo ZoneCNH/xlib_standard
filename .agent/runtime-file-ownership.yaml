@@ -1,0 +1,5 @@
+schema_version: "2.9.3"
+owners:
+  .agent/: governance
+  cmd/xlibgate/: gate-runtime
+  docs/goal.md: leader

@@ -23,6 +23,26 @@ func run(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) int
 		return 2
 	}
 	switch args[0] {
+	case "version":
+		return runVersion(args[1:], stdout, stderr)
+	case "doctor":
+		return runDoctor(args[1:], stdout, stderr)
+	case "main-guard":
+		return runMainGuard(args[1:], stdout, stderr)
+	case "worktree-guard":
+		return runWorktreeGuard(args[1:], stdout, stderr)
+	case "evidence-check":
+		return runEvidenceCheck(args[1:], stdout, stderr)
+	case "cli-contract":
+		return runCLIContract(args[1:], stdout, stderr)
+	case "issue-registry":
+		return runIssueRegistry(args[1:], stdout, stderr)
+	case "command-registry":
+		return runCommandRegistry(args[1:], stdout, stderr)
+	case "makefile-baseline":
+		return runMakefileBaseline(args[1:], stdout, stderr)
+	case "minimal-kernel", "done-assertion", "agent-team-contract", "scope-lock", "pr-template", "acceptance-matrix", "runtime-health", "goal-runtime", "naming", "upgrade-standard", "conformance-profile", "downstream-registry", "self-healing-skeleton", "policy-schema", "github-settings", "toolchain", "evidence-artifacts", "install-runtime", "upgrade-runtime", "release-ready", "evidence-replay", "attest-conformance", "pack-standard", "pack-gate", "pack-evidence", "runtime-file-ownership", "downstream-baseline", "downstream-adoption", "autoresearch", "changelog", "github-governance", "governance-fixture-test", "supply-chain", "execution-context":
+		return runPlannedCommand(args[0], args[1:], stdout, stderr)
 	case "boundary":
 		return runExternal(stdin, stdout, stderr, "./scripts/check_boundary.sh")
 	case "contracts":
@@ -31,7 +51,7 @@ func run(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) int
 		return runExternal(stdin, stdout, stderr, "./scripts/check_dependency_diff.sh")
 	case "docs-check":
 		return runExternal(stdin, stdout, stderr, "./scripts/check_docs.sh")
-	case "evidence":
+	case "evidence", "manifest":
 		return runExternal(stdin, stdout, stderr, "go", "run", "./internal/tools/releasemanifest", "--out", "release/manifest/latest.json")
 	case "integration":
 		return runExternal(stdin, stdout, stderr, "./scripts/run_integration.sh")
@@ -47,7 +67,7 @@ func run(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) int
 		return runExternal(stdin, stdout, stderr, "./scripts/check_rendered_template.sh", args[1:]...)
 	case "score":
 		return runScore(args[1:], stdout, stderr)
-	case "secrets":
+	case "secrets", "security":
 		return runExternal(stdin, stdout, stderr, "./scripts/check_secrets.sh")
 	case "standard-impact-check":
 		return runExternal(stdin, stdout, stderr, "./scripts/check_standard_impact.sh")
@@ -113,18 +133,63 @@ func write(writer io.Writer, format string, args ...any) {
 const usage = `usage: xlibgate <command> [args]
 
 commands:
+  agent-team-contract [--dry-run]
+  acceptance-matrix
+  attest-conformance [--profile <name>]
+  autoresearch
   boundary
+  changelog
+  cli-contract [--json|--output <path>|--explain]
+  command-registry
+  conformance-profile [--profile <name>]
   contracts
   dependency-check
+  doctor [--json]
   docs-check
+  downstream-adoption
+  downstream-baseline
+  downstream-registry
   evidence
+  evidence-artifacts
+  evidence-check
+  evidence-replay
+  execution-context
+  github-governance
+  github-settings [--verify]
+  goal-runtime
+  governance-fixture-test
+  install-runtime [--dry-run]
   integration
+  issue-registry
+  main-guard [--context local_write|local_readonly|ci_pull_request|ci_main_verify|release_verify]
+  makefile-baseline
+  manifest
+  minimal-kernel
+  done-assertion
+  naming
+  pack-evidence
+  pack-gate
+  pack-standard
+  policy-schema
+  pr-template
   release-evidence-check
   release-evidence-checksum-check
   release-evidence-hash
   release-final-check
+  release-ready
   render-check <rendered-dir>
+  runtime-file-ownership
+  runtime-health
+  scope-lock
   score [--min <score>]
   secrets
+  security
+  self-healing-skeleton
   standard-impact-check
+  supply-chain
+  toolchain
+  upgrade-runtime [--dry-run]
+  upgrade-standard [--dry-run]
+  version [--json]
+  worktree-guard [--context local_write|local_readonly|ci_pull_request|ci_main_verify|release_verify]
 `
