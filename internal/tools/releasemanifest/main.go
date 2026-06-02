@@ -137,11 +137,15 @@ type ModuleReplace struct {
 }
 
 type StandardImpactEvidence struct {
-	ReportPath             string `json:"report_path"`
-	ReportSHA256           string `json:"report_sha256"`
-	Status                 string `json:"status"`
-	DownstreamSyncRequired bool   `json:"downstream_sync_required"`
-	PrimaryDownstream      string `json:"primary_downstream"`
+	ReportPath                         string `json:"report_path"`
+	ReportSHA256                       string `json:"report_sha256"`
+	Status                             string `json:"status"`
+	DownstreamSyncRequired             bool   `json:"downstream_sync_required"`
+	PrimaryDownstream                  string `json:"primary_downstream"`
+	ContextRuntimeChange               bool   `json:"context_runtime_change"`
+	GovernanceRegistryChange           bool   `json:"governance_registry_change"`
+	DownstreamReleaseDecision          string `json:"downstream_release_decision"`
+	RepositoryRulesReleaseDecision     string `json:"repository_rules_release_decision"`
 }
 
 type GovernanceRuntime struct {
@@ -488,6 +492,10 @@ func buildStandardImpactEvidence() (StandardImpactEvidence, error) {
 	evidence.Status = "present"
 	evidence.DownstreamSyncRequired = strings.EqualFold(parseReportValue(report, "downstream_sync_required"), "true")
 	evidence.PrimaryDownstream = parseReportValue(report, "primary_downstream")
+	evidence.ContextRuntimeChange = strings.EqualFold(parseReportValue(report, "context_runtime_change"), "true")
+	evidence.GovernanceRegistryChange = strings.EqualFold(parseReportValue(report, "governance_registry_change"), "true")
+	evidence.DownstreamReleaseDecision = parseReportValue(report, "downstream_release_decision")
+	evidence.RepositoryRulesReleaseDecision = parseReportValue(report, "repository_rules_release_decision")
 	return evidence, nil
 }
 
