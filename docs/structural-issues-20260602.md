@@ -5,6 +5,10 @@
 
 ---
 
+## 当前阅读说明
+
+本文保留 2026-06-02 审计时的结构性问题快照。部分条目已经在后续治理中修复；阅读时以文末“当前修复状态”表为准。特别是版本号体系已在 v0.4.2 口径下统一，本文正文中的 `v0.3.7` / `v0.1.0` 描述仅代表历史问题状态。
+
 ## 问题 1：`cmd/xlibgate` 超级文件与上帝 switch
 
 **位置**：`cmd/xlibgate/governance.go`（743 行、40 个函数）、`cmd/xlibgate/main.go`（213 行、29 个 case 的 switch）
@@ -38,9 +42,11 @@
 
 ---
 
-## 问题 3：版本号体系混乱
+## 问题 3：版本号体系混乱（历史快照，当前已修复）
 
 **位置**：多处
+
+以下版本关系为 2026-06-02 审计时的历史状态。当前 release 口径已将项目发布版本、`templatex.Version`、release manifest template、release preflight 文档和 harness 配置同步到 `v0.4.2`。
 
 | 版本     | 位置                                         | 含义                     |
 | -------- | -------------------------------------------- | ------------------------ |
@@ -51,9 +57,9 @@
 
 **影响**：
 
-- `templatex.Version` 还停留在 `v0.1.0`，而项目已发布到 `v0.3.7`
-- `release-preflight` 的 `VERSION=v0.2.0` 是硬编码的过期值（在 `.agent/harness.yaml:116`）
-- 消费方无法通过 `templatex.Version` 获取真实的库版本
+- 历史上 `templatex.Version` 停留在 `v0.1.0`，而项目已发布到 `v0.3.7`
+- 历史上 `release-preflight` 的 `VERSION=v0.2.0` 是硬编码的过期值
+- 当前 v0.4.2 已修复该漂移；后续风险转为“新增发布时必须同步更新版本事实”
 
 **建议**：统一版本管理策略，`templatex.Version` 应与 CHANGELOG 保持同步，或通过 build info 注入。
 
