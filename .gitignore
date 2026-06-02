@@ -28,7 +28,9 @@ go.work.sum
 release/manifest/latest.json
 release/manifest/latest.json.sha256
 
-# Local OMX/team runtime worktrees
+# Local Agent/OMX runtime state
+.omc/
+.omx/
 .worktree/
 
 # env file

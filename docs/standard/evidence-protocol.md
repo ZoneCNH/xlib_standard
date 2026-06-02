@@ -18,6 +18,7 @@ DONE with evidence:
 ## 必需 Artifact
 
 - `release/manifest/latest.json`：由 `make evidence` 生成。`latest.json is a generated Evidence artifact`，`MUST NOT be committed`。
+- `release/standard-impact/latest.md`：由 `GOWORK=off make standard-impact-check` 生成，记录标准影响面和 `downstream_sync_required` 结论。
 - gate 输出：来自本地命令或 CI job。
 - review/retrospective：当变更触达标准、release 或 generator 时必须更新。
 
@@ -37,13 +38,17 @@ release/manifest/latest.json
   -> 被 .gitignore 排除，不得提交
   -> 由 CI 上传为 artifact，并在完成声明中记录 artifact_url、sha256 和 workflow_run_id
 make release-check
-  -> ci + integration + docs-check
+  -> ci + integration + dependency-check + standard-impact-check + docs-check
   -> CHECK_STATUS=passed make evidence
+  -> make release-evidence-hash
   -> make release-evidence-check
+  -> make release-evidence-checksum-check
 make release-final-check
   -> release-check
   -> 要求工作区 clean 后再次校验 release Evidence
 ```
+
+本地 release gate 必须运行 `GOWORK=off make dependency-check`、`GOWORK=off make standard-impact-check` 和 `GOWORK=off make docs-check`。
 
 ## Manifest 要求
 
@@ -58,10 +63,13 @@ manifest 必须记录：
 - `generated_at`：Evidence 生成时间。
 - `generated_by`：生成工具或脚本。
 - `tree_state`：工作区 clean/dirty 状态。
-- `checks`：gate status。
+- `checks`：gate status，必须包含 `dependency_check` 和 `standard_impact`。
 - `contracts`：contract digest。
 - `dependencies`：dependency list。
 - `tools`：tool versions。
+- `standard_impact`：标准影响报告摘要。
+- `downstream_sync_required`：是否需要同步到 `kernel`、L1/L2 基础库或记录 `x.go` 消费方影响。
+- `generator_evidence`：`kernel` 和 `corekit` 的生成验证摘要。
 - `artifacts`：必须包含 `release/manifest/latest.json` 和 `release/manifest/latest.json.sha256`。
 
 外部发布记录或 CI job summary 必须补充 manifest 外部字段：
@@ -82,7 +90,7 @@ Goal 或 Release 级完成声明必须覆盖以下字段，缺失项要写入 `k
 - `contract fingerprint`：manifest 中的 contract 指纹或 digest。
 - `dependency list`：manifest 中的依赖清单状态。
 - `tool versions`：manifest 中的 Go、工具链和 gate 工具版本状态。
-- `gates`：`fmt`、`vet`、`test`、`race`、`lint`、`security`、`contracts`、`boundary`、`integration`、`evidence`、`release-evidence-check`、`release-final-check`。
+- `gates`：`fmt`、`vet`、`test`、`race`、`lint`、`security`、`contracts`、`boundary`、`integration`、`dependency-check`、`standard-impact-check`、`evidence`、`release-evidence-check`、`release-final-check`。
 - `rendered downstream`：`kernel` 和 `corekit` 的 generator 验证状态；旧 `foundationx` 仅作为迁移扫描项记录。
 - `workspace`：clean、dirty 或 blocked，并说明 dirty 原因。
 

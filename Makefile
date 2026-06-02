@@ -29,6 +29,14 @@ lint:
 integration:
 	$(XLIBGATE) integration
 
+.PHONY: dependency-check
+dependency-check:
+	$(XLIBGATE) dependency-check
+
+.PHONY: standard-impact-check
+standard-impact-check:
+	$(XLIBGATE) standard-impact-check
+
 .PHONY: docs-check
 docs-check:
 	$(XLIBGATE) docs-check
@@ -101,14 +109,14 @@ ci: fmt vet lint test race boundary security contracts score
 ci-extended: ci property golden fuzz-smoke
 
 .PHONY: release-check
-release-check: require-gowork-off ci integration docs-check score-check
+release-check: require-gowork-off ci integration dependency-check standard-impact-check docs-check score-check
 	CHECK_STATUS=passed $(MAKE) evidence
 	$(MAKE) release-evidence-hash
 	$(MAKE) release-evidence-check
 	$(MAKE) release-evidence-checksum-check
 
 .PHONY: release-check-extended
-release-check-extended: require-gowork-off ci-extended integration docs-check score-check
+release-check-extended: require-gowork-off ci-extended integration dependency-check standard-impact-check docs-check score-check
 	CHECK_STATUS=passed $(MAKE) evidence
 	$(MAKE) release-evidence-hash
 	$(MAKE) release-evidence-check

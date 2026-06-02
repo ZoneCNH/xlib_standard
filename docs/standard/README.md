@@ -19,6 +19,7 @@
 ## 当前 v3.1 补充入口
 
 - [下游矩阵](../downstream-matrix.md)：`kernel` 与目标基础库的 module/package/layer/dependency 矩阵。
+- [下游同步策略](../downstream-sync-policy.md)：标准变更到 `kernel`、L1/L2 基础库和 `x.go` 的同步规则。
 - [x.go 集成边界](../xgo-integration-boundary.md)：调用方密钥路径和组合边界。
 - [迁移指南](../migration/baselib-template-to-xlib-standard.md)：旧名迁移规则。
 - [目标 ADR-001](../adr/ADR-20260602-001-xlib-standard-role.md)：合并五类职责的身份决策。
@@ -29,8 +30,10 @@
 发布式验证必须至少运行：
 
 ```bash
+GOWORK=off make dependency-check
+GOWORK=off make standard-impact-check
 GOWORK=off make docs-check
 GOWORK=off make release-check
 ```
 
-完整 release Evidence 还需要 `release/manifest/latest.json`、`release/manifest/latest.json.sha256`、CI artifact 和 `DONE with evidence:` 声明。Fuzz smoke 默认使用 `FUZZ_SMOKE_TIME=10s`，加长时必须记录到 Evidence。
+完整 release Evidence 还需要 `release/manifest/latest.json`、`release/manifest/latest.json.sha256`、`release/standard-impact/latest.md`、`downstream_sync_required` 结论、CI artifact 和 `DONE with evidence:` 声明。Fuzz smoke 默认使用 `FUZZ_SMOKE_TIME=10s`，加长时必须记录到 Evidence。
