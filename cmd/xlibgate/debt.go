@@ -4,69 +4,75 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
-	"fmt"
 	"io"
-	"strings"
 
 	"github.com/ZoneCNH/xlib-standard/internal/debtcheck"
 )
 
-func runDebtCommand(command string, args []string, stdout io.Writer, stderr io.Writer) int {
-	flags := flag.NewFlagSet("xlibgate "+command, flag.ContinueOnError)
+func runDebt(args []string, stdout io.Writer, stderr io.Writer) int {
+	flags := flag.NewFlagSet("xlibgate debt", flag.ContinueOnError)
 	flags.SetOutput(stderr)
-	jsonOut := flags.Bool("json", false, "print debt report as JSON")
-	root := flags.String("root", ".", "repository root")
-	out := flags.String("out", "release/debt/latest.json", "debt evidence JSON path")
-	markdown := flags.String("markdown", "release/debt/latest.md", "debt evidence Markdown path")
-	checksum := flags.String("checksum", "release/debt/latest.json.sha256", "debt evidence checksum path")
+	flags.Bool("json", false, "emit JSON debt report")
+	evidence := flags.Bool("evidence", false, "write release debt evidence artifacts")
+	outDir := flags.String("out-dir", "release/debt", "debt evidence output directory")
 	if err := flags.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			return 0
 		}
 		return 2
 	}
-
-	scopes := scopesForDebtCommand(command)
-	report, err := debtcheck.Run(debtcheck.Options{Root: *root, Scopes: scopes, RunExternal: true})
-	if err != nil {
-		write(stderr, "ERROR: %v\n", err)
-		return 1
+	if flags.NArg() > 0 {
+		write(stderr, "ERROR: debt invalid arguments: unexpected positional argument %q\n", flags.Arg(0))
+		return 2
 	}
-	if command == "debt-evidence" {
-		if err := debtcheck.WriteEvidence(report, debtcheck.Options{OutPath: *out, MarkdownPath: *markdown, ChecksumPath: *checksum}); err != nil {
+	report := debtcheck.Evaluate(".", "debt")
+	if *evidence {
+		if err := debtcheck.WriteEvidence(".", *outDir, report); err != nil {
 			write(stderr, "ERROR: %v\n", err)
 			return 1
 		}
 	}
-	if *jsonOut {
-		data, err := json.MarshalIndent(report, "", "  ")
-		if err != nil {
-			write(stderr, "ERROR: %v\n", err)
-			return 1
-		}
-		write(stdout, "%s\n", data)
-	} else if command == "debt-evidence" {
-		write(stdout, "generated debt evidence: %s\n", *out)
-	} else {
-		write(stdout, "debt gate %s: %s (score %.1f/min %.1f)\n", command, report.Status, report.Score, report.MinScore)
-	}
-	if err := debtcheck.StatusError(report); err != nil {
+	if err := writeDebtReport(stdout, report); err != nil {
 		write(stderr, "ERROR: %v\n", err)
 		return 1
 	}
-	return 0
+	if report.Status == "passed" {
+		return 0
+	}
+	return 1
 }
 
-func scopesForDebtCommand(command string) []string {
-	if command == "debt" || command == "debt-evidence" {
-		return nil
+func runDebtGate(command string, args []string, stdout io.Writer, stderr io.Writer) int {
+	flags := flag.NewFlagSet("xlibgate "+command, flag.ContinueOnError)
+	flags.SetOutput(stderr)
+	flags.Bool("json", false, "emit JSON debt report")
+	if err := flags.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return 0
+		}
+		return 2
 	}
-	if strings.HasSuffix(command, "-debt") || command == "architecture" || command == "domain" || command == "docs-drift" {
-		return []string{command}
+	if flags.NArg() > 0 {
+		write(stderr, "ERROR: %s invalid arguments: unexpected positional argument %q\n", command, flags.Arg(0))
+		return 2
 	}
-	return nil
+	if !debtcheck.IsGate(command) {
+		write(stderr, "ERROR: unknown debt gate %q\n", command)
+		return 2
+	}
+	report := debtcheck.Evaluate(".", command)
+	if err := writeDebtReport(stdout, report); err != nil {
+		write(stderr, "ERROR: %v\n", err)
+		return 1
+	}
+	if report.Status == "passed" {
+		return 0
+	}
+	return 1
 }
 
-func debtCommandHelp() string {
-	return fmt.Sprintf("debt scopes: %s", strings.Join(debtcheck.DefaultScopes, ", "))
+func writeDebtReport(stdout io.Writer, report debtcheck.Report) error {
+	encoder := json.NewEncoder(stdout)
+	encoder.SetIndent("", "  ")
+	return encoder.Encode(report)
 }

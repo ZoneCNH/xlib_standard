@@ -1,5 +1,7 @@
-# Debt Governance Register
+# Debt governance register
 
-Debt governance is a release-blocking P0 policy for xlib-standard. The `xlibgate debt` gate runs architecture, domain, docs drift, dependency, security, testing, implementation, and downstream debt checks with a minimum score of 9.8.
+This register is the source for the dependency-free debt governance runtime v3.6.
+P0 debt exceptions are forbidden, scanner failures fail closed, and generated
+release debt evidence is written to ignored `release/debt/` artifacts.
 
-Generated evidence lives under `release/debt/` and is intentionally ignored so each release run regenerates fresh JSON, Markdown, and checksum artifacts.
+Required downstream debt evidence targets: kernel, configx, redisx.

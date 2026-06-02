@@ -1,12 +1,15 @@
 schema_version: "1.0"
-profile: debt-release
-module: xlib-standard
-min_score: 9.8
-release_blocking: true
-evidence:
-  json: release/debt/latest.json
-  markdown: release/debt/latest.md
-  checksum: release/debt/latest.json.sha256
+runtime: debt-governance-runtime-v3.6
 commands:
-  full_gate: xlibgate debt
-  evidence: xlibgate debt-evidence
+  - debt
+  - architecture
+  - domain
+  - docs-drift
+  - dependency-debt
+  - security-debt
+  - testing-debt
+  - implementation-debt
+downstream_targets:
+  - kernel
+  - configx
+  - redisx

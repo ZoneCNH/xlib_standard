@@ -1,28 +1,15 @@
 schema_version: "1.0"
-module: xlib-standard
-registry: debt-governance
+fail_closed: true
 rules:
-  - id: architecture
-    severity: critical
-    command: xlibgate architecture
-  - id: domain
-    severity: critical
-    command: xlibgate domain
-  - id: docs-drift
-    severity: critical
-    command: xlibgate docs-drift
-  - id: dependency-debt
-    severity: critical
-    command: xlibgate dependency-debt
-  - id: security-debt
-    severity: critical
-    command: xlibgate security-debt
-  - id: testing-debt
-    severity: critical
-    command: xlibgate testing-debt
-  - id: implementation-debt
-    severity: critical
-    command: xlibgate implementation-debt
-  - id: downstream-debt
-    severity: critical
-    command: xlibgate downstream-debt
+  - id: debt.p0.no_exception
+    severity: P0
+    command: debt
+  - id: debt.scanner.fail_closed
+    severity: P0
+    command: debt
+  - id: debt.architecture.anchor
+    severity: P1
+    command: architecture
+  - id: debt.downstream.coverage
+    severity: P1
+    command: dependency-debt

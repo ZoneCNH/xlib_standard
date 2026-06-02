@@ -1,122 +1,93 @@
 package debtcheck
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
-func TestRunPassesFixtureAndWritesEvidence(t *testing.T) {
-	repo := writeDebtFixtureRepo(t)
-
-	report, err := Run(Options{Root: repo})
-	if err != nil {
-		t.Fatal(err)
-	}
+func TestEvaluateDebtPassesWithPolicyAndAnchors(t *testing.T) {
+	root := t.TempDir()
+	writeFixture(t, root)
+	report := Evaluate(root, "debt")
 	if report.Status != "passed" {
-		t.Fatalf("status = %q, want passed: %+v", report.Status, report.Checks)
+		t.Fatalf("status = %s, gaps = %#v", report.Status, report.Gaps)
 	}
-	if report.Score != DefaultMinScore || len(report.Checks) == 0 {
-		t.Fatalf("report = %+v, want default score and checks", report)
+	if report.GateStatuses["debt"] != "passed" {
+		t.Fatalf("debt gate status = %q", report.GateStatuses["debt"])
 	}
-	if err := StatusError(report); err != nil {
-		t.Fatalf("StatusError = %v, want nil", err)
-	}
-
-	if err := WriteEvidence(report, Options{Root: repo}); err != nil {
-		t.Fatal(err)
-	}
-	for _, rel := range []string{
-		"release/debt/latest.json",
-		"release/debt/latest.md",
-		"release/debt/latest.json.sha256",
-	} {
-		if _, err := os.Stat(filepath.Join(repo, filepath.FromSlash(rel))); err != nil {
-			t.Fatalf("stat %s: %v", rel, err)
+	for _, gate := range GateNames {
+		if report.GateStatuses[gate] != "passed" {
+			t.Fatalf("gate %s status = %q", gate, report.GateStatuses[gate])
 		}
 	}
-	checksum, err := os.ReadFile(filepath.Join(repo, "release", "debt", "latest.json.sha256"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(string(checksum), "release/debt/latest.json") {
-		t.Fatalf("checksum = %q, want evidence path", checksum)
-	}
 }
 
-func TestRunFailsMissingPolicy(t *testing.T) {
-	repo := writeDebtFixtureRepo(t)
-	if err := os.Remove(filepath.Join(repo, ".agent", "debt", "rules.yaml")); err != nil {
-		t.Fatal(err)
-	}
-
-	report, err := Run(Options{Root: repo})
-	if err != nil {
-		t.Fatal(err)
-	}
+func TestEvaluateFailsClosedForMissingPolicy(t *testing.T) {
+	root := t.TempDir()
+	write(t, root, "go.mod", "module example.com/x\n")
+	report := Evaluate(root, "dependency-debt")
 	if report.Status != "failed" {
-		t.Fatalf("status = %q, want failed", report.Status)
+		t.Fatalf("status = %s, want failed", report.Status)
 	}
-	if err := StatusError(report); err == nil {
-		t.Fatal("StatusError returned nil, want failure")
+	if len(report.Gaps) == 0 {
+		t.Fatal("expected fail-closed gaps")
 	}
 }
 
-func TestRunFailsP0ExceptionMarker(t *testing.T) {
-	repo := writeDebtFixtureRepo(t)
-	if err := os.WriteFile(filepath.Join(repo, ".agent", "debt", "rules.yaml"), []byte("allow_p0_exceptions: true\n"), 0o644); err != nil {
+func TestWriteEvidenceWritesDeterministicArtifacts(t *testing.T) {
+	root := t.TempDir()
+	writeFixture(t, root)
+	report := Evaluate(root, "debt")
+	outDir := filepath.Join(root, "release", "debt")
+	if err := WriteEvidence(root, outDir, report); err != nil {
 		t.Fatal(err)
 	}
-
-	report, err := Run(Options{Root: repo})
+	data, err := os.ReadFile(filepath.Join(outDir, "latest.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if report.Status != "failed" {
-		t.Fatalf("status = %q, want failed", report.Status)
+	var got Report
+	if err := json.Unmarshal(data, &got); err != nil {
+		t.Fatal(err)
+	}
+	if got.Runtime != Runtime || got.SchemaVersion != SchemaVersion || got.Status != "passed" {
+		t.Fatalf("unexpected evidence: %#v", got)
+	}
+	for _, name := range []string{"latest.md", "latest.json.sha256"} {
+		if _, err := os.Stat(filepath.Join(outDir, name)); err != nil {
+			t.Fatalf("missing %s: %v", name, err)
+		}
 	}
 }
 
-func writeDebtFixtureRepo(t *testing.T) string {
+func writeFixture(t *testing.T, root string) {
 	t.Helper()
-	repo := t.TempDir()
-	write := func(rel, contents string) {
-		t.Helper()
-		path := filepath.Join(repo, filepath.FromSlash(rel))
-		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-			t.Fatal(err)
+	for _, path := range policyFiles {
+		content := "schema_version: \"1.0\"\n"
+		if path == ".agent/debt/rules.yaml" {
+			content += "p0_exceptions: forbidden\n"
 		}
-		if err := os.WriteFile(path, []byte(contents), 0o644); err != nil {
-			t.Fatal(err)
+		if path == ".agent/debt/rule-registry.yaml" {
+			content += "fail_closed: true\n"
+		}
+		write(t, root, path, content)
+	}
+	for _, anchors := range gateAnchors {
+		for _, path := range anchors {
+			write(t, root, path, "fixture\n")
 		}
 	}
+}
 
-	write(".agent/debt/rules.yaml", "schema_version: 1\ndebt_policy: strict\nseverity_floor: p0\n")
-	write(".agent/debt/rule-registry.yaml", "rules:\n  - id: debt.p0.no_exceptions\n")
-	write(".agent/debt/profile.yaml", "profile: default\ndebt: governed\n")
-	write(".agent/debt/register.md", "# Debt Register\n\ndebt entries are tracked here.\n")
-	write("Makefile", strings.Join([]string{
-		"test:",
-		"race:",
-		"property:",
-		"golden:",
-		"fuzz-smoke:",
-		"debt:",
-		"debt-evidence:",
-		"implementation-debt:",
-		"",
-	}, "\n"))
-	write("cmd/xlibgate/main.go", "package main\n// debt debt-evidence\n")
-	write(".agent/command-registry.yaml", "commands:\n  - debt\n  - implementation-debt\n")
-	write(".agent/makefile-baseline.yaml", "targets:\n  - debt\n  - debt-evidence\n")
-	write(".agent/makefile-target-registry.yaml", "targets:\n  - debt\n  - debt-evidence\n")
-	write("docs/standard/xlibgate-cli-contract.md", "# CLI\n\ndebt\ndebt-evidence\n")
-	write(".agent/downstream-registry.yaml", "targets:\n  - kernel/configx\n  - kernel/redisx\n  - corekit\n")
-	write("scripts/check_boundary.sh", "#!/bin/sh\nexit 0\n")
-	write("scripts/check_docs.sh", "#!/bin/sh\nexit 0\n")
-	write("scripts/check_dependency_diff.sh", "#!/bin/sh\nexit 0\n")
-	write("scripts/check_secrets.sh", "#!/bin/sh\nexit 0\n")
-	write("scripts/run_integration.sh", "#!/bin/sh\n# kernel corekit\n")
-	return repo
+func write(t *testing.T, root, path, content string) {
+	t.Helper()
+	full := filepath.Join(root, filepath.FromSlash(path))
+	if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(full, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
 }

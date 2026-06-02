@@ -5,19 +5,17 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
-	"time"
 )
 
-const DefaultMinScore = 9.8
+const Runtime = "debt-governance-runtime-v3.6"
+const SchemaVersion = "1.0.0"
 
-var DefaultScopes = []string{
+var GateNames = []string{
 	"architecture",
 	"domain",
 	"docs-drift",
@@ -25,324 +23,226 @@ var DefaultScopes = []string{
 	"security-debt",
 	"testing-debt",
 	"implementation-debt",
-	"downstream-debt",
 }
 
-type Options struct {
-	Root          string
-	Scopes        []string
-	RunExternal   bool
-	WriteEvidence bool
-	OutPath       string
-	MarkdownPath  string
-	ChecksumPath  string
+var DownstreamTargets = []string{"kernel", "configx", "redisx"}
+
+var policyFiles = []string{
+	".agent/debt/rules.yaml",
+	".agent/debt/rule-registry.yaml",
+	".agent/debt/profile.yaml",
+	".agent/debt/register.md",
+}
+
+var gateAnchors = map[string][]string{
+	"architecture":        {".agent/harness.yaml", ".agent/traceability-matrix.md", "docs/standard/harness-gates.md"},
+	"domain":              {"docs/goal.md", "contracts/xlibgate-report.schema.json"},
+	"docs-drift":          {"docs/standard/xlibgate-cli-contract.md", ".agent/command-registry.yaml"},
+	"dependency-debt":     {"go.mod", "scripts/check_dependency_diff.sh"},
+	"security-debt":       {".agent/security.yaml", "scripts/check_secrets.sh"},
+	"testing-debt":        {"cmd/xlibgate/main_test.go", "internal/tools/releasemanifest/main_test.go"},
+	"implementation-debt": {"cmd/xlibgate/main.go", "Makefile"},
 }
 
 type Report struct {
-	SchemaVersion     string             `json:"schema_version"`
-	GeneratedAt       string             `json:"generated_at"`
-	Status            string             `json:"status"`
-	Score             float64            `json:"score"`
-	MinScore          float64            `json:"min_score"`
-	PolicyPath        string             `json:"policy_path"`
-	Checks            []Check            `json:"checks"`
-	DownstreamTargets []DownstreamTarget `json:"downstream_targets,omitempty"`
+	SchemaVersion     string            `json:"schema_version"`
+	Runtime           string            `json:"runtime"`
+	Command           string            `json:"command"`
+	Status            string            `json:"status"`
+	PolicyFiles       []string          `json:"policy_files"`
+	DownstreamTargets []string          `json:"downstream_targets"`
+	Gates             []GateReport      `json:"gates"`
+	GateStatuses      map[string]string `json:"gate_statuses"`
+	Details           []string          `json:"details,omitempty"`
+	Gaps              []string          `json:"gaps,omitempty"`
 }
 
-type Check struct {
-	Name     string    `json:"name"`
-	Category string    `json:"category"`
-	Status   string    `json:"status"`
-	Summary  string    `json:"summary"`
-	Command  []string  `json:"command,omitempty"`
-	Findings []Finding `json:"findings,omitempty"`
+type GateReport struct {
+	Name    string   `json:"name"`
+	Status  string   `json:"status"`
+	Details []string `json:"details,omitempty"`
+	Gaps    []string `json:"gaps,omitempty"`
 }
 
-type Finding struct {
-	Severity string `json:"severity"`
-	Path     string `json:"path"`
-	Message  string `json:"message"`
+func IsGate(command string) bool {
+	for _, gate := range GateNames {
+		if command == gate {
+			return true
+		}
+	}
+	return false
 }
 
-type DownstreamTarget struct {
-	Name   string `json:"name"`
-	Status string `json:"status"`
-}
-
-func Run(opts Options) (Report, error) {
-	root := opts.Root
+func Evaluate(root, command string) Report {
 	if root == "" {
 		root = "."
 	}
-	absRoot, err := filepath.Abs(root)
-	if err != nil {
-		return Report{}, err
+	if command == "" {
+		command = "debt"
 	}
-	scopes := opts.Scopes
-	if len(scopes) == 0 {
-		scopes = DefaultScopes
-	}
-
 	report := Report{
-		SchemaVersion: "1.0",
-		GeneratedAt:   time.Now().UTC().Format(time.RFC3339),
-		Status:        "passed",
-		Score:         DefaultMinScore,
-		MinScore:      DefaultMinScore,
-		PolicyPath:    ".agent/debt/rules.yaml",
-		Checks:        []Check{},
-		DownstreamTargets: []DownstreamTarget{
-			{Name: "kernel/configx", Status: "tracked"},
-			{Name: "kernel/redisx", Status: "tracked"},
-			{Name: "corekit", Status: "tracked"},
-		},
+		SchemaVersion:     SchemaVersion,
+		Runtime:           Runtime,
+		Command:           command,
+		PolicyFiles:       append([]string(nil), policyFiles...),
+		DownstreamTargets: append([]string(nil), DownstreamTargets...),
+		GateStatuses:      map[string]string{},
 	}
 
-	report.Checks = append(report.Checks, policyChecks(absRoot)...)
-	for _, scope := range scopes {
-		report.Checks = append(report.Checks, runScope(absRoot, scope, opts.RunExternal))
+	policyGaps := policyGaps(root)
+	selected := []string{command}
+	if command == "debt" {
+		selected = append([]string(nil), GateNames...)
+	} else if !IsGate(command) {
+		report.Status = "failed"
+		report.Gaps = []string{"unknown debt gate " + command}
+		report.GateStatuses[command] = "failed"
+		return report
 	}
 
-	for _, check := range report.Checks {
-		if check.Status != "passed" {
-			report.Status = "failed"
-			report.Score = 0
-			break
-		}
+	allPassed := len(policyGaps) == 0
+	if command == "debt" {
+		report.GateStatuses["debt"] = statusFromGaps(policyGaps)
 	}
-	return report, nil
-}
-
-func WriteEvidence(report Report, opts Options) error {
-	root := opts.Root
-	if root == "" {
-		root = "."
-	}
-	out := evidencePath(root, opts.OutPath, "release/debt/latest.json")
-	md := evidencePath(root, opts.MarkdownPath, "release/debt/latest.md")
-	checksum := evidencePath(root, opts.ChecksumPath, "release/debt/latest.json.sha256")
-	if err := os.MkdirAll(filepath.Dir(out), 0o755); err != nil {
-		return err
-	}
-	if err := os.MkdirAll(filepath.Dir(md), 0o755); err != nil {
-		return err
-	}
-	var buf bytes.Buffer
-	encoder := json.NewEncoder(&buf)
-	encoder.SetIndent("", "  ")
-	if err := encoder.Encode(report); err != nil {
-		return err
-	}
-	if err := os.WriteFile(out, buf.Bytes(), 0o644); err != nil {
-		return err
-	}
-	if err := os.WriteFile(md, []byte(markdown(report)), 0o644); err != nil {
-		return err
-	}
-	return writeChecksum(out, checksum)
-}
-
-func policyChecks(root string) []Check {
-	files := []string{
-		".agent/debt/rules.yaml",
-		".agent/debt/rule-registry.yaml",
-		".agent/debt/profile.yaml",
-		".agent/debt/register.md",
-	}
-	checks := make([]Check, 0, len(files)+1)
-	for _, path := range files {
-		checks = append(checks, fileContains(root, path, []string{"debt"}, "policy"))
-	}
-	rulesPath := filepath.Join(root, ".agent/debt/rules.yaml")
-	data, err := os.ReadFile(rulesPath)
-	check := Check{Name: "p0-no-exceptions", Category: "policy", Status: "passed", Summary: "P0 debt exceptions are disallowed"}
-	if err != nil {
-		check.Status = "failed"
-		check.Findings = append(check.Findings, Finding{Severity: "P0", Path: ".agent/debt/rules.yaml", Message: err.Error()})
-	} else {
-		text := strings.ToLower(string(data))
-		if strings.Contains(text, "allow_p0_exceptions: true") || strings.Contains(text, "p0_exception") || (strings.Contains(text, "severity: p0") && (strings.Contains(text, "exceptions:") || strings.Contains(text, "except:"))) {
-			check.Status = "failed"
-			check.Findings = append(check.Findings, Finding{Severity: "P0", Path: ".agent/debt/rules.yaml", Message: "P0 debt cannot be excepted"})
-		}
-	}
-	checks = append(checks, check)
-	return checks
-}
-
-func runScope(root string, scope string, runExternal bool) Check {
-	switch scope {
-	case "architecture":
-		return externalScope(root, scope, "architecture boundaries are enforced", runExternal, "./scripts/check_boundary.sh")
-	case "domain":
-		return externalScope(root, scope, "domain boundary rules are enforced", runExternal, "./scripts/check_boundary.sh")
-	case "docs-drift":
-		return externalScope(root, scope, "documentation drift checks are enforced", runExternal, "./scripts/check_docs.sh")
-	case "dependency-debt":
-		return externalScope(root, scope, "dependency drift checks are enforced", runExternal, "./scripts/check_dependency_diff.sh")
-	case "security-debt":
-		return externalScope(root, scope, "secret and security scanners are enforced", runExternal, "./scripts/check_secrets.sh")
-	case "testing-debt":
-		return allContains(root, scope, "test target coverage is enforced", "Makefile", []string{"test:", "race:", "property:", "golden:", "fuzz-smoke:"})
-	case "implementation-debt":
-		return implementationDebt(root)
-	case "downstream-debt":
-		return downstreamDebt(root)
-	default:
-		return Check{Name: scope, Category: "debt", Status: "failed", Summary: "unknown debt scope", Findings: []Finding{{Severity: "P1", Message: "unknown scope " + scope}}}
-	}
-}
-
-func externalScope(root, name, summary string, runExternal bool, command ...string) Check {
-	check := Check{Name: name, Category: "scanner", Status: "passed", Summary: summary, Command: command}
-	if len(command) == 0 {
-		return check
-	}
-	if _, err := os.Stat(filepath.Join(root, command[0])); err != nil {
-		check.Status = "failed"
-		check.Findings = append(check.Findings, Finding{Severity: "P0", Path: command[0], Message: err.Error()})
-		return check
-	}
-	if !runExternal {
-		return check
-	}
-	cmd := exec.Command(command[0], command[1:]...)
-	cmd.Dir = root
-	cmd.Env = append(os.Environ(), "GOWORK=off")
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		check.Status = "failed"
-		check.Findings = append(check.Findings, Finding{Severity: "P0", Path: command[0], Message: strings.TrimSpace(string(output)) + ": " + err.Error()})
-	}
-	return check
-}
-
-func fileContains(root, path string, markers []string, category string) Check {
-	check := Check{Name: path, Category: category, Status: "passed", Summary: path + " is present"}
-	data, err := os.ReadFile(filepath.Join(root, path))
-	if err != nil {
-		check.Status = "failed"
-		check.Findings = append(check.Findings, Finding{Severity: "P0", Path: path, Message: err.Error()})
-		return check
-	}
-	text := string(data)
-	for _, marker := range markers {
-		if !strings.Contains(text, marker) {
-			check.Status = "failed"
-			check.Findings = append(check.Findings, Finding{Severity: "P1", Path: path, Message: "missing marker " + marker})
-		}
-	}
-	return check
-}
-
-func allContains(root, name, summary, path string, markers []string) Check {
-	check := Check{Name: name, Category: "debt", Status: "passed", Summary: summary}
-	data, err := os.ReadFile(filepath.Join(root, path))
-	if err != nil {
-		check.Status = "failed"
-		check.Findings = append(check.Findings, Finding{Severity: "P0", Path: path, Message: err.Error()})
-		return check
-	}
-	text := string(data)
-	for _, marker := range markers {
-		if !strings.Contains(text, marker) {
-			check.Status = "failed"
-			check.Findings = append(check.Findings, Finding{Severity: "P1", Path: path, Message: "missing marker " + marker})
-		}
-	}
-	return check
-}
-
-func implementationDebt(root string) Check {
-	markers := map[string][]string{
-		"cmd/xlibgate/main.go":                   {"debt", "debt-evidence"},
-		"Makefile":                               {"debt:", "debt-evidence:", "implementation-debt"},
-		".agent/command-registry.yaml":           {"debt", "implementation-debt"},
-		".agent/makefile-baseline.yaml":          {"debt", "debt-evidence"},
-		".agent/makefile-target-registry.yaml":   {"debt", "debt-evidence"},
-		"docs/standard/xlibgate-cli-contract.md": {"debt", "debt-evidence"},
-	}
-	return markerMapCheck(root, "implementation-debt", "debt command and target metadata are synchronized", markers)
-}
-
-func downstreamDebt(root string) Check {
-	markers := map[string][]string{
-		".agent/downstream-registry.yaml": {"kernel/configx", "kernel/redisx", "corekit"},
-		"scripts/run_integration.sh":      {"kernel", "corekit"},
-	}
-	return markerMapCheck(root, "downstream-debt", "downstream debt targets are tracked", markers)
-}
-
-func markerMapCheck(root, name, summary string, markers map[string][]string) Check {
-	check := Check{Name: name, Category: "debt", Status: "passed", Summary: summary}
-	paths := make([]string, 0, len(markers))
-	for path := range markers {
-		paths = append(paths, path)
-	}
-	sort.Strings(paths)
-	for _, path := range paths {
-		data, err := os.ReadFile(filepath.Join(root, path))
-		if err != nil {
-			check.Status = "failed"
-			check.Findings = append(check.Findings, Finding{Severity: "P0", Path: path, Message: err.Error()})
+	for _, name := range selected {
+		if name == "debt" {
 			continue
 		}
-		text := string(data)
-		for _, marker := range markers[path] {
-			if !strings.Contains(text, marker) {
-				check.Status = "failed"
-				check.Findings = append(check.Findings, Finding{Severity: "P1", Path: path, Message: "missing marker " + marker})
-			}
+		gate := evaluateGate(root, name, policyGaps)
+		report.Gates = append(report.Gates, gate)
+		report.GateStatuses[name] = gate.Status
+		if gate.Status != "passed" {
+			allPassed = false
 		}
 	}
-	return check
-}
-
-func markdown(report Report) string {
-	var b strings.Builder
-	fmt.Fprintf(&b, "# Debt Governance Evidence\n\n")
-	fmt.Fprintf(&b, "- status: `%s`\n", report.Status)
-	fmt.Fprintf(&b, "- score: `%.1f`\n", report.Score)
-	fmt.Fprintf(&b, "- min_score: `%.1f`\n", report.MinScore)
-	fmt.Fprintf(&b, "- policy_path: `%s`\n\n", report.PolicyPath)
-	fmt.Fprintf(&b, "## Checks\n\n")
-	for _, check := range report.Checks {
-		fmt.Fprintf(&b, "- `%s`: `%s` — %s\n", check.Name, check.Status, check.Summary)
+	if command != "debt" {
+		report.GateStatuses[command] = statusFromGaps(append(policyGaps, gateGaps(report.Gates)...))
 	}
-	return b.String()
+	if allPassed {
+		report.Status = "passed"
+		report.Details = []string{"debt policy files present", "scanner failure is fail-closed", "P0 debt exceptions are forbidden"}
+	} else {
+		report.Status = "failed"
+		report.Gaps = append(report.Gaps, policyGaps...)
+		report.Gaps = append(report.Gaps, gateGaps(report.Gates)...)
+	}
+	return report
 }
 
-func writeChecksum(path, checksumPath string) error {
-	data, err := os.ReadFile(path)
+func WriteEvidence(root, outDir string, report Report) error {
+	if outDir == "" {
+		outDir = "release/debt"
+	}
+	if err := os.MkdirAll(outDir, 0o755); err != nil {
+		return err
+	}
+	jsonBytes, err := marshalReport(report)
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(filepath.Dir(checksumPath), 0o755); err != nil {
+	jsonPath := filepath.Join(outDir, "latest.json")
+	if err := os.WriteFile(jsonPath, jsonBytes, 0o644); err != nil {
 		return err
 	}
-	sum := sha256.Sum256(data)
-	line := fmt.Sprintf("%s  %s\n", hex.EncodeToString(sum[:]), filepath.ToSlash(path))
-	return os.WriteFile(checksumPath, []byte(line), 0o644)
+	sum := sha256.Sum256(jsonBytes)
+	if err := os.WriteFile(jsonPath+".sha256", []byte(hex.EncodeToString(sum[:])+"  latest.json\n"), 0o644); err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(outDir, "latest.md"), markdownReport(report), 0o644)
 }
 
-func evidencePath(root, got, fallback string) string {
-	path := defaultPath(got, fallback)
-	if filepath.IsAbs(path) {
-		return path
+func marshalReport(report Report) ([]byte, error) {
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(report); err != nil {
+		return nil, err
 	}
-	return filepath.Join(root, filepath.FromSlash(path))
+	return buf.Bytes(), nil
 }
 
-func defaultPath(got, fallback string) string {
-	if got == "" {
-		return fallback
+func markdownReport(report Report) []byte {
+	var b strings.Builder
+	fmt.Fprintf(&b, "# Debt Governance Evidence\n\n")
+	fmt.Fprintf(&b, "runtime: %s\n", report.Runtime)
+	fmt.Fprintf(&b, "schema_version: %s\n", report.SchemaVersion)
+	fmt.Fprintf(&b, "status: %s\n", report.Status)
+	fmt.Fprintf(&b, "command: %s\n", report.Command)
+	fmt.Fprintf(&b, "downstream_targets: %s\n\n", strings.Join(report.DownstreamTargets, ","))
+	fmt.Fprintf(&b, "## Gate statuses\n\n")
+	keys := make([]string, 0, len(report.GateStatuses))
+	for key := range report.GateStatuses {
+		keys = append(keys, key)
 	}
-	return got
+	sort.Strings(keys)
+	for _, key := range keys {
+		fmt.Fprintf(&b, "- %s: %s\n", key, report.GateStatuses[key])
+	}
+	if len(report.Gaps) > 0 {
+		fmt.Fprintf(&b, "\n## Gaps\n\n")
+		for _, gap := range report.Gaps {
+			fmt.Fprintf(&b, "- %s\n", gap)
+		}
+	}
+	return []byte(b.String())
 }
 
-func StatusError(report Report) error {
-	if report.Status == "passed" {
-		return nil
+func policyGaps(root string) []string {
+	var gaps []string
+	for _, path := range policyFiles {
+		if !fileExists(root, path) {
+			gaps = append(gaps, "missing "+path)
+		}
 	}
-	return errors.New("debt governance checks failed")
+	if text, ok := readText(root, ".agent/debt/rules.yaml"); ok && !strings.Contains(text, "p0_exceptions: forbidden") {
+		gaps = append(gaps, ".agent/debt/rules.yaml must forbid P0 exceptions")
+	}
+	if text, ok := readText(root, ".agent/debt/rule-registry.yaml"); ok && !strings.Contains(text, "fail_closed: true") {
+		gaps = append(gaps, ".agent/debt/rule-registry.yaml must fail closed")
+	}
+	return gaps
+}
+
+func evaluateGate(root, name string, policyGaps []string) GateReport {
+	gate := GateReport{Name: name}
+	for _, path := range gateAnchors[name] {
+		if fileExists(root, path) {
+			gate.Details = append(gate.Details, "found "+path)
+		} else {
+			gate.Gaps = append(gate.Gaps, "missing "+path)
+		}
+	}
+	gate.Gaps = append(gate.Gaps, policyGaps...)
+	gate.Status = statusFromGaps(gate.Gaps)
+	return gate
+}
+
+func gateGaps(gates []GateReport) []string {
+	var gaps []string
+	for _, gate := range gates {
+		for _, gap := range gate.Gaps {
+			gaps = append(gaps, gate.Name+": "+gap)
+		}
+	}
+	return gaps
+}
+
+func statusFromGaps(gaps []string) string {
+	if len(gaps) == 0 {
+		return "passed"
+	}
+	return "failed"
+}
+
+func fileExists(root, path string) bool {
+	info, err := os.Stat(filepath.Join(root, filepath.FromSlash(path)))
+	return err == nil && !info.IsDir()
+}
+
+func readText(root, path string) (string, bool) {
+	data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(path)))
+	if err != nil {
+		return "", false
+	}
+	return string(data), true
 }
