@@ -16,7 +16,7 @@
 | `ossx` | L2 object storage 适配器库 | bucket/profile、上传下载 contract、health | 业务文件生命周期策略 |
 | `clickhousex` | L2 分析数据库适配器库 | ClickHouse profile、连接、query contract、health | 产品报表语义 |
 | `x.go` | 应用或框架组合层 | 组合基础库、业务 wiring、应用生命周期、调用方授权的密钥读取 | 作为基础库模板的依赖前提 |
-| `baselib-template` / `foundationx` | 旧名/历史迁移上下文 | 迁移 ADR、兼容性说明、历史记录 | 新标准中的主仓库角色或默认下游名 |
+| `baselib-template` / `foundationx` | 旧名/迁移文档语境 | 迁移文档语境中的 ADR、迁移指南、历史变更记录和兼容性说明 | 新标准中的主仓库角色或默认下游名 |
 
 ## 判定规则
 
@@ -25,4 +25,4 @@
 - `kernel` 是默认 L0 下游集成目标；L1/L2 库可以显式依赖 `kernel`，但不得反向依赖 `x.go`。
 - L2/profile 库可以依赖更低层基础库，但不得向业务层取配置或模型。
 - 业务层可以组合所有基础库，但不得把业务规则下沉到基础库。
-- 旧 `baselib-template`/`foundationx` 名称只能在迁移材料中出现，不能出现在新 README 主叙事、生成默认值或 release completion 声明中。
+- 旧 `baselib-template`/`foundationx` 名称只能在迁移文档语境中出现，不能出现在新 README 主叙事、生成默认值或 release completion 声明中。

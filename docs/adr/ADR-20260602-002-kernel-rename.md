@@ -10,7 +10,7 @@ Accepted — 2026-06-02
 
 ## 决策
 
-默认下游名迁移为 `kernel`。`kernel` 是 L0 通用基础能力库，承载 context、error、config、logging、metrics、lifecycle、health 和 test helper 等 primitive。旧 `foundationx` 只作为迁移上下文出现。
+默认下游名迁移为 `kernel`。`kernel` 是 L0 通用基础能力库，承载 context、error、config、logging、metrics、lifecycle、health 和 test helper 等 primitive。旧 `foundationx` 只作为迁移文档语境出现。
 
 ## 影响
 

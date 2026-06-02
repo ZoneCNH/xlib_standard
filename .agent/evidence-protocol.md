@@ -1,11 +1,11 @@
 # Evidence Protocol
 
-Every completion claim must include `DONE with evidence:` and list:
+每个完成声明必须包含 `DONE with evidence:`，并列出：
 
-- Goal/REQ ids covered.
-- Commands run, with PASS/FAIL and short output.
-- Artifacts produced: release manifest, checksum, docs, ADRs, matrix, review notes.
-- `artifact_url`, `workflow_run_id`, `sha256`, commit, tree SHA and version when available.
-- Known gaps with owning worker if a gate belongs outside the current slice.
+- 覆盖的 Goal/REQ ID。
+- 已运行命令、PASS/FAIL 结果和简短输出。
+- 已产出 artifact：release manifest、checksum、docs、ADR、matrix、review notes。
+- 可用时提供 `artifact_url`、`workflow_run_id`、`sha256`、commit、tree SHA 和 version。
+- 若 gate 不属于当前工作切片，必须列出已知缺口和 owning worker。
 
-Never include production secrets or `/home/k8s/secrets/env/*` contents in Evidence.
+Evidence 中不得包含生产 secrets 或 `/home/k8s/secrets/env/*` 的真实内容。

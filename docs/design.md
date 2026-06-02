@@ -13,7 +13,7 @@
 
 ## 下游
 
-默认下游集成目标是 `kernel`，中性路径 smoke 目标是 `corekit`。旧 `baselib-template` / `foundationx` 名称仅作为迁移上下文保留。
+默认下游集成目标是 `kernel`，中性路径 smoke 目标是 `corekit`。旧 `baselib-template` / `foundationx` 名称仅作为迁移文档语境保留。
 
 ## 发布
 

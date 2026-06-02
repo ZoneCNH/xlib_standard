@@ -94,6 +94,12 @@
 - `--repo` 指向的 downstream 仓库不存在时，命令必须返回 `gap`，且不得自动创建目录。
 - 新增命令时必须同步 `run` dispatch、`plannedCommandFiles`、Makefile gate、CLI contract 和测试表。
 
+## 语义校验
+
+`issue-registry` 不只是文件存在检查。它必须校验 `.agent/issue-registry.yaml` 中每个条目都具备非空 `title`、`command` 和 `evidence`，`status` 必须为 `implemented`，ID 必须匹配 `P0|P1|P2|CTX-###`、全局唯一，并且每个前缀从 `001` 连续编号。`context-profile-check` 复用该 registry 语义，不能用空文件或非连续 ID 作为通过证据。
+
+planned command 的 dry-run 也必须读取对应文件并检查语义 marker。当前强制 marker 包括：`agent-team-contract` 的 `schema_version:`、`roles:`、`rule:`；`acceptance-matrix` 的 `schema_version:`、`acceptance:`；`runtime-health` 的 `schema_version:`、`checks:`、`toolchain`；`execution-context` 的 `schema_version:`、`contexts:`、`local_write`、`ci_pull_request`、`release_verify`。这些命令不得退化为单纯路径存在检查。
+
 ## Context Runtime v4 命令
 
 Context Runtime v4.0 新增可叠加的 profile baseline，但不替换现有 P0/P1/P2 command registry。以下命令受 registry 治理，必须同时保留在 `run` dispatch、`.agent/command-registry.yaml`、`.agent/issue-registry.yaml`、Makefile targets 和本 contract 中：

@@ -1,3 +1,3 @@
-# Prompt Patches
+# Prompt 补丁
 
-Prompt patches are retrospective changes to agent instructions. Each patch must include trigger, proposed wording, expected behavior change and verification scenario. No prompt patch is active until reviewed.
+Prompt 补丁用于记录 Agent 指令的复盘式调整。每条补丁必须包含触发条件、建议措辞、预期行为变化和验证场景。补丁经过评审后才生效。

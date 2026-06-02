@@ -74,6 +74,16 @@ var requiredArtifacts = []string{
 const standardImpactReportPath = "release/standard-impact/latest.md"
 const governanceRuntimeVersion = "v2.9.3"
 
+var downstreamReleaseDecisionValues = []string{
+	"required",
+	"not_required",
+}
+
+var repositoryRulesReleaseDecisionValues = []string{
+	"audit_required",
+	"not_required",
+}
+
 var generatorEvidenceTargets = []GeneratorTarget{
 	{Name: "kernel", ModulePath: "github.com/ZoneCNH/kernel", PackageName: "kernel"},
 	{Name: "corekit", ModulePath: "example.com/acme/corekit", PackageName: "corekit"},
@@ -260,7 +270,7 @@ func buildManifest() (Manifest, error) {
 
 	return Manifest{
 		Module:                 module,
-		Version:                envDefault("VERSION", "v0.1.0"),
+		Version:                envDefault("VERSION", "v0.4.0"),
 		Commit:                 runTrimmedDefault("unknown", "git", "rev-parse", "HEAD"),
 		TreeSHA:                runTrimmedDefault("unknown", "git", "rev-parse", "HEAD^{tree}"),
 		SourceDigest:           sourceDigest,
@@ -387,13 +397,13 @@ func verifyManifest(path string, requirePassed bool, requireClean bool, expectVe
 	}
 	requireNonEmpty(&failures, "standard_impact.report_path", got.StandardImpact.ReportPath)
 	requireNonEmpty(&failures, "standard_impact.status", got.StandardImpact.Status)
+	requireEnumValue(&failures, "standard_impact.downstream_release_decision", got.StandardImpact.DownstreamReleaseDecision, downstreamReleaseDecisionValues)
+	requireEnumValue(&failures, "standard_impact.repository_rules_release_decision", got.StandardImpact.RepositoryRulesReleaseDecision, repositoryRulesReleaseDecisionValues)
 	if requirePassed {
 		if got.StandardImpact.Status != "present" {
 			failures = append(failures, fmt.Sprintf("standard_impact.status must be present, got %q", got.StandardImpact.Status))
 		}
 		requireNonEmpty(&failures, "standard_impact.report_sha256", got.StandardImpact.ReportSHA256)
-		requireNonEmpty(&failures, "standard_impact.downstream_release_decision", got.StandardImpact.DownstreamReleaseDecision)
-		requireNonEmpty(&failures, "standard_impact.repository_rules_release_decision", got.StandardImpact.RepositoryRulesReleaseDecision)
 		requireNonEmpty(&failures, "standard_impact.primary_downstream", got.StandardImpact.PrimaryDownstream)
 	}
 	requireNonEmpty(&failures, "governance_runtime.runtime", got.GovernanceRuntime.Runtime)
@@ -782,6 +792,17 @@ func requireNonEmpty(failures *[]string, field string, value string) {
 	if strings.TrimSpace(value) == "" {
 		*failures = append(*failures, field+" is required")
 	}
+}
+
+func requireEnumValue(failures *[]string, field string, value string, allowed []string) {
+	if strings.TrimSpace(value) == "" {
+		*failures = append(*failures, field+" is required")
+		return
+	}
+	if contains(allowed, value) {
+		return
+	}
+	*failures = append(*failures, fmt.Sprintf("%s must be one of %s, got %q", field, strings.Join(allowed, ", "), value))
 }
 
 func contains(values []string, want string) bool {

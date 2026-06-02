@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/ZoneCNH/xlib-standard/internal/releasequality"
+	"github.com/ZoneCNH/xlib-standard/pkg/templatex"
 )
 
 func TestMainDispatchesUsageHelpAndUnknownCommand(t *testing.T) {
@@ -523,7 +524,10 @@ func TestRunGovernanceCommands(t *testing.T) {
 		if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
 			t.Fatalf("stdout is not gateReport JSON: %v; stdout %q", err, stdout.String())
 		}
-		if report.Command != "version" || report.Status != "passed" || !slicesContain(report.Details, "xlib-standard goal v2.9.3") {
+		if report.Command != "version" ||
+			report.Status != "passed" ||
+			!slicesContain(report.Details, "xlib-standard release v0.4.0") ||
+			!slicesContain(report.Details, "xlibgate governance runtime v2.9.3") {
 			t.Fatalf("report = %#v; want version gate report", report)
 		}
 	})
@@ -634,7 +638,7 @@ func TestRunDoctorAllowsRenderedDownstreamWithoutSourceGoal(t *testing.T) {
 	files := map[string]string{
 		"go.mod":                                 "module github.com/ZoneCNH/kernel\n\nreplace github.com/ZoneCNH/xlib-standard => ../xlib-standard\n",
 		".agent/harness.yaml":                    "checks: [version, doctor]\n",
-		".agent/issue-registry.yaml":             "issues: []\n",
+		".agent/issue-registry.yaml":             issueRegistryFixture("P0-001", "P1-001", "P2-001", "CTX-001"),
 		".agent/command-registry.yaml":           "commands: [version, doctor]\n",
 		".agent/makefile-target-registry.yaml":   "targets: []\n",
 		".agent/makefile-baseline.yaml":          "targets: []\n",
@@ -703,6 +707,115 @@ func TestCommandRegistryRequiresFullCommandSurface(t *testing.T) {
 		}
 		if !strings.Contains(stdout.String(), ".agent/command-registry.yaml missing name: goal-runtime") {
 			t.Fatalf("stdout = %q; want missing goal-runtime gap", stdout.String())
+		}
+	})
+}
+
+func TestIssueRegistryRequiresDynamicContract(t *testing.T) {
+	t.Run("accepts dynamic counts", func(t *testing.T) {
+		root := t.TempDir()
+		writeTestFiles(t, root, map[string]string{
+			".agent/issue-registry.yaml": issueRegistryFixture("P0-001", "P0-002", "P1-001", "P2-001", "CTX-001", "CTX-002"),
+		})
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		got := run([]string{"issue-registry"}, strings.NewReader(""), &stdout, &stderr)
+		if got != 0 {
+			t.Fatalf("issue-registry dynamic fixture exit = %d, stderr %q, stdout %q; want 0", got, stderr.String(), stdout.String())
+		}
+		if !strings.Contains(stdout.String(), `"status": "passed"`) {
+			t.Fatalf("stdout = %q; want passed report", stdout.String())
+		}
+	})
+
+	t.Run("rejects non-contiguous ids", func(t *testing.T) {
+		root := t.TempDir()
+		writeTestFiles(t, root, map[string]string{
+			".agent/issue-registry.yaml": issueRegistryFixture("P0-001", "P0-003", "P1-001", "P2-001", "CTX-001"),
+		})
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		got := run([]string{"issue-registry"}, strings.NewReader(""), &stdout, &stderr)
+		if got != 1 {
+			t.Fatalf("issue-registry gap fixture exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+		}
+		var report gateReport
+		if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
+			t.Fatalf("stdout is not gateReport JSON: %v; stdout %q", err, stdout.String())
+		}
+		if !gapsContainSubstring(report.Gaps, ".agent/issue-registry.yaml P0 ids must be contiguous; missing P0-002") {
+			t.Fatalf("gaps = %#v; want missing P0-002 gap", report.Gaps)
+		}
+	})
+
+	t.Run("rejects duplicate ids", func(t *testing.T) {
+		root := t.TempDir()
+		writeTestFiles(t, root, map[string]string{
+			".agent/issue-registry.yaml": issueRegistryFixture("P0-001", "P0-001", "P1-001", "P2-001", "CTX-001"),
+		})
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		got := run([]string{"issue-registry"}, strings.NewReader(""), &stdout, &stderr)
+		if got != 1 {
+			t.Fatalf("issue-registry duplicate fixture exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+		}
+		var report gateReport
+		if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
+			t.Fatalf("stdout is not gateReport JSON: %v; stdout %q", err, stdout.String())
+		}
+		if !gapsContainSubstring(report.Gaps, ".agent/issue-registry.yaml duplicate issue id P0-001") {
+			t.Fatalf("gaps = %#v; want duplicate id gap", report.Gaps)
+		}
+	})
+
+	t.Run("rejects missing implemented evidence", func(t *testing.T) {
+		root := t.TempDir()
+		writeTestFiles(t, root, map[string]string{
+			".agent/issue-registry.yaml": `schema_version: "2.9.3"
+issues:
+  - id: P0-001
+    title: planned issue
+    status: planned
+    command: issue-registry
+  - id: P1-001
+    title: implemented issue
+    status: implemented
+    command: issue-registry
+    evidence:
+      - go test ./cmd/xlibgate
+  - id: P2-001
+    title: implemented issue
+    status: implemented
+    command: issue-registry
+    evidence:
+      - go test ./cmd/xlibgate
+  - id: CTX-001
+    title: implemented issue
+    status: implemented
+    command: issue-registry
+    evidence:
+      - go test ./cmd/xlibgate
+`,
+		})
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		got := run([]string{"issue-registry"}, strings.NewReader(""), &stdout, &stderr)
+		if got != 1 {
+			t.Fatalf("issue-registry invalid fixture exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+		}
+		var report gateReport
+		if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
+			t.Fatalf("stdout is not gateReport JSON: %v; stdout %q", err, stdout.String())
+		}
+		if !gapsContainSubstring(report.Gaps, ".agent/issue-registry.yaml P0-001 status must be implemented") {
+			t.Fatalf("gaps = %#v; want status gap", report.Gaps)
+		}
+		if !gapsContainSubstring(report.Gaps, ".agent/issue-registry.yaml P0-001 missing evidence") {
+			t.Fatalf("gaps = %#v; want evidence gap", report.Gaps)
 		}
 	})
 }
@@ -865,6 +978,51 @@ func TestPlannedCommandRequiresManifestCoverage(t *testing.T) {
 	}
 }
 
+func TestPlannedCommandRequiresSemanticManifestContent(t *testing.T) {
+	root := t.TempDir()
+	writeTestFiles(t, root, map[string]string{
+		".agent/team-contract.yaml": `schema_version: "2.9.3"
+roles:
+  - leader
+`,
+	})
+	chdir(t, root)
+
+	var stdout, stderr bytes.Buffer
+	got := run([]string{"agent-team-contract", "--dry-run", "--verify"}, strings.NewReader(""), &stdout, &stderr)
+	if got != 1 {
+		t.Fatalf("semantic planned command exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+	}
+	var report gateReport
+	if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
+		t.Fatalf("stdout is not gateReport JSON: %v; stdout %q", err, stdout.String())
+	}
+	if !gapsContainSubstring(report.Gaps, ".agent/team-contract.yaml missing semantic marker rule:") {
+		t.Fatalf("gaps = %#v; want semantic marker gap", report.Gaps)
+	}
+}
+
+func TestPlannedCommandRejectsDirectoryManifest(t *testing.T) {
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, ".agent", "team-contract.yaml"), 0o755); err != nil {
+		t.Fatalf("mkdir fixture directory: %v", err)
+	}
+	chdir(t, root)
+
+	var stdout, stderr bytes.Buffer
+	got := run([]string{"agent-team-contract", "--dry-run", "--verify"}, strings.NewReader(""), &stdout, &stderr)
+	if got != 1 {
+		t.Fatalf("directory planned command exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+	}
+	var report gateReport
+	if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
+		t.Fatalf("stdout is not gateReport JSON: %v; stdout %q", err, stdout.String())
+	}
+	if !gapsContainSubstring(report.Gaps, ".agent/team-contract.yaml must be a file") {
+		t.Fatalf("gaps = %#v; want file requirement gap", report.Gaps)
+	}
+}
+
 func TestPlannedCommandRejectsInvalidArgs(t *testing.T) {
 	chdir(t, filepath.Join("..", ".."))
 
@@ -1011,6 +1169,30 @@ func TestRunGuardsAcceptPullRequestContext(t *testing.T) {
 	}
 }
 
+func TestVersionConstantsTrackChangelogRelease(t *testing.T) {
+	root := repoRoot(t)
+	latest := latestChangelogVersion(t, readText(t, filepath.Join(root, "CHANGELOG.md")))
+	if projectReleaseVersion != latest {
+		t.Fatalf("projectReleaseVersion = %q; want latest changelog version %q", projectReleaseVersion, latest)
+	}
+	if templatex.Version != latest {
+		t.Fatalf("templatex.Version = %q; want latest changelog version %q", templatex.Version, latest)
+	}
+
+	for _, rel := range []string{
+		"release/manifest/template.json",
+		"internal/tools/releasemanifest/main.go",
+		".agent/harness.yaml",
+		"README.md",
+		"docs/release.md",
+		"AGENTS.md",
+	} {
+		if !strings.Contains(readText(t, filepath.Join(root, filepath.FromSlash(rel))), latest) {
+			t.Fatalf("%s does not contain latest release version %s", rel, latest)
+		}
+	}
+}
+
 func writeGateScript(t *testing.T, root string, relative string) {
 	t.Helper()
 	path := filepath.Join(root, filepath.FromSlash(relative))
@@ -1030,6 +1212,46 @@ func writePathTool(t *testing.T, root string, name string) {
 	if err := os.WriteFile(path, []byte(body), 0o755); err != nil {
 		t.Fatalf("write %s: %v", path, err)
 	}
+}
+
+func writeTestFiles(t *testing.T, root string, files map[string]string) {
+	t.Helper()
+	for rel, content := range files {
+		path := filepath.Join(root, filepath.FromSlash(rel))
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatalf("mkdir %s: %v", filepath.Dir(path), err)
+		}
+		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+			t.Fatalf("write %s: %v", path, err)
+		}
+	}
+}
+
+func issueRegistryFixture(ids ...string) string {
+	var b strings.Builder
+	b.WriteString("schema_version: \"2.9.3\"\nissues:\n")
+	for _, id := range ids {
+		b.WriteString("  - id: ")
+		b.WriteString(id)
+		b.WriteString("\n")
+		b.WriteString("    title: implemented issue ")
+		b.WriteString(id)
+		b.WriteString("\n")
+		b.WriteString("    status: implemented\n")
+		b.WriteString("    command: issue-registry\n")
+		b.WriteString("    evidence:\n")
+		b.WriteString("      - go test ./cmd/xlibgate\n")
+	}
+	return b.String()
+}
+
+func gapsContainSubstring(gaps []string, want string) bool {
+	for _, gap := range gaps {
+		if strings.Contains(gap, want) {
+			return true
+		}
+	}
+	return false
 }
 
 func chdir(t *testing.T, dir string) {
@@ -1078,6 +1300,30 @@ func repoRoot(t *testing.T) string {
 		}
 		dir = parent
 	}
+}
+
+func readText(t *testing.T, path string) string {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read %s: %v", path, err)
+	}
+	return string(data)
+}
+
+func latestChangelogVersion(t *testing.T, text string) string {
+	t.Helper()
+	for _, line := range strings.Split(text, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "## v") {
+			fields := strings.Fields(strings.TrimPrefix(trimmed, "## "))
+			if len(fields) > 0 {
+				return fields[0]
+			}
+		}
+	}
+	t.Fatal("latest changelog version not found")
+	return ""
 }
 
 func slicesContain(values []string, want string) bool {

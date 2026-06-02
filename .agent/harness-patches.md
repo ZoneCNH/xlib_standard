@@ -1,3 +1,3 @@
-# Harness Patches
+# Harness 补丁
 
-Harness patches capture missing or weak gates found during review. Each entry must specify target command, failure mode, fixture, expected failure and expected pass condition.
+Harness 补丁用于记录评审中发现的缺失或薄弱 gate。每条记录必须说明目标命令、失败模式、fixture、预期失败条件和预期通过条件。

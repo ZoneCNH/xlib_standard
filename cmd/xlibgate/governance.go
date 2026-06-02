@@ -9,10 +9,16 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
+	"sort"
+	"strconv"
 	"strings"
 )
 
-const xlibgateVersion = "v2.9.3"
+const (
+	projectReleaseVersion    = "v0.4.0"
+	governanceRuntimeVersion = "v2.9.3"
+)
 
 type gateReport struct {
 	Command string   `json:"command"`
@@ -39,7 +45,7 @@ func runVersion(args []string, stdout io.Writer, stderr io.Writer) int {
 	if err := validateInternalCommandArgs("version", args, internalCommandFlagSpec{boolFlags: []string{"json"}}); err != nil {
 		return invalidInternalArgsExit("version", err, stderr)
 	}
-	return emitReport(stdout, "version", "passed", []string{"xlib-standard goal " + xlibgateVersion, "xlibgate governance CLI available"}, nil)
+	return emitReport(stdout, "version", "passed", []string{"xlib-standard release " + projectReleaseVersion, "xlibgate governance runtime " + governanceRuntimeVersion, "xlibgate governance CLI available"}, nil)
 }
 
 func runDoctor(args []string, stdout io.Writer, stderr io.Writer) int {
@@ -164,9 +170,13 @@ func runIssueRegistry(args []string, stdout io.Writer, stderr io.Writer) int {
 	if err := validateInternalCommandArgs("issue-registry", args, internalCommandFlagSpec{boolFlags: []string{"json"}}); err != nil {
 		return invalidInternalArgsExit("issue-registry", err, stderr)
 	}
-	return runRegistryCheck("issue-registry", map[string][]string{
-		".agent/issue-registry.yaml": requiredIssueRegistryNeedles(),
-	}, stdout, stderr)
+	var gaps []string
+	appendIssueRegistryGaps(".agent/issue-registry.yaml", &gaps)
+	if len(gaps) > 0 {
+		write(stderr, "ERROR: issue-registry found %d gap(s)\n", len(gaps))
+		return emitReport(stdout, "issue-registry", "failed", nil, gaps)
+	}
+	return emitReport(stdout, "issue-registry", "passed", []string{"issue registry entries are implemented, unique, and contiguous"}, nil)
 }
 
 func runCommandRegistry(args []string, stdout io.Writer, stderr io.Writer) int {
@@ -237,7 +247,6 @@ func runContextProfileCheck(command string, args []string, stdout io.Writer, std
 	contextTargets := contextRuntimeTargets()
 	required := map[string][]string{
 		".agent/command-registry.yaml":           requiredCommandRegistryNeedles(),
-		".agent/issue-registry.yaml":             requiredIssueRegistryNeedles(),
 		".agent/makefile-target-registry.yaml":   contextTargets,
 		".agent/makefile-baseline.yaml":          contextTargets,
 		"docs/standard/xlibgate-cli-contract.md": commandRegistryRequiredCommands(),
@@ -260,9 +269,7 @@ func runContextProfileCheck(command string, args []string, stdout io.Writer, std
 			}
 		}
 	}
-	if issueRegistry, err := os.ReadFile(".agent/issue-registry.yaml"); err == nil && strings.Contains(string(issueRegistry), "CTX-051") {
-		gaps = append(gaps, ".agent/issue-registry.yaml must not claim CTX-051")
-	}
+	appendIssueRegistryGaps(".agent/issue-registry.yaml", &gaps)
 	if makefile, err := os.ReadFile("Makefile"); err == nil {
 		makefileText := string(makefile)
 		appendMakefileDuplicateGaps(makefileText, contextTargets, &gaps)
@@ -432,6 +439,21 @@ var plannedCommandFiles = map[string][]string{
 	"execution-context":       {".agent/execution-context.yaml", "contracts/execution-context.schema.json"},
 }
 
+var plannedCommandSemanticMarkers = map[string]map[string][]string{
+	"agent-team-contract": {
+		".agent/team-contract.yaml": {"schema_version:", "roles:", "rule:"},
+	},
+	"acceptance-matrix": {
+		".agent/acceptance-matrix.yaml": {"schema_version:", "acceptance:"},
+	},
+	"runtime-health": {
+		".agent/runtime-health.yaml": {"schema_version:", "checks:", "toolchain"},
+	},
+	"execution-context": {
+		".agent/execution-context.yaml": {"schema_version:", "contexts:", "local_write", "ci_pull_request", "release_verify"},
+	},
+}
+
 func runPlannedCommand(command string, args []string, stdout io.Writer, stderr io.Writer) int {
 	if err := validatePlannedCommandArgs(command, args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
@@ -449,11 +471,13 @@ func runPlannedCommand(command string, args []string, stdout io.Writer, stderr i
 		return emitReport(stdout, command, "failed", []string{"args=" + strings.Join(args, " ")}, []string{"planned command has no manifest coverage: " + command})
 	}
 	for _, path := range files {
-		if fileExists(path) {
-			details = append(details, "found "+path)
-		} else {
-			gaps = append(gaps, "missing "+path)
+		content, gap, ok := readPlannedCommandFile(path)
+		if !ok {
+			gaps = append(gaps, gap)
+			continue
 		}
+		details = append(details, "found "+path)
+		gaps = append(gaps, validatePlannedCommandFile(command, path, content)...)
 	}
 	if command == "downstream-baseline" || command == "downstream-adoption" || command == "upgrade-standard" {
 		mode := fallback(flagValue(args, "mode", ""), "patch-only")
@@ -477,6 +501,46 @@ func runPlannedCommand(command string, args []string, stdout io.Writer, stderr i
 		details = append(details, "local dry-run verifier satisfied manifest coverage")
 	}
 	return emitReport(stdout, command, "passed", details, nil)
+}
+
+func readPlannedCommandFile(path string) ([]byte, string, bool) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return nil, "missing " + path, false
+	}
+	if info.IsDir() {
+		return nil, path + " must be a file", false
+	}
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return nil, path + " unreadable: " + err.Error(), false
+	}
+	return content, "", true
+}
+
+func validatePlannedCommandFile(command string, path string, content []byte) []string {
+	var gaps []string
+	text := string(content)
+	if strings.TrimSpace(text) == "" {
+		gaps = append(gaps, path+" must not be empty")
+	}
+	if filepath.Ext(path) == ".json" && !json.Valid(content) {
+		gaps = append(gaps, path+" must be valid JSON")
+	}
+	for _, marker := range plannedCommandMarkers(command, path) {
+		if !strings.Contains(text, marker) {
+			gaps = append(gaps, path+" missing semantic marker "+marker)
+		}
+	}
+	return gaps
+}
+
+func plannedCommandMarkers(command string, path string) []string {
+	files, ok := plannedCommandSemanticMarkers[command]
+	if !ok {
+		return nil
+	}
+	return files[path]
 }
 
 func flagProvided(args []string, name string) bool {
@@ -672,22 +736,161 @@ func requiredCommandRegistryNeedles() []string {
 	return needles
 }
 
-func requiredIssueRegistryNeedles() []string {
-	needles := []string{"status: implemented"}
-	for _, prefixAndCount := range []struct {
-		prefix string
-		count  int
-	}{
-		{prefix: "P0", count: 18},
-		{prefix: "P1", count: 21},
-		{prefix: "P2", count: 15},
-		{prefix: "CTX", count: 4},
-	} {
-		for i := 1; i <= prefixAndCount.count; i++ {
-			needles = append(needles, prefixAndCount.prefix+"-"+fmt.Sprintf("%03d", i))
+type issueRegistryEntry struct {
+	id    string
+	block string
+}
+
+var issueRegistryIDPattern = regexp.MustCompile(`^(P0|P1|P2|CTX)-([0-9]{3})$`)
+
+func appendIssueRegistryGaps(path string, gaps *[]string) {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		*gaps = append(*gaps, "missing "+path)
+		return
+	}
+	*gaps = append(*gaps, validateIssueRegistryEntries(path, parseIssueRegistryEntries(string(content)))...)
+}
+
+func parseIssueRegistryEntries(text string) []issueRegistryEntry {
+	var entries []issueRegistryEntry
+	var currentID string
+	var currentLines []string
+	flush := func() {
+		if currentID != "" {
+			entries = append(entries, issueRegistryEntry{id: currentID, block: strings.Join(currentLines, "\n")})
 		}
 	}
-	return needles
+	for _, line := range strings.Split(text, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "- id:") {
+			flush()
+			currentID = trimYAMLScalar(strings.TrimSpace(strings.TrimPrefix(trimmed, "- id:")))
+			currentLines = []string{line}
+			continue
+		}
+		if currentID != "" {
+			currentLines = append(currentLines, line)
+		}
+	}
+	flush()
+	return entries
+}
+
+func validateIssueRegistryEntries(path string, entries []issueRegistryEntry) []string {
+	if len(entries) == 0 {
+		return []string{path + " must contain issue entries"}
+	}
+	var gaps []string
+	seen := map[string]bool{}
+	numsByPrefix := map[string][]int{
+		"P0":  {},
+		"P1":  {},
+		"P2":  {},
+		"CTX": {},
+	}
+	for _, entry := range entries {
+		if seen[entry.id] {
+			gaps = append(gaps, path+" duplicate issue id "+entry.id)
+		}
+		seen[entry.id] = true
+		match := issueRegistryIDPattern.FindStringSubmatch(entry.id)
+		if match == nil {
+			gaps = append(gaps, path+" invalid issue id "+entry.id)
+			continue
+		}
+		num, _ := strconv.Atoi(match[2])
+		numsByPrefix[match[1]] = append(numsByPrefix[match[1]], num)
+		if !blockHasNonEmptyYAMLValue(entry.block, "title") {
+			gaps = append(gaps, path+" "+entry.id+" missing title")
+		}
+		status, ok := blockYAMLValue(entry.block, "status")
+		if !ok || status != "implemented" {
+			gaps = append(gaps, path+" "+entry.id+" status must be implemented")
+		}
+		if !blockHasNonEmptyYAMLValue(entry.block, "command") {
+			gaps = append(gaps, path+" "+entry.id+" missing command")
+		}
+		if !blockHasEvidence(entry.block) {
+			gaps = append(gaps, path+" "+entry.id+" missing evidence")
+		}
+	}
+	for _, prefix := range []string{"P0", "P1", "P2", "CTX"} {
+		nums := numsByPrefix[prefix]
+		if len(nums) == 0 {
+			gaps = append(gaps, path+" missing "+prefix+"-001")
+			continue
+		}
+		sort.Ints(nums)
+		last := 0
+		for _, num := range nums {
+			if num == last {
+				continue
+			}
+			if num != last+1 {
+				gaps = append(gaps, fmt.Sprintf("%s %s ids must be contiguous; missing %s-%03d", path, prefix, prefix, last+1))
+				break
+			}
+			last = num
+		}
+	}
+	return gaps
+}
+
+func blockHasEvidence(block string) bool {
+	value, ok := blockYAMLValue(block, "evidence")
+	if ok && value != "" && value != "[]" {
+		return true
+	}
+	return blockHasYAMLListItem(block, "evidence")
+}
+
+func blockHasNonEmptyYAMLValue(block string, key string) bool {
+	value, ok := blockYAMLValue(block, key)
+	return ok && value != "" && value != "[]"
+}
+
+func blockYAMLValue(block string, key string) (string, bool) {
+	prefix := key + ":"
+	for _, line := range strings.Split(block, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, prefix) {
+			return trimYAMLScalar(strings.TrimSpace(strings.TrimPrefix(trimmed, prefix))), true
+		}
+	}
+	return "", false
+}
+
+func blockHasYAMLListItem(block string, key string) bool {
+	lines := strings.Split(block, "\n")
+	inList := false
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+		if !inList {
+			if strings.HasPrefix(trimmed, key+":") {
+				inList = true
+			}
+			continue
+		}
+		if strings.HasPrefix(trimmed, "- ") {
+			return true
+		}
+		if strings.Contains(trimmed, ":") && !strings.HasPrefix(trimmed, "- ") {
+			return false
+		}
+	}
+	return false
+}
+
+func trimYAMLScalar(value string) string {
+	if i := strings.Index(value, "#"); i >= 0 {
+		value = value[:i]
+	}
+	value = strings.TrimSpace(value)
+	return strings.Trim(value, `"'`)
 }
 
 func gitOutput(args ...string) string {

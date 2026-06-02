@@ -1,19 +1,22 @@
 schema_version: "1.0"
 module: xlib-standard
-source_registry: ".agent/command-registry.yaml"
-truth_state: ".agent/truth-state.yaml"
-purpose: "把命令 registry 的存在事实拆成 registered、dry_run_ready、implemented、executed，避免把注册命令误报为已交付。"
+source_registry: .agent/command-registry.yaml
+truth_state: .agent/truth-state.yaml
+purpose: "区分 command registered、planned、dry-run verify、implemented 与 executed。"
+
 status_values:
-  registered: "registry 中有条目，但没有实现或运行证据。"
-  planned: "有计划或目标，但没有可执行契约。"
-  dry_run_ready: "可执行 dry-run/verify 契约，输出只能证明契约或差距。"
-  implemented: "已有命令实现或脚本委托，是否通过必须看当前运行证据。"
-  executed: "当前上下文实际执行过。"
+  - registered
+  - planned
+  - dry_run_ready
+  - implemented
+  - executed
+
 groups:
-  p0_implemented_or_scripted:
+  - id: p0_implemented_or_scripted
     phase: P0
     implementation_status: implemented
-    evidence_strength: "requires_current_command_output"
+    evidence_state: requires_current_command_output
+    note: "P0 命令已有 Makefile 或 xlibgate 入口；是否 passed 必须以本次命令输出为准。"
     commands:
       - version
       - doctor
@@ -42,10 +45,12 @@ groups:
       - secrets
       - security
       - standard-impact-check
-  p1_dry_run_contracts:
+
+  - id: p1_dry_run_contracts
     phase: P1
     implementation_status: dry_run_ready
-    evidence_strength: "dry_run_contract_only"
+    evidence_strength: dry_run_contract_only
+    note: "P1 本地治理命令可 dry-run/verify；不得升级为 release usable。"
     commands:
       - agent-team-contract
       - scope-lock
@@ -67,10 +72,12 @@ groups:
       - supply-chain
       - autoresearch
       - changelog
-  p2_dry_run_contracts:
+
+  - id: p2_dry_run_contracts
     phase: P2
     implementation_status: dry_run_ready
-    evidence_strength: "dry_run_contract_only"
+    evidence_strength: dry_run_contract_only
+    note: "P2 runtime/conformance/packaging 命令当前只证明 dry-run contract。"
     commands:
       - install-runtime
       - upgrade-runtime
@@ -82,19 +89,30 @@ groups:
       - pack-evidence
       - runtime-file-ownership
       - execution-context
-  p2_downstream_gap_reports:
+
+  - id: p2_downstream_gap_reports
     phase: P2
     implementation_status: dry_run_ready
-    evidence_strength: "gap_report_only"
+    adoption_status: not_adopted
+    evidence_strength: gap_report_only
+    note: "downstream baseline/adoption 当前只能报告 gap，不得声明 proof-based adoption。"
     commands:
       - downstream-baseline
       - downstream-adoption
-forbidden_interpretations:
-  - "registry 条目不得解释为命令已执行。"
-  - "dry-run/verify 输出不得解释为 release_usable。"
-  - "P2 downstream gap report 不得解释为 downstream adopted。"
-  - "CHECK_STATUS=passed 不得解释为 release-ready 证据。"
-current_mva_assertions:
-  no_new_gate_result_runtime: true
+
+forbidden_gate_interpretations:
+  - state: registered
+    rule: "registered command != passed gate"
+  - state: planned
+    rule: "planned command != implemented behavior"
+  - state: dry_run_ready
+    rule: "dry-run verify only proves the dry-run gate"
+  - state: implemented
+    rule: "implemented command still requires current command output before passed"
+  - state: executed
+    rule: "executed requires preserved command, exit code, context, and timestamp"
+
+mva_assertions:
+  no_new_command_runtime: true
   no_release_check_behavior_change: true
-  no_release_manifest_cutover: true
+  no_release_manifest_generation: true

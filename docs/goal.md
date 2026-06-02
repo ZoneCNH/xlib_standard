@@ -839,15 +839,15 @@ Third-party policy admission
 
 ---
 
-## 20. Naming Policy
+## 20. 命名策略
 
 默认名称：
 
 ```text
 standard repo: xlib-standard
 L0 downstream: kernel
-old template name: baselib-template only allowed in migration / ADR / compatibility context
-old downstream example: foundationx only allowed in migration / ADR / compatibility context
+old template name: baselib-template only allowed in migration docs context
+old downstream example: foundationx only allowed in migration docs context
 ```
 
 禁止：

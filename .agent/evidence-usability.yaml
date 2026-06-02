@@ -1,45 +1,66 @@
 schema_version: "1.0"
 module: xlib-standard
-truth_state: ".agent/truth-state.yaml"
-purpose: "定义 evidence 从 artifact_exists 到 release_usable 的最小判定条件；first-PR/MVA 不生成 release manifest。"
-release_manifest:
-  path: "release/manifest/latest.json"
-  checksum_path: "release/manifest/latest.json.sha256"
-  template_path: "release/manifest/template.json"
-  generated_in_mva: false
-  artifact_exists_claimed: false
-  checksum_verified: false
-  usable: false
-  release_manifest_changed: false
+truth_state: .agent/truth-state.yaml
+purpose: "区分 artifact exists、checksum verified、replayable 与 release usable。"
+
+release_artifacts:
+  manifest:
+    path: release/manifest/latest.json
+    checksum: release/manifest/latest.json.sha256
+    generated_in_mva: false
+    artifact_exists_claimed: false
+    checksum_verified: false
+    usable: false
+    release_manifest_changed: false
+  template:
+    path: release/manifest/template.json
+    changed_in_mva: false
+
 usability_requirements:
-  artifact_url: "必须指向可下载、可审计的 release evidence artifact。"
-  workflow_run_id: "必须指向真实 CI/发布流程运行。"
-  sha256: "必须与 manifest 或 artifact 内容匹配。"
-  gates: "必须记录 release-required gates 的实际运行结果。"
-  replayable: "必须能通过 release-evidence-check / evidence-replay 复核。"
-  redacted: "不得包含真实凭据或 /home/k8s/secrets/env/* 内容。"
-  clean_tree: "发布证据必须绑定明确 commit/tree_sha。"
-  release_context: "release_verify / release-preflight 上下文必须明确。"
-  checksum_verified: "latest.json 与 .sha256 必须在当前上下文一致。"
-  consumer_contract_verified: "消费方需要的字段必须完整。"
+  - artifact_url
+  - workflow_run_id
+  - sha256
+  - gates
+  - replayable
+  - redacted
+  - clean_tree
+  - release_context
+  - checksum_verified
+  - consumer_contract_verified
+
 local_evidence:
   done_format: "DONE with evidence:"
   acceptance_command: "GOWORK=off make governance-check"
   local_completion_is_release_artifact: false
   local_governance_pass_is_release_usable: false
   release_manifest_generated: false
+
 state_rules:
   artifact_exists:
-    release_usable: false
-    reason: "存在文件仍需字段、checksum、gate 与消费方契约验证。"
+    usable: false
+    reason: "存在文件或上传记录不能证明下游 release 流程可消费。"
   checksum_verified:
-    release_usable: "conditional"
-    reason: "checksum 通过还需 release gate 与消费方字段完整。"
-  evidence_verified:
-    release_usable: "conditional"
-    reason: "必须满足 release context 和 artifact 可用性。"
+    usable: false
+    reason: "checksum 只证明完整性，不证明 replayable 或 consumer contract。"
+  replayable:
+    usable: conditional
+    reason: "replay 结果必须绑定 gate、context 和 artifact hash。"
+  usable:
+    requires:
+      - artifact_url
+      - workflow_run_id
+      - sha256
+      - gates
+      - release_context
+      - consumer_contract_verified
+
 forbidden_upgrades:
-  - "artifact_exists -> usable"
-  - "CHECK_STATUS=passed -> release_ready_evidence"
-  - "local_governance_check_passed -> release_usable"
-  - "manifest_template_present -> release_manifest_generated"
+  - "artifact_exists != usable"
+  - "checksum_verified != usable"
+  - "CHECK_STATUS=passed != release-ready evidence"
+  - "DONE with evidence != release manifest"
+
+mva_assertions:
+  no_release_manifest_cutover: true
+  no_artifact_upload_claim: true
+  no_release_usability_claim: true
