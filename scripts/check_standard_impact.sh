@@ -148,7 +148,7 @@ classify_file() {
     templates/context-consumer/*)
       add_category_file "downstream_context" "$file"
       ;;
-    AGENTS.md|Makefile|.github/CODEOWNERS|.github/rulesets/*|.github/workflows/*|infra/github-rules/*|.agent/gates.md)
+    AGENTS.md|Makefile|.github/workflows/*|.github/CODEOWNERS|.github/rulesets/*|infra/github-rules/*|.agent/gates.md)
       add_category_file "repository_rules" "$file"
       ;;
     cmd/xlibgate/*|.agent/context/*|docs/standard/xlibgate-cli-contract.md|docs/standard/release-standard.md|docs/standard/harness-gates.md|docs/standard/evidence-protocol.md)
@@ -182,6 +182,22 @@ done
 downstream_sync_required="false"
 if (( ${#contracts_files[@]} > 0 || ${#context_runtime_files[@]} > 0 || ${#governance_registry_files[@]} > 0 || ${#harness_files[@]} > 0 || ${#repository_rules_files[@]} > 0 || ${#generator_files[@]} > 0 || ${#downstream_context_files[@]} > 0 || ${#evidence_files[@]} > 0 )); then
   downstream_sync_required="true"
+fi
+context_runtime_change="false"
+if (( ${#context_runtime_files[@]} > 0 )); then
+  context_runtime_change="true"
+fi
+governance_registry_change="false"
+if (( ${#governance_registry_files[@]} > 0 )); then
+  governance_registry_change="true"
+fi
+downstream_release_decision="downstream-sync-not-required"
+if [[ "$downstream_sync_required" == "true" ]]; then
+  downstream_release_decision="downstream-sync-required"
+fi
+repository_rules_release_decision="repository-rules-review-not-required"
+if (( ${#repository_rules_files[@]} > 0 )); then
+  repository_rules_release_decision="repository-rules-review-required"
 fi
 
 context_runtime_change="false"
@@ -228,6 +244,10 @@ write_file_list() {
   printf '# Standard Impact Report\n\n'
   printf -- '- generated_at: `%s`\n' "$(report_generated_at)"
   printf -- '- downstream_sync_required: `%s`\n' "$downstream_sync_required"
+  printf -- '- context_runtime_change: `%s`\n' "$context_runtime_change"
+  printf -- '- governance_registry_change: `%s`\n' "$governance_registry_change"
+  printf -- '- downstream_release_decision: `%s`\n' "$downstream_release_decision"
+  printf -- '- repository_rules_release_decision: `%s`\n' "$repository_rules_release_decision"
   printf -- '- primary_downstream: `%s`\n' "github.com/ZoneCNH/kernel"
   printf -- '- context_runtime_change: `%s`\n' "$context_runtime_change"
   printf -- '- governance_registry_change: `%s`\n' "$governance_registry_change"
@@ -260,6 +280,7 @@ write_file_list() {
     printf -- '- `%s`\n' "$downstream_release_decision"
     printf -- '- 原因：未发现 contracts、context_runtime、governance_registry、harness、repository_rules、generator、downstream_context 或 evidence 影响面变化。\n'
   fi
+  printf -- '- `%s`\n' "$repository_rules_release_decision"
 } > "$report_path"
 
 echo "standard impact report generated: $report_path"
