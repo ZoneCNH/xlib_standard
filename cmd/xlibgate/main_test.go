@@ -526,7 +526,7 @@ func TestRunGovernanceCommands(t *testing.T) {
 		}
 		if report.Command != "version" ||
 			report.Status != "passed" ||
-			!slicesContain(report.Details, "xlib-standard release v0.4.0") ||
+			!slicesContain(report.Details, "xlib-standard release v0.4.1") ||
 			!slicesContain(report.Details, "xlibgate governance runtime v2.9.3") {
 			t.Fatalf("report = %#v; want version gate report", report)
 		}
@@ -1172,6 +1172,11 @@ func TestRunGuardsAcceptPullRequestContext(t *testing.T) {
 func TestVersionConstantsTrackChangelogRelease(t *testing.T) {
 	root := repoRoot(t)
 	latest := latestChangelogVersion(t, readText(t, filepath.Join(root, "CHANGELOG.md")))
+	_, standardMarkerErr := os.Stat(filepath.Join(root, "docs", "goal.md"))
+	if standardMarkerErr != nil && !errors.Is(standardMarkerErr, os.ErrNotExist) {
+		t.Fatalf("stat docs/goal.md: %v", standardMarkerErr)
+	}
+	isStandardSource := standardMarkerErr == nil
 	if projectReleaseVersion != latest {
 		t.Fatalf("projectReleaseVersion = %q; want latest changelog version %q", projectReleaseVersion, latest)
 	}
@@ -1187,7 +1192,15 @@ func TestVersionConstantsTrackChangelogRelease(t *testing.T) {
 		"docs/release.md",
 		"AGENTS.md",
 	} {
-		if !strings.Contains(readText(t, filepath.Join(root, filepath.FromSlash(rel))), latest) {
+		path := filepath.Join(root, filepath.FromSlash(rel))
+		text, err := os.ReadFile(path)
+		if errors.Is(err, os.ErrNotExist) && !isStandardSource {
+			continue
+		}
+		if err != nil {
+			t.Fatalf("read %s: %v", path, err)
+		}
+		if !strings.Contains(string(text), latest) {
 			t.Fatalf("%s does not contain latest release version %s", rel, latest)
 		}
 	}

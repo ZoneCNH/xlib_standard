@@ -95,6 +95,8 @@ scan_template_placeholders() {
       --glob '!**/scripts/check_rendered_template.sh' \
       --glob '!scripts/run_fuzz_smoke.sh' \
       --glob '!**/scripts/run_fuzz_smoke.sh' \
+      --glob '!release/manifest/template.json' \
+      --glob '!**/release/manifest/template.json' \
       "$pattern" "$repo_dir"; then
       echo "ERROR: found stale template placeholder" >&2
       exit 1
@@ -108,6 +110,7 @@ scan_template_placeholders() {
       -not -path '*/scripts/check_docs.sh' \
       -not -path '*/scripts/check_rendered_template.sh' \
       -not -path '*/scripts/run_fuzz_smoke.sh' \
+      -not -path '*/release/manifest/template.json' \
       -print0 | xargs -0 grep -InE "$pattern"; then
       echo "ERROR: found stale template placeholder" >&2
       exit 1

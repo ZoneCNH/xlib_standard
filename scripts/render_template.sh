@@ -99,8 +99,8 @@ out_dir="$out_abs"
     --exclude='./coverage.*' \
     --exclude='./*.coverprofile' \
     --exclude='./profile.cov' \
-    --exclude='./release/manifest/*.json' \
-    --exclude='./release/manifest/*.sha256' \
+    --exclude='./release/manifest/latest.json' \
+    --exclude='./release/manifest/latest.json.sha256' \
     -cf - .
 ) | (
   cd "$out_dir"
