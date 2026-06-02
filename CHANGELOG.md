@@ -4,6 +4,18 @@
 
 暂无。
 
+## v0.3.8 - 2026-06-02
+
+### 治理
+
+- 新增 MVA 真相态、命令实现、Evidence usability、release required gates 和 downstream adoption 状态文件。
+- 新增 `docs/standard/truth-state.md`，记录首个 PR 的真相态语义、缺口和验收命令。
+- 对齐 MVA 验收证据命令为 `GOWORK=off make governance-check`，避免与 release verify 上下文混用。
+
+### 兼容性
+
+- 本版本仅包含治理和文档更新，不改变 `pkg/templatex` 公共 API。
+
 ## v0.3.7 - 2026-06-02
 
 ### 治理
