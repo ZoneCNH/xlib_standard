@@ -4,6 +4,17 @@
 
 暂无。
 
+## v0.4.0 - 2026-06-03
+
+### 修复
+
+- Release manifest 校验现在会拒绝非法的 `standard_impact.downstream_release_decision` 和 `standard_impact.repository_rules_release_decision` 枚举值，避免发布 Evidence 接受漂移口径。
+- `docs-check` 同步锁定 README、发布文档、Evidence protocol、downstream sync policy 和 Harness Gate 中的 release decision 允许值说明。
+
+### 兼容性
+
+- 本版本不改变 `pkg/templatex` 公共 API，仅收紧发布 Evidence 校验与文档门禁。
+
 ## v0.3.8 - 2026-06-02
 
 ### 治理

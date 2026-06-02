@@ -1,3 +1,3 @@
-# Rule Patches
+# 规则补丁
 
-Rule patches capture policy updates for standards, boundaries or Evidence. Each entry must link to a REQ/ADR and state whether it affects docs-check, boundary, contracts, score or release gates.
+规则补丁用于记录 standards、boundary 或 Evidence 的策略更新。每条记录必须关联 REQ/ADR，并说明是否影响 docs-check、boundary、contracts、score 或 release gates。

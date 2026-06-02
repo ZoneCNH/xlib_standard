@@ -9,4 +9,4 @@
 - 不成为 `x.go` 或任何业务仓库的运行时依赖。
 - 不包含 `x.go` 业务模型、profile-specific runtime 或真实下游实现。
 - 不隐式加载生产密钥，尤其不得读取 `/home/k8s/secrets/env/*`。
-- 不把旧 `baselib-template` / `foundationx` 作为主身份或默认下游；旧名仅用于迁移、ADR、历史兼容上下文。
+- 不把旧 `baselib-template` / `foundationx` 作为主身份或默认下游；旧名仅用于迁移文档语境。

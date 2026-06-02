@@ -20,6 +20,6 @@
 
 ## 验证
 
-- `rg -n "baselib-template|foundationx" README.md docs .agent` 的命中必须能归类为迁移/ADR/历史兼容上下文。
+- `rg -n "baselib-template|foundationx" README.md docs .agent` 的命中必须能归类为迁移文档语境。
 - `GOWORK=off make docs-check` 必须通过。
 - Full release 前必须补充 downstream integration Evidence。

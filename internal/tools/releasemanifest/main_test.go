@@ -716,6 +716,60 @@ func TestVerifyManifestAcceptsFreshManifestAndRejectsDrift(t *testing.T) {
 	}
 }
 
+func TestVerifyManifestRejectsInvalidStandardImpactReleaseDecisionEnums(t *testing.T) {
+	t.Setenv("GOWORK", "off")
+	t.Setenv("CHECK_STATUS", "passed")
+	repo := releaseManifestFixtureRepo(t)
+	writeStandardImpactReportFixture(t, repo)
+	chdir(t, repo)
+
+	base, err := buildManifest()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tests := []struct {
+		name   string
+		mutate func(*Manifest)
+		want   string
+	}{
+		{
+			name: "downstream_release_decision",
+			mutate: func(manifest *Manifest) {
+				manifest.StandardImpact.DownstreamReleaseDecision = "later"
+			},
+			want: `standard_impact.downstream_release_decision must be one of required, not_required, got "later"`,
+		},
+		{
+			name: "repository_rules_release_decision",
+			mutate: func(manifest *Manifest) {
+				manifest.StandardImpact.RepositoryRulesReleaseDecision = "skip_audit"
+			},
+			want: `standard_impact.repository_rules_release_decision must be one of audit_required, not_required, got "skip_audit"`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			manifest := base
+			tt.mutate(&manifest)
+
+			path := filepath.Join(t.TempDir(), "manifest.json")
+			if err := writeManifest(path, manifest); err != nil {
+				t.Fatal(err)
+			}
+
+			err := verifyManifest(path, false, false, "", 0)
+			if err == nil {
+				t.Fatal("verify invalid standard impact release decision succeeded, want error")
+			}
+			if !strings.Contains(err.Error(), tt.want) {
+				t.Fatalf("error = %q, want substring %q", err.Error(), tt.want)
+			}
+		})
+	}
+}
+
 func TestVerifyManifestRequiresStandardImpactEvidenceWhenChecksRequired(t *testing.T) {
 	t.Setenv("GOWORK", "off")
 	t.Setenv("CHECK_STATUS", "passed")

@@ -1,17 +1,16 @@
 schema_version: "1.0"
 module: xlib-standard
-scope: first-pr-mva-truth-state
-source: "/home/xlib-standard/.worktree/patch.md"
-acceptance:
-  command: "GOWORK=off make governance-check"
-  optional:
-    - "GOWORK=off go test ./cmd/xlibgate ./contracts"
-summary: "记录 first-PR/MVA 只建立事实状态边界，不把计划、注册、dry-run 或本地检查升级为 release-usable。"
-excluded_scope:
-  release_manifest_cutover: true
-  release_check_behavior_change: true
-  gate_result_runtime: true
-  downstream_migration_wave: true
+scope:
+  name: first-pr-mva-truth-state
+  source: /home/xlib-standard/.worktree/patch.md
+  acceptance_command: "GOWORK=off make governance-check"
+  summary: "first-PR/MVA 只建立治理事实分层，不实现 release runtime 或 downstream migration-wave。"
+  excludes:
+    - release_manifest_cutover
+    - release_check_behavior_change
+    - gate_result_runtime
+    - downstream_migration_wave
+
 strength_order:
   - planned
   - manifest_covered
@@ -20,74 +19,102 @@ strength_order:
   - real_executed
   - evidence_verified
   - release_usable
+
 observable_states:
+  - registered
+  - baseline_scanned
+  - planned
+  - dry_run_ready
+  - implemented
+  - executed
+  - artifact_exists
+  - checksum_verified
+  - usable
+  - adopted
+  - not_run
+
+state_mapping:
   registered:
-    meaning: "命令或对象存在于 registry / harness / 文档矩阵中。"
+    strength: planned
     passed_gate_evidence: false
+    meaning: "规则、命令或 downstream 已登记，但未证明已执行或已采用。"
   baseline_scanned:
-    meaning: "完成基线扫描或差距登记，但未完成实现或采用。"
+    strength: planned
     passed_gate_evidence: false
+    meaning: "已完成 baseline 扫描，不代表实现或采用。"
   planned:
-    meaning: "已有计划或路线图条目。"
+    strength: planned
     passed_gate_evidence: false
+    meaning: "存在计划、入口或 contract，尚未证明真实实现。"
   dry_run_ready:
-    meaning: "有 dry-run/verify 契约，可在本地验证契约存在或报告差距。"
-    passed_gate_evidence: false
+    strength: dry_run_verified
+    passed_gate_evidence: conditional
+    meaning: "可执行 dry-run 或 contract 检查，只能证明 dry-run gate。"
   implemented:
-    meaning: "已有可执行实现或委托脚本，但仍需要当前命令输出证明是否通过。"
-    passed_gate_evidence: "conditional"
+    strength: real_executed
+    passed_gate_evidence: conditional
+    meaning: "存在真实实现，必须结合当前命令输出和退出码判断。"
   executed:
-    meaning: "当前上下文实际运行过命令。"
-    passed_gate_evidence: "conditional"
+    strength: real_executed
+    passed_gate_evidence: true
+    meaning: "本次证据中存在命令、退出码和上下文。"
   artifact_exists:
-    meaning: "产物文件存在。"
+    strength: manifest_covered
     passed_gate_evidence: false
+    meaning: "artifact 文件或上传存在，不代表可消费。"
   checksum_verified:
-    meaning: "产物与 checksum 在当前上下文校验一致。"
-    passed_gate_evidence: "conditional"
+    strength: evidence_verified
+    passed_gate_evidence: conditional
+    meaning: "校验和匹配，只证明完整性，不证明 release usable。"
   usable:
-    meaning: "产物满足消费方字段、可重放、上下文和校验要求。"
-    passed_gate_evidence: "conditional"
+    strength: release_usable
+    passed_gate_evidence: true
+    meaning: "artifact 可被目标流程消费，且有 replay 或 contract 证据。"
   adopted:
-    meaning: "下游库完成迁移、验证并有证据引用。"
-    passed_gate_evidence: "conditional"
+    strength: release_usable
+    passed_gate_evidence: true
+    meaning: "downstream 有 proof-based adoption 证据。"
   not_run:
-    meaning: "当前上下文没有执行证据。"
+    strength: planned
     passed_gate_evidence: false
+    meaning: "未运行，不得报告为 passed。"
+
 forbidden_upgrades:
   - from: planned
     to: implemented
-    reason: "计划不是实现。"
+    rule: "planned != implemented"
   - from: manifest_covered
     to: release_usable
-    reason: "manifest 覆盖不等于 release 可用证据。"
+    rule: "manifest_covered != release_usable"
   - from: dry_run_verified
     to: release_usable
-    reason: "dry-run 只证明契约或差距，不证明 release 可用。"
+    rule: "dry_run_verified != release_usable"
   - from: not_run
     to: passed
-    reason: "未运行不得记为通过。"
+    rule: "not_run != passed"
   - from: registered
     to: adopted
-    reason: "注册目标库不等于下游采用。"
+    rule: "registered != adopted"
   - from: baseline_scanned
     to: implemented
-    reason: "基线扫描不等于功能实现。"
+    rule: "baseline_scanned != implemented"
   - from: artifact_exists
     to: usable
-    reason: "产物存在不等于字段完整、checksum 可验证、消费方可用。"
+    rule: "artifact_exists != usable"
   - from: check_status_passed
     to: release_ready_evidence
-    reason: "CHECK_STATUS=passed 只是生成前置，不是 release-ready 证据闭环。"
+    rule: "CHECK_STATUS=passed != release-ready evidence"
+
 fact_files:
-  command_implementation: ".agent/command-implementation-status.yaml"
-  release_required_gates: ".agent/release-required-gates.yaml"
-  evidence_usability: ".agent/evidence-usability.yaml"
-  downstream_adoption: ".agent/downstream-adoption-status.yaml"
+  command_implementation_status: .agent/command-implementation-status.yaml
+  release_required_gates: .agent/release-required-gates.yaml
+  evidence_usability: .agent/evidence-usability.yaml
+  downstream_adoption_status: .agent/downstream-adoption-status.yaml
+
 current_mva_assertions:
   release_manifest_changed: false
   release_check_behavior_changed: false
   gate_result_runtime_changed: false
-  downstream_migration_wave_changed: false
-  release_manifest_generated: false
   downstream_adoption_claimed: false
+  release_manifest_generated: false
+  downstream_migration_wave_changed: false

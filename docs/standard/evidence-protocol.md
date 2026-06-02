@@ -81,6 +81,10 @@ manifest 必须记录：
 - `governance_runtime`：Context Runtime v4.0 目标证据字段；落地后必须记录 runtime/schema version、profile 状态、`context-standard`/`context-full`/`context-release` gate 结果、registry source 和 profile wrapper 命令。当前 `internal/tools/releasemanifest/main.go` 尚未发出该字段时，release Evidence 必须把它列入 known gaps，而不是写成 passed。
 - `artifacts`：必须包含 `release/manifest/latest.json` 和 `release/manifest/latest.json.sha256`。
 
+`standard_impact.downstream_release_decision` 的 allowed values 只能是 `required` 或 `not_required`。该字段用于说明 Standard 变更是否要求同步下游库。
+
+`standard_impact.repository_rules_release_decision` 的 allowed values 只能是 `audit_required` 或 `not_required`。该字段用于说明仓库规则变更是否要求执行下游审计。
+
 外部发布记录或 CI job summary 必须补充 manifest 外部字段：
 
 - `artifact_url`：CI artifact 或 release asset URL；本地运行没有远端 URL 时必须明确写为本地 artifact。

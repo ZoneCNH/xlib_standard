@@ -40,7 +40,7 @@ XLIB_CONTEXT=release_verify GOWORK=off make release-final-check
 打 tag 前推荐使用 release preflight：
 
 ```bash
-XLIB_CONTEXT=release_verify GOWORK=off make release-preflight VERSION=v0.1.0
+XLIB_CONTEXT=release_verify GOWORK=off make release-preflight VERSION=v0.4.0
 ```
 
 `release-preflight` 会先检查版本号、当前分支、工作区洁净状态、`main` 与 `origin/main` 是否一致、目标 tag 是否已存在、`CHANGELOG.md` 是否包含目标版本，以及 `golangci-lint` / `govulncheck` 是否已安装；随后以 `GOWORK=off` 和 `XLIB_CONTEXT=release_verify` 运行 `release-final-check`。tag 应在该入口通过后再创建和推送。
@@ -108,8 +108,15 @@ GitHub Actions workflow 引用的第三方 Action 必须固定为 40 位 commit 
 - `contracts`
 - `dependencies`
 - `tools`
+- `standard_impact`
+- `downstream_sync_required`
+- `generator_evidence`
+- `workflow`
+- `score`
 - `artifacts`
 - `notes`
+
+其中 `standard_impact.downstream_release_decision` 只能使用 `required` 或 `not_required`；`standard_impact.repository_rules_release_decision` 只能使用 `audit_required` 或 `not_required`。release manifest 校验必须拒绝其它非空值，空值仍按 required field 处理。
 
 `make release-check` 成功后会以 `CHECK_STATUS=passed` 生成 manifest，并立即运行 `make release-evidence-check`。若单独运行 `make evidence`，未显式传入的检查状态默认为 `unknown`，后续校验会拒绝把这些状态当作已通过的 release gate。因为 `latest.json` 不再提交，manifest 中的 `commit` 可以指向实际执行 release gate 的 HEAD，避免自引用提交哈希导致的永久漂移。
 

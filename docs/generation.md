@@ -2,7 +2,7 @@
 
 ## 用途
 
-`scripts/render_template.sh` 用于把 `xlib-standard` 参考模板渲染为具体基础库，例如 `kernel`。标准源仓库是 [`xlib-standard`](https://github.com/ZoneCNH/xlib-standard)，并同时承载模板、generator、Harness 和 Evidence 实现。旧 `baselib-template` / `foundationx` 名称只作为迁移上下文保留。脚本负责同步替换 module name、module path、package name、`pkg/` 目录名、imports、文档占位符和脚本中的模板名称。
+`scripts/render_template.sh` 用于把 `xlib-standard` 参考模板渲染为具体基础库，例如 `kernel`。标准源仓库是 [`xlib-standard`](https://github.com/ZoneCNH/xlib-standard)，并同时承载模板、generator、Harness 和 Evidence 实现。旧 `baselib-template` / `foundationx` 名称只作为迁移文档语境保留。脚本负责同步替换 module name、module path、package name、`pkg/` 目录名、imports、文档占位符和脚本中的模板名称。
 
 ## 示例
 

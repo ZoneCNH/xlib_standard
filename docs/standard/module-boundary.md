@@ -18,7 +18,7 @@
 - 业务领域模型、业务 repository、业务消息 schema 或应用生命周期编排。
 - 生产密钥、真实连接串、默认生产 endpoint，或 `/home/k8s/secrets/env/*` 内容。
 - 隐藏全局 client、隐式后台进程或不可关闭资源。
-- 把旧 `baselib-template` / `foundationx` 叙事作为主身份；旧名只能出现在迁移 ADR、迁移文档、历史记录和兼容性说明。
+- 把旧 `baselib-template` / `foundationx` 叙事作为主身份；旧名只能出现在迁移文档语境。
 
 ## 生成基础库允许内容
 

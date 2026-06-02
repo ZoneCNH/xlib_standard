@@ -87,6 +87,16 @@ require_text "docs/standard/evidence-protocol.md" "generator_evidence"
 require_text "docs/standard/evidence-protocol.md" "dependency_check"
 require_text "docs/standard/evidence-protocol.md" "GOWORK=off make dependency-check"
 require_text "docs/standard/evidence-protocol.md" "GOWORK=off make standard-impact-check"
+require_text "README.md" 'downstream_release_decision`（只允许 `required` / `not_required`）'
+require_text "README.md" 'repository_rules_release_decision`（只允许 `audit_required` / `not_required`）'
+require_text "docs/release.md" 'standard_impact.downstream_release_decision` 只能使用 `required` 或 `not_required`'
+require_text "docs/release.md" 'standard_impact.repository_rules_release_decision` 只能使用 `audit_required` 或 `not_required`'
+require_text "docs/standard/evidence-protocol.md" 'standard_impact.downstream_release_decision` 的 allowed values 只能是 `required` 或 `not_required`'
+require_text "docs/standard/evidence-protocol.md" 'standard_impact.repository_rules_release_decision` 的 allowed values 只能是 `audit_required` 或 `not_required`'
+require_text "docs/downstream-sync-policy.md" 'downstream_release_decision` 的 allowed values 只能是 `required` 或 `not_required`'
+require_text "docs/downstream-sync-policy.md" 'repository_rules_release_decision` 的 allowed values 只能是 `audit_required` 或 `not_required`'
+require_text "docs/standard/harness-gates.md" 'downstream_release_decision`（`required` / `not_required`）'
+require_text "docs/standard/harness-gates.md" 'repository_rules_release_decision`（`audit_required` / `not_required`）'
 require_text "docs/standard/release-standard.md" "release/manifest/latest.json.sha256"
 require_text "release/manifest/template.json" "release/manifest/latest.json.sha256"
 require_text "release/manifest/template.json" '"dependencies"'
