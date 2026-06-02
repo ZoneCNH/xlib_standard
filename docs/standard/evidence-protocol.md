@@ -52,6 +52,8 @@ make release-final-check
   -> 要求工作区 clean 后再次校验 release Evidence
 ```
 
+Context Runtime v4.0 的目标链路必须保持单向：`context-release` 不得依赖 `release-check` 或 `release-final-check`；迁移完成后 `release-final-check` 可以调用 `context-release`。在 wrapper、Makefile target、`cmd/xlibgate` 命令和 registry bridge 物理落地前，完成声明只能把该链路记录为目标态或 known gap，不能写成已执行。
+
 本地 release gate 必须运行 `GOWORK=off make dependency-check`、`GOWORK=off make standard-impact-check` 和 `GOWORK=off make docs-check`。
 
 ## Manifest 要求
@@ -76,6 +78,7 @@ manifest 必须记录：
 - `generator_evidence`：`kernel` 和 `corekit` 的生成验证摘要。
 - `workflow`：CI 或本地 Evidence artifact 元数据，至少包含 `workflow_run_id`、`artifact_name`、`artifact_url`。
 - `score`：release governance 评分结果、阈值、状态和维度明细。
+- `governance_runtime`：Context Runtime v4.0 目标证据字段；落地后必须记录 runtime/schema version、profile 状态、`context-standard`/`context-full`/`context-release` gate 结果、registry source 和 profile wrapper 命令。当前 `internal/tools/releasemanifest/main.go` 尚未发出该字段时，release Evidence 必须把它列入 known gaps，而不是写成 passed。
 - `artifacts`：必须包含 `release/manifest/latest.json` 和 `release/manifest/latest.json.sha256`。
 
 外部发布记录或 CI job summary 必须补充 manifest 外部字段：
