@@ -55,6 +55,12 @@ func run(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) int
 		return runExternal(stdin, stdout, stderr, "./scripts/check_boundary.sh")
 	case "contracts":
 		return runExternal(stdin, stdout, stderr, "./scripts/check_contracts.sh")
+	case "debt", "architecture", "domain", "docs-drift", "dependency-debt", "security-debt", "testing-debt", "implementation-debt", "downstream-debt", "debt-evidence":
+		return runDebtCommand(args[0], args[1:], stdout, stderr)
+	case "debt-evidence-checksum-check":
+		return runExternal(stdin, stdout, stderr, "./scripts/hash_release_evidence.sh", "--check", "release/debt/latest.json", "release/debt/latest.json.sha256")
+	case "debt-evidence-hash":
+		return runExternal(stdin, stdout, stderr, "./scripts/hash_release_evidence.sh", "release/debt/latest.json", "release/debt/latest.json.sha256")
 	case "dependency-check":
 		return runExternal(stdin, stdout, stderr, "./scripts/check_dependency_diff.sh")
 	case "docs-check":
@@ -161,15 +167,24 @@ commands:
   context-standard
   context-standard-check
   contracts
+  debt [--json]
+  debt-evidence [--json]
+  debt-evidence-checksum-check
+  debt-evidence-hash
   dependency-check
+  dependency-debt
   doctor [--json]
+  docs-drift
   docs-check
   downstream-adoption
   downstream-baseline
   downstream-registry
+  downstream-debt
   evidence
   evidence-artifacts
   evidence-check
+  architecture
+  domain
   evidence-replay
   execution-context
   github-governance
@@ -179,6 +194,7 @@ commands:
   install-runtime [--dry-run]
   integration
   issue-registry
+  implementation-debt
   main-guard [--context local_write|local_readonly|ci_pull_request|ci_main_verify|release_verify]
   makefile-baseline
   manifest
@@ -203,7 +219,9 @@ commands:
   secrets
   security
   self-healing-skeleton
+  security-debt
   standard-impact-check
+  testing-debt
   supply-chain
   toolchain
   upgrade-runtime [--dry-run]

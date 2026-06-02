@@ -21,6 +21,12 @@ required_gates:
   - id: docs_check
     command: "GOWORK=off make docs-check"
     purpose: "required docs, links, v3.1 runtime and release protocol"
+  - id: debt
+    command: "GOWORK=off make debt"
+    purpose: "release-blocking debt governance gate"
+  - id: debt_evidence
+    command: "GOWORK=off make debt-evidence"
+    purpose: "generate release/debt evidence"
   - id: governance_check
     command: "XLIB_CONTEXT=local_write GOWORK=off make governance-check"
     purpose: "Goal v2.9.3 P0 main/worktree/evidence/boundary/security/CLI/registry/Makefile baseline"
@@ -121,6 +127,9 @@ final_gates:
 evidence:
   manifest: "release/manifest/latest.json"
   checksum: "release/manifest/latest.json.sha256"
+  debt_manifest: "release/debt/latest.json"
+  debt_markdown: "release/debt/latest.md"
+  debt_checksum: "release/debt/latest.json.sha256"
   done_format: "DONE with evidence:"
   required_fields:
     - commit

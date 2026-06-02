@@ -33,6 +33,18 @@ groups:
       - contracts
       - dependency-check
       - docs-check
+      - debt
+      - architecture
+      - domain
+      - docs-drift
+      - dependency-debt
+      - security-debt
+      - testing-debt
+      - implementation-debt
+      - downstream-debt
+      - debt-evidence
+      - debt-evidence-checksum-check
+      - debt-evidence-hash
       - evidence
       - manifest
       - integration
@@ -113,6 +125,6 @@ forbidden_gate_interpretations:
     rule: "executed requires preserved command, exit code, context, and timestamp"
 
 mva_assertions:
-  no_new_command_runtime: true
-  no_release_check_behavior_change: true
-  no_release_manifest_generation: true
+  debt_command_runtime_added: true
+  release_check_requires_debt_evidence: true
+  release_manifest_includes_debt_evidence: true

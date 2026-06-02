@@ -107,12 +107,12 @@ require_text "release/manifest/template.json" '"downstream_sync_required"'
 require_text "release/manifest/template.json" '"generator_evidence"'
 require_text "release/manifest/template.json" '"dependency_check"'
 require_text "docs/scorecard.md" "go run ./cmd/xlibgate score --min 9.8"
-require_text "docs/scorecard.md" "RELEASE_EVIDENCE_MIN_SCORE=9.5"
+require_text "docs/scorecard.md" "RELEASE_EVIDENCE_MIN_SCORE=9.8"
 require_text "release/manifest/template.json" '"score"'
 require_text "release/manifest/template.json" '"workflow_run_id"'
 require_text "internal/tools/releasemanifest/main.go" "min-score"
 require_text "Makefile" "go run ./cmd/xlibgate score --min 9.8"
-require_text "Makefile" "RELEASE_EVIDENCE_MIN_SCORE=9.5"
+require_text "Makefile" "RELEASE_EVIDENCE_MIN_SCORE=9.8"
 require_text ".agent/release-template.md" "go run ./cmd/xlibgate score --min 9.8"
 require_text ".agent/retrospective-template.md" "Score"
 require_text ".agent/harness.yaml" "go run ./cmd/xlibgate score --min 9.8"
