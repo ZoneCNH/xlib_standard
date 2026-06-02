@@ -2,6 +2,26 @@
 
 ## 未发布
 
+## v0.3.5 - 2026-06-02
+
+### 新增
+
+- 新增 `cmd/xlibgate` gate 路由入口，统一封装 `release-final-check`、`release-evidence-check` 和 `score` 等发布前检查。
+- 新增 release scorecard 文档与 `internal/releasequality` 评分实现，将 manifest、workflow artifact、安全门禁、复盘补丁和文档约束汇总为可执行分数。
+- 新增 downstream compatibility matrix，记录 `kernel`、`foundationx` 和 `corekit` 渲染后的测试、contracts、boundary 与 Evidence 验证结果。
+
+### 治理
+
+- `release-final-check` 强制校验 scored release Evidence，避免仅凭局部 gate 结果推进发布。
+- 发布文档、Agent 运行时文档和标准文档统一到 `xlib-standard` 命名与 release gate 口径。
+- GitHub CI 与 release workflow 对齐 `GOWORK=off`、docs-check、security、contracts、boundary 和 release manifest 校验。
+
+### 验证
+
+- 发布前已运行 `GOWORK=off make release-final-check`。
+- 发布前已运行 `go run ./cmd/xlibgate score --min 9.8`，当前质量分为 10。
+- 发布前已运行 `go run ./cmd/xlibgate release-evidence-check`，确认 `release/manifest/latest.json` 通过校验。
+
 ## v0.3.0 - 2026-06-01
 
 ### 新增
