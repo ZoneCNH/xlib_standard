@@ -33,10 +33,19 @@ release/standard-impact/latest.md
 .omc/
 .omx/
 .worktree/
+.claude/settings.local.json
 
 # env file
 .env
+.local.*
+
+# OS files
+.DS_Store
+Thumbs.db
 
 # Editor/IDE
-# .idea/
-# .vscode/
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
