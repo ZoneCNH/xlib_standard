@@ -1,0 +1,63 @@
+schema_version: "1.0"
+module: xlib-standard
+source_registry: ".agent/downstream-registry.yaml"
+truth_state: ".agent/truth-state.yaml"
+purpose: "记录标准目标库的 adoption 事实，明确 registry / baseline / patch-only 都不等于 adopted。"
+current_registry:
+  - repo: kernel/configx
+    mode: patch-only
+    registry_status: unavailable_in_worker_workspace_gap_explicit
+    adoption_status: not_adopted
+    baseline_scanned: false
+    proof_based_adoption: false
+standard_target_libraries:
+  - name: kernel
+    registry_state: standard_target_declared
+    adoption_status: not_adopted
+    evidence_state: not_run
+  - name: configx
+    registry_state: standard_target_declared
+    adoption_status: not_adopted
+    evidence_state: not_run
+  - name: observex
+    registry_state: standard_target_declared
+    adoption_status: not_adopted
+    evidence_state: not_run
+  - name: testkitx
+    registry_state: standard_target_declared
+    adoption_status: not_adopted
+    evidence_state: not_run
+  - name: postgresx
+    registry_state: standard_target_declared
+    adoption_status: not_adopted
+    evidence_state: not_run
+  - name: redisx
+    registry_state: standard_target_declared
+    adoption_status: not_adopted
+    evidence_state: not_run
+  - name: kafkax
+    registry_state: standard_target_declared
+    adoption_status: not_adopted
+    evidence_state: not_run
+  - name: taosx
+    registry_state: standard_target_declared
+    adoption_status: not_adopted
+    evidence_state: not_run
+  - name: ossx
+    registry_state: standard_target_declared
+    adoption_status: not_adopted
+    evidence_state: not_run
+  - name: clickhousex
+    registry_state: standard_target_declared
+    adoption_status: not_adopted
+    evidence_state: not_run
+first_pr_mva_assertions:
+  no_downstream_write: true
+  no_migration_wave: true
+  no_proof_based_adoption: true
+  no_baseline_scan_execution: true
+forbidden_upgrades:
+  - "registered -> adopted"
+  - "baseline_scanned -> implemented"
+  - "patch-only -> adopted"
+  - "gap_explicit -> migrated"
