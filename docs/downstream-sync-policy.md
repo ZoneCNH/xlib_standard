@@ -2,7 +2,7 @@
 
 本文定义 `xlib-standard` 变更后如何同步到下游基础库。`xlib-standard` 是 Standard Source、Go Reference Template、Generator、Harness 和 Evidence Runtime 的唯一标准源；下游只消费这些标准和模板结果，不反向决定标准内容。
 
-旧 `baselib-template` 和 `foundationx` 名称只保留在迁移 ADR、迁移指南、历史记录和兼容性说明中。当前同步目标使用 `kernel`、`corekit` 和 `xlib-standard` 命名。
+旧 `baselib-template` 和 `foundationx` 名称只保留在迁移 ADR、迁移指南、历史记录和兼容性说明中。当前持久同步目标使用 `kernel` 与 L1/L2 基础库命名；`corekit` 仅作为中性路径 smoke/integration 验证目标，`xlib-standard` 是标准源而不是下游同步目标。
 
 ## 角色
 
@@ -22,11 +22,11 @@
 | --- | --- | --- |
 | `docs/standard/**` 标准文本、仓库角色、分层或模块边界变更 | 更新下游 README、标准引用、DoD 和边界说明；检查旧名是否只在迁移上下文出现 | `GOWORK=off make docs-check`，必要时附 `release/standard-impact/latest.md` |
 | `contracts/**`、metrics、health JSON 或 config schema 变更 | 通知所有受影响基础库更新 contract、测试和示例；breaking change 必须进入 release notes | contracts gate、下游 contract 测试、`downstream-sync-required` 结论 |
-| `scripts/render_template.sh`、generator 占位符或包目录规则变更 | 重新渲染 `kernel` 和 `corekit`；确认 module path、package name、README、docs 和 contracts 无旧模板残留 | `GOWORK=off make integration` |
+| `scripts/render_template.sh`、generator 占位符或包目录规则变更 | 重新渲染 `kernel`，并运行 `corekit` 中性路径 smoke；确认 module path、package name、README、docs 和 contracts 无旧模板残留，必要时扩展到 L1/L2 采用目标 | `GOWORK=off make integration` |
 | Harness gate、Makefile、CI 或 `.agent/harness.yaml` 变更 | 同步下游 gate 文档和 CI 入口；强制 gate 不得在下游降级为可选 | `GOWORK=off make release-check` 或对应下游 gate 输出 |
 | Evidence protocol、release manifest 字段或 artifact 规则变更 | 更新下游 Evidence 生成、校验和发布模板；manifest 字段变化必须标记同步需求 | manifest 校验、checksum、CI artifact |
 | 依赖或安全策略变更 | 判断是否影响所有基础库；安全变更默认触发下游同步 | `govulncheck`、secret scan、依赖清单 |
-| 命名、仓库角色或默认下游变更 | 当前主叙事必须使用 `xlib-standard`、`kernel`、`corekit`；旧名只能保留在迁移上下文 | `docs-check` 命名残留断言 |
+| 命名、仓库角色或默认下游变更 | 当前主叙事必须使用 `xlib-standard` 和 `kernel`；`corekit` 只用于中性路径 smoke/integration 语境；旧名只能保留在迁移上下文 | `docs-check` 命名残留断言 |
 
 ## `kernel` 同步规则
 
