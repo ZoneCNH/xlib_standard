@@ -25,6 +25,24 @@
     "golden": "{{CHECK_STATUS}}",
     "fuzz_smoke": "{{CHECK_STATUS}}"
   },
+  "workflow": {
+    "workflow_run_id": "{{WORKFLOW_RUN_ID}}",
+    "artifact_name": "release-manifest-{{WORKFLOW_RUN_ID}}",
+    "artifact_url": "{{ARTIFACT_URL}}"
+  },
+  "score": {
+    "value": 9.8,
+    "threshold": 9.8,
+    "status": "{{SCORE_STATUS}}",
+    "dimensions": [
+      {
+        "name": "release_evidence",
+        "weight": 1,
+        "passed": true,
+        "detail": "manifest, checksum, workflow and score evidence are present"
+      }
+    ]
+  },
   "contracts": [
     {
       "path": "contracts/config.schema.json",

@@ -1,3 +1,5 @@
+XLIBGATE ?= go run ./cmd/xlibgate
+
 .PHONY: fmt
 fmt:
 	go fmt ./...
@@ -25,11 +27,11 @@ lint:
 
 .PHONY: integration
 integration:
-	./scripts/run_integration.sh
+	$(XLIBGATE) integration
 
 .PHONY: docs-check
 docs-check:
-	./scripts/check_docs.sh
+	$(XLIBGATE) docs-check
 
 .PHONY: security
 security:
@@ -39,15 +41,15 @@ security:
 		echo "govulncheck not installed"; \
 		exit 1; \
 	fi
-	./scripts/check_secrets.sh
+	$(XLIBGATE) secrets
 
 .PHONY: boundary
 boundary:
-	./scripts/check_boundary.sh
+	$(XLIBGATE) boundary
 
 .PHONY: contracts
 contracts:
-	./scripts/check_contracts.sh
+	$(XLIBGATE) contracts
 
 .PHONY: property
 property:
@@ -63,19 +65,23 @@ golden:
 
 .PHONY: evidence
 evidence:
-	./scripts/generate_manifest.sh
+	$(XLIBGATE) evidence
+
+.PHONY: score-check
+score-check:
+	go run ./cmd/xlibgate score --min 9.8
 
 .PHONY: release-evidence-hash
 release-evidence-hash:
-	./scripts/hash_release_evidence.sh >/dev/null
+	$(XLIBGATE) release-evidence-hash >/dev/null
 
 .PHONY: release-evidence-check
 release-evidence-check:
-	RELEASE_EVIDENCE_REQUIRE_PASSED=1 ./scripts/check_release_evidence.sh
+	RELEASE_EVIDENCE_REQUIRE_PASSED=1 $(XLIBGATE) release-evidence-check
 
 .PHONY: release-evidence-checksum-check
 release-evidence-checksum-check:
-	./scripts/hash_release_evidence.sh --check
+	$(XLIBGATE) release-evidence-checksum-check
 
 .PHONY: require-gowork-off
 require-gowork-off:
@@ -84,21 +90,25 @@ require-gowork-off:
 		exit 1; \
 	fi
 
+.PHONY: score
+score:
+	$(XLIBGATE) score --min 9.8
+
 .PHONY: ci
-ci: fmt vet lint test race boundary security contracts
+ci: fmt vet lint test race boundary security contracts score
 
 .PHONY: ci-extended
 ci-extended: ci property golden fuzz-smoke
 
 .PHONY: release-check
-release-check: require-gowork-off ci integration docs-check
+release-check: require-gowork-off ci integration docs-check score-check
 	CHECK_STATUS=passed $(MAKE) evidence
 	$(MAKE) release-evidence-hash
 	$(MAKE) release-evidence-check
 	$(MAKE) release-evidence-checksum-check
 
 .PHONY: release-check-extended
-release-check-extended: require-gowork-off ci-extended integration docs-check
+release-check-extended: require-gowork-off ci-extended integration docs-check score-check
 	CHECK_STATUS=passed $(MAKE) evidence
 	$(MAKE) release-evidence-hash
 	$(MAKE) release-evidence-check
@@ -106,7 +116,8 @@ release-check-extended: require-gowork-off ci-extended integration docs-check
 
 .PHONY: release-final-check
 release-final-check: release-check
-	RELEASE_EVIDENCE_REQUIRE_PASSED=1 RELEASE_EVIDENCE_REQUIRE_CLEAN=1 ./scripts/check_release_evidence.sh
+	go run ./cmd/xlibgate score --min 9.5
+	RELEASE_EVIDENCE_REQUIRE_PASSED=1 RELEASE_EVIDENCE_REQUIRE_CLEAN=1 RELEASE_EVIDENCE_MIN_SCORE=9.5 ./scripts/check_release_evidence.sh
 	$(MAKE) release-evidence-checksum-check
 
 .PHONY: release-preflight

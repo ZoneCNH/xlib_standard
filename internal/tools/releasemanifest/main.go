@@ -17,6 +17,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/ZoneCNH/xlib-standard/internal/releasequality"
 )
 
 var checkNames = []string{
@@ -66,22 +68,30 @@ var requiredArtifacts = []string{
 }
 
 type Manifest struct {
-	Module           string            `json:"module"`
-	Version          string            `json:"version"`
-	Commit           string            `json:"commit"`
-	TreeSHA          string            `json:"tree_sha"`
-	SourceDigest     string            `json:"source_digest"`
-	TrackedFileCount int               `json:"tracked_file_count"`
-	GoVersion        string            `json:"go_version"`
-	GeneratedAt      string            `json:"generated_at"`
-	GeneratedBy      string            `json:"generated_by"`
-	TreeState        string            `json:"tree_state"`
-	Checks           map[string]string `json:"checks"`
-	Contracts        []FileDigest      `json:"contracts"`
-	Dependencies     []ModuleDigest    `json:"dependencies"`
-	Tools            map[string]string `json:"tools"`
-	Artifacts        []string          `json:"artifacts"`
-	Notes            Notes             `json:"notes"`
+	Module           string                `json:"module"`
+	Version          string                `json:"version"`
+	Commit           string                `json:"commit"`
+	TreeSHA          string                `json:"tree_sha"`
+	SourceDigest     string                `json:"source_digest"`
+	TrackedFileCount int                   `json:"tracked_file_count"`
+	GoVersion        string                `json:"go_version"`
+	GeneratedAt      string                `json:"generated_at"`
+	GeneratedBy      string                `json:"generated_by"`
+	TreeState        string                `json:"tree_state"`
+	Checks           map[string]string     `json:"checks"`
+	Workflow         WorkflowEvidence      `json:"workflow"`
+	Score            releasequality.Report `json:"score"`
+	Contracts        []FileDigest          `json:"contracts"`
+	Dependencies     []ModuleDigest        `json:"dependencies"`
+	Tools            map[string]string     `json:"tools"`
+	Artifacts        []string              `json:"artifacts"`
+	Notes            Notes                 `json:"notes"`
+}
+
+type WorkflowEvidence struct {
+	WorkflowRunID string `json:"workflow_run_id"`
+	ArtifactName  string `json:"artifact_name"`
+	ArtifactURL   string `json:"artifact_url"`
 }
 
 type FileDigest struct {
@@ -118,6 +128,7 @@ func runCLI(name string, args []string, stdout io.Writer, stderr io.Writer) int 
 	requirePassed := flags.Bool("require-passed", false, "require all release checks to be passed during verification")
 	requireClean := flags.Bool("require-clean", false, "require a clean git tree during verification")
 	expectVersion := flags.String("expect-version", "", "require the manifest version to match this release version during verification")
+	minScore := flags.Float64("min-score", 0, "require the release score to be at least this value during verification")
 	if err := flags.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			return 0
@@ -126,7 +137,7 @@ func runCLI(name string, args []string, stdout io.Writer, stderr io.Writer) int 
 	}
 
 	if *verify != "" {
-		if err := verifyManifest(*verify, *requirePassed, *requireClean, *expectVersion); err != nil {
+		if err := verifyManifest(*verify, *requirePassed, *requireClean, *expectVersion, *minScore); err != nil {
 			return printCLIError(stderr, err)
 		}
 		return printCLIStatus(stdout, "release evidence verified: %s\n", *verify)
@@ -189,6 +200,8 @@ func buildManifest() (Manifest, error) {
 		GeneratedBy:      envDefault("GENERATED_BY", "scripts/generate_manifest.sh"),
 		TreeState:        treeState(),
 		Checks:           buildChecks(),
+		Workflow:         buildWorkflowEvidence(),
+		Score:            releasequality.Compute(releasequality.DefaultMinimum),
 		Contracts:        contracts,
 		Dependencies:     dependencies,
 		Tools: map[string]string{
@@ -204,7 +217,7 @@ func buildManifest() (Manifest, error) {
 	}, nil
 }
 
-func verifyManifest(path string, requirePassed bool, requireClean bool, expectVersion string) error {
+func verifyManifest(path string, requirePassed bool, requireClean bool, expectVersion string, minScore float64) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return err
@@ -230,6 +243,9 @@ func verifyManifest(path string, requirePassed bool, requireClean bool, expectVe
 	requireNonEmpty(&failures, "generated_at", got.GeneratedAt)
 	requireNonEmpty(&failures, "generated_by", got.GeneratedBy)
 	requireNonEmpty(&failures, "tree_state", got.TreeState)
+	requireNonEmpty(&failures, "workflow.workflow_run_id", got.Workflow.WorkflowRunID)
+	requireNonEmpty(&failures, "workflow.artifact_name", got.Workflow.ArtifactName)
+	requireNonEmpty(&failures, "workflow.artifact_url", got.Workflow.ArtifactURL)
 
 	expectVersion = strings.TrimSpace(expectVersion)
 	if _, err := time.Parse(time.RFC3339, got.GeneratedAt); err != nil {
@@ -255,6 +271,20 @@ func verifyManifest(path string, requirePassed bool, requireClean bool, expectVe
 	}
 	if got.TreeState != current.TreeState {
 		failures = append(failures, fmt.Sprintf("tree_state mismatch: got %q, want %q", got.TreeState, current.TreeState))
+	}
+	if got.Score.Value != current.Score.Value {
+		failures = append(failures, fmt.Sprintf("score.value mismatch: got %.1f, want %.1f", got.Score.Value, current.Score.Value))
+	}
+	if got.Score.Status == "" {
+		failures = append(failures, "score.status is required")
+	}
+	if got.Score.Threshold == 0 {
+		failures = append(failures, "score.threshold is required")
+	}
+	if minScore > 0 {
+		if err := releasequality.Verify(got.Score, minScore); err != nil {
+			failures = append(failures, err.Error())
+		}
 	}
 	if requireClean && got.TreeState != "clean" {
 		failures = append(failures, fmt.Sprintf("tree_state must be clean, got %q", got.TreeState))
@@ -301,6 +331,26 @@ func buildChecks() map[string]string {
 		checks[name] = envDefault(checkEnvNames[name], defaultStatus)
 	}
 	return checks
+}
+
+func buildWorkflowEvidence() WorkflowEvidence {
+	runID := envDefault("WORKFLOW_RUN_ID", envDefault("GITHUB_RUN_ID", "local"))
+	artifactName := envDefault("ARTIFACT_NAME", "release-manifest-"+runID)
+	artifactURL := envDefault("ARTIFACT_URL", "")
+	if artifactURL == "" {
+		server := strings.TrimRight(envDefault("GITHUB_SERVER_URL", ""), "/")
+		repo := strings.Trim(os.Getenv("GITHUB_REPOSITORY"), "/")
+		if server != "" && repo != "" && runID != "local" {
+			artifactURL = server + "/" + repo + "/actions/runs/" + runID
+		} else {
+			artifactURL = "local:" + artifactName
+		}
+	}
+	return WorkflowEvidence{
+		WorkflowRunID: runID,
+		ArtifactName:  artifactName,
+		ArtifactURL:   artifactURL,
+	}
 }
 
 func validateChecks(checks map[string]string, requirePassed bool) []string {

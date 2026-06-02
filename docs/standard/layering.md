@@ -1,47 +1,19 @@
-# 分层规则
+# 分层模型
 
-依赖方向只能从上层指向下层，不能反向依赖。
+`xlib-standard` 同时是 Standard 规则的独立来源和 Go 基础库模板中的实现仓库。旧 `baselib-template` 名称只用于迁移说明，不再表示独立主角色。
 
-```text
-Business / x.go
-  -> L2 profile libraries
-  -> L1 reusable infrastructure libraries
-  -> L0 minimal primitives
-  -> Standard / template contracts
-```
+| 层级 | 示例 | 职责 | 禁止 |
+| --- | --- | --- | --- |
+| Standard/Runtime | `xlib-standard` | 标准文本、参考模板、generator、Harness、Evidence、Goal Runtime | 真实基础设施 runtime、业务语义、生产密钥 |
+| L0 | `kernel` | 通用 runtime primitive：context、error、config、logging、metrics、lifecycle、health | profile runtime、业务模型、`x.go` 反向依赖 |
+| L1 | `configx`、`observex`、`testkitx` | 横向基础能力库 | 应用 wiring、业务策略 |
+| L2 | `postgresx`、`redisx`、`kafkax`、`taosx`、`ossx`、`clickhousex` | profile/基础设施适配器 | 业务 repository、业务消息 schema |
+| App/Composition | `x.go` 和业务服务 | 组合基础库、注入配置、读取调用方授权密钥 | 作为基础库依赖前提、把业务规则下沉 |
 
-`xlib-standard` 是 Standard 规则的独立来源；`baselib-template` 依赖该标准，提供 template、generator、Harness 和 Evidence 的 Go 实现载体。
+## 依赖方向
 
-## Standard
-
-`xlib-standard` 所在层。它提供：
-
-- 标准文档。
-- 角色边界与分层规则。
-- 标准 contracts 和 release Evidence 规则。
-- 可被实现仓库复用的规范性模板元定义。
-
-`baselib-template` 不是 Standard 的权威来源；它是 `xlib-standard` 在 Go 基础库模板中的实现仓库，负责模板目录、generator 契约、Harness gate、Evidence 生成和 CI 校验。Standard 与 `baselib-template` 都不得提供真实基础设施 runtime，不依赖业务仓库，也不依赖 `x.go`。
-
-## L0
-
-极小、稳定、无业务含义的 primitive，例如通用错误类型、脱敏规则或测试断言。L0 必须可独立测试。
-
-## L1
-
-可复用基础库，例如 `foundationx`、`postgresx`、`redisx`。L1 可以依赖 Standard 产物和 L0，必要时依赖 `foundationx`，但不得依赖 `x.go`。
-
-## L2
-
-面向具体基础设施 profile 的组合层，例如带特定驱动、协议或部署 profile 的 adapter。L2 可以依赖 L1，但不得包含业务流程。
-
-## Business
-
-业务应用、服务和 `x.go` 组合层。业务层消费基础库，负责业务配置、领域模型和流程编排。
-
-## 违规示例
-
-- L1 引入 `x.go` 包。
-- `xlib-standard` 或 `baselib-template` 实现 PostgreSQL、Kafka 或 Redis 的真实 runtime。
-- 基础库读取生产环境变量来创建默认 client。
-- 基础库定义订单、账户、交易等业务模型。
+- `xlib-standard` 产生标准、模板和 gate，不依赖生成库或 `x.go`。
+- `kernel` 可依赖标准化 contracts，但不依赖 L1/L2 或 `x.go`。
+- L1/L2 可以依赖更低层基础库，例如 `kernel`。
+- `x.go` 可以依赖和组合所有基础库。
+- 任一基础库不得读取 `/home/k8s/secrets/env/*`；该路径只属于调用方组合层。

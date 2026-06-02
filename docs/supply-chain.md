@@ -39,3 +39,7 @@ GitHub Actions 运行 `GOWORK=off make release-check`，并上传 `release/manif
 ## 下游模板安全线
 
 `make integration` 会渲染 `foundationx` 和 `corekit` 两个临时下游库，检查旧模板标识是否清空，并在下游库内生成、校验 release Evidence。这保证模板替换逻辑、contract gate、boundary gate 和 Evidence 工具不会只在模板仓库自身成立。
+
+## Score 与 Workflow Evidence
+
+供应链 Evidence 必须包含可机器校验的 `score` 与 workflow artifact 元数据。`score` 来自 `go run ./cmd/xlibgate score --min 9.8`，用于汇总 manifest schema、release gate、security scan、scorecard 文档、release/retrospective 模板等发布质量维度。`workflow_run_id`、`artifact_name`、`artifact_url` 用于追踪 CI 上传的 `release/manifest/latest.json` 与 `release/manifest/latest.json.sha256`，防止只有本地文件而没有外部 artifact 留痕。

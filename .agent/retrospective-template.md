@@ -6,6 +6,13 @@
 - 影响：
 - 检测方式：
 
+## Gate / Score
+
+- Gate：
+- Score：
+- Threshold：
+- Artifact：
+
 ## Root Cause
 
 - 直接原因：

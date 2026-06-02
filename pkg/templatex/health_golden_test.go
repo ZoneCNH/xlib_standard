@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ZoneCNH/baselib-template/pkg/templatex"
-	"github.com/ZoneCNH/baselib-template/testkit"
+	"github.com/ZoneCNH/xlib-standard/pkg/templatex"
+	"github.com/ZoneCNH/xlib-standard/testkit"
 )
 
 func TestHealthStatusJSONGolden(t *testing.T) {

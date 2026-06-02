@@ -1,33 +1,20 @@
-# DESIGN-{{MODULE_NAME}}-v1.0
+# 设计
 
-## 架构
+`xlib-standard` 是 [`https://github.com/ZoneCNH/xlib-standard`](https://github.com/ZoneCNH/xlib-standard) 的统一标准、Go 参考模板、generator、Harness 和 Evidence Runtime 仓库。生成的库是独立 Go module。公共 API 位于 `pkg/{{PACKAGE_NAME}}`，内部辅助代码位于 `internal/`，contracts 位于 `contracts/`，运行 Evidence 位于 `release/manifest/`。`scripts/render_template.sh` 是模板到具体基础库的唯一内置渲染入口。
 
-生成的库是独立 Go module。标准源来自独立仓库 [`xlib-standard`](https://github.com/ZoneCNH/xlib-standard)；`baselib-template` 负责把该标准实现为可编译模板、generator、Harness 和 Evidence 链路。公共 API 位于 `pkg/{{PACKAGE_NAME}}`，内部辅助代码位于 `internal/`，contracts 位于 `contracts/`，运行 Evidence 位于 `release/manifest/`。`scripts/render_template.sh` 是模板到具体基础库的唯一内置渲染入口。
+## 目录职责
 
-## 公共 API
+- `docs/standard/`：标准、分层、边界、DoD、Evidence 和 release 规则。
+- `docs/adr/`：身份、kernel 默认下游和 core gate 的决策记录。
+- `.agent/`：Full Goal Runtime v3.1 的对象、状态、traceability、Harness、Evidence、review、release、retrospective 和 patch runtime。
+- `pkg/templatex`：可编译 Go 参考模板公共包。
+- `internal/`：模板自检、release manifest 和 gate 内部工具。
+- `scripts/`：文档、边界、contract、secret、integration 和 release gate。
 
-模板暴露 `Config`、`SanitizedConfig`、`Client`、`New`、`Close`、`Option`、`HealthCheck`、`Error`、`NewError`、`WrapError`、`IsKind`、`Metrics`、`NoopMetrics`、指标常量、`ModuleName` 和 `Version`。
+## 下游
 
-## 配置
-
-调用方必须显式传入配置。生成的库不得隐式读取 `x.go` 生产密钥路径。`Validate` 使用稳定 validation error 表达缺失字段和负数 timeout，`Sanitize` 只返回可安全记录的脱敏视图。`contracts/config.schema.json` 使用外部字段 `timeout_ms`，并通过 contract 回归测试锁定到 `Config.Timeout`。
-
-## 错误模型
-
-错误使用稳定的 `ErrorKind` 枚举，并通过 `Unwrap` 支持错误包装。上下文超时归类为 `timeout` 且可重试；上下文取消归类为 `unavailable` 且不可重试。
-
-## 健康检查
-
-持有资源的客户端暴露 `HealthCheck(context.Context)`，并返回 `healthy`、`degraded` 或 `unhealthy`。返回结构使用 `name`、`status`、`message`、`checked_at`、`latency_ms` 和 `metadata` JSON 字段；nil client、零值 client、已关闭 client、nil context 和已取消 context 都必须返回 `unhealthy`。已初始化且未关闭的 client 如果本次检查的 context deadline 预算短于 `Config.Timeout`，必须返回 `degraded`，并在 `metadata` 中记录降级原因。
-
-## 指标
-
-指标通过钩子注入，默认使用无操作实现。模板锁定 client 生命周期、错误、健康检查、请求、重试和 inflight 指标名称，具体列表以 `contracts/metrics.md` 和 `pkg/templatex` 指标常量为准。
-
-## 测试
-
-模板要求为配置校验、脱敏、客户端生命周期、健康检查和内部辅助代码提供单元测试与竞态测试。
+默认下游集成目标是 `kernel`，中性路径 smoke 目标是 `corekit`。旧 `baselib-template` / `foundationx` 名称仅作为迁移上下文保留。
 
 ## 发布
 
-发布前必须通过 Harness Gate，并确认入口文档仍引用 [`https://github.com/ZoneCNH/xlib-standard`](https://github.com/ZoneCNH/xlib-standard)，然后生成 `release/manifest/latest.json`。`latest.json` 是 release Evidence artifact，不提交到源码历史；仓库只提交 `release/manifest/template.json`。`make release-check` 会先运行 CI 和 integration gate，再以 `CHECK_STATUS=passed` 生成 manifest；manifest 记录实际执行 gate 的 `commit`、`generated_by`、`go_version` 和 `tree_state`。integration gate 会渲染临时 `foundationx` 并运行测试，防止模板替换链路回归。
+发布前必须通过 Harness Gate，并确认入口文档仍引用 [`https://github.com/ZoneCNH/xlib-standard`](https://github.com/ZoneCNH/xlib-standard)，然后生成 `release/manifest/latest.json` 与 `release/manifest/latest.json.sha256`。这些文件是 release Evidence artifact，不提交到源码历史。`make release-check` 会先运行 CI 和 integration gate，再以 `CHECK_STATUS=passed` 生成 manifest。最终发布使用 `GOWORK=off make release-final-check`、`GOWORK=off make release-preflight VERSION=<version>` 和 `xlibgate score --min 9.8`。

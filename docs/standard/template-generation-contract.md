@@ -1,63 +1,36 @@
-# 模板生成契约
+# Template Generation Contract
 
-`scripts/render_template.sh` 是从 `baselib-template` 生成具体基础库的唯一标准入口。
+`scripts/render_template.sh` 是从 `xlib-standard` 生成具体基础库的唯一标准入口。旧 `baselib-template` module path 只作为迁移扫描项和兼容说明保留，不能作为新主身份。
 
-## 输入
-
-必须显式传入：
-
-- `--module-name`
-- `--module-path`
-- `--package-name`
-- `--out`
-
-示例：
+## 默认示例
 
 ```bash
 scripts/render_template.sh \
-  --module-name foundationx \
-  --module-path github.com/ZoneCNH/foundationx \
-  --package-name foundationx \
-  --out ../foundationx
+  --module-name kernel \
+  --module-path github.com/ZoneCNH/kernel \
+  --package-name kernel \
+  --out ../kernel
 ```
 
-中性下游路径必须纳入固定验证集：
+## 必须替换
 
-```bash
-scripts/render_template.sh \
-  --module-name corekit \
-  --module-path example.com/acme/corekit \
-  --package-name corekit \
-  --out ../corekit
-```
+- Module name、module path 和 package name 占位符必须替换为目标库值。
+- `github.com/ZoneCNH/xlib-standard` 模板自身 import 到目标 module path。
+- 旧迁移扫描项：`github.com/ZoneCNH/baselib-template`、`baselib-template`、`foundationx`。
+- `pkg/templatex` 目录名到 `pkg/<package-name>`。
+- README、docs、contracts、examples、scripts 和 manifest 中的模板占位。
 
-## 输出目录安全
+## 不变量
 
-generator 必须保护调用方不覆盖源码或已有仓库：
+- `--out` 不得指向 `xlib-standard` 仓库根目录，也不得位于仓库内部。
+- 生成库不得依赖 `x.go` 或业务仓库。
+- 生成库不得读取 `/home/k8s/secrets/env/*`；该路径只属于调用方部署配置。
+- 生成后的 module 必须在 `GOWORK=off` 下运行测试、contracts、boundary 和 release Evidence gate。
+- 旧名只可在迁移文档或兼容说明中出现，不得作为生成库主标题、module name、package name 或 release 主体。
 
-- `--out` 不得指向 `baselib-template` 仓库根目录。
-- `--out` 不得位于 `baselib-template` 仓库内部。
-- `--out` 不得包含已有 `.git/` 或 `go.mod`。
-- `--out` 必须为空目录；不存在时可以创建。
-- 失败时必须在复制前退出，避免留下半渲染仓库。
+## Metrics Prefix
 
-## 替换规则
-
-generator 必须替换：
-
-- module name token。
-- module path token。
-- package name token。
-- `github.com/ZoneCNH/baselib-template`
-- `pkg/templatex`
-- `package templatex`
-- `templatex` imports、文档引用、测试 fixture 和脚本参数。
-- `Templatex` title-case 引用。
-- `TEMPLATEX` upper-case 引用。
-
-### Metrics Prefix
-
-Metrics Prefix 必须跟随 package name 替换。模板中的 `templatex_` prefix 在 `foundationx` 渲染后必须变为 `foundationx_`，在 `example.com/acme/corekit` 渲染后必须变为 `corekit_`。metrics contract、README、docs、examples、测试和 snapshot 中不得残留 `templatex_`，除非某个文件被明确 allowlist 为模板来源说明。
+Metrics Prefix 必须跟随 package name 替换。模板中的 `templatex_` prefix 在 `kernel` 渲染后必须变为 `kernel_`，在 `example.com/acme/corekit` 渲染后必须变为 `corekit_`。metrics contract、README、docs、examples、测试和 snapshot 中不得残留 `templatex_`，除非某个文件被明确 allowlist 为模板来源说明。
 
 ## 排除规则
 
@@ -99,7 +72,20 @@ generator 不得复制：
 
 扫描失败时 integration gate 必须失败。
 
-## 验证
+## Release 验证
+
+任何 generator 修改必须附带 integration Evidence。Release 级验证必须证明渲染出的 `kernel` 和中性路径 `corekit` 可以独立运行：
+
+```bash
+GOWORK=off go mod tidy
+GOWORK=off go test ./...
+GOWORK=off make contracts
+GOWORK=off make boundary
+CHECK_STATUS=passed GOWORK=off make evidence
+RELEASE_EVIDENCE_REQUIRE_PASSED=1 GOWORK=off make release-evidence-check
+```
+
+模板仓库侧验证入口：
 
 ```bash
 GOWORK=off make integration
@@ -107,5 +93,3 @@ GOWORK=off make boundary
 GOWORK=off make contracts
 GOWORK=off make release-check
 ```
-
-任何 generator 修改必须附带 integration Evidence。Release 级验证还必须证明渲染出的 `foundationx` 和 `corekit` 可以独立运行 `go mod tidy`、`go test ./...`、`make contracts`、`make boundary`、`make evidence` 和 `make release-evidence-check`，且所有命令都在 `GOWORK=off` 下执行。

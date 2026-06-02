@@ -19,7 +19,15 @@
 GOWORK=off make release-check
 ```
 
-`GOWORK=off` 用于证明模板不依赖父级 workspace。
+`GOWORK=off` 用于证明模板不依赖父级 workspace。Makefile 的 gate 入口统一通过 `cmd/xlibgate` 调度；shell 脚本仍保留为兼容实现层，供本地排障和旧自动化复用。
+
+Full Goal Runtime v3.1 的评分入口是：
+
+```bash
+GOWORK=off go run ./cmd/xlibgate score --min 9.8
+```
+
+CI 和 release workflow 必须在 release gate 后执行该评分，防止 Makefile、CI、文档和下游 integration 的契约漂移。
 
 发布前的最终入口是：
 
@@ -113,7 +121,7 @@ Extended Evidence 推荐额外记录：
 
 `source_digest` 基于 `git ls-files` 中的受跟踪文件内容计算；`contracts` 固定记录核心 contract 文件的 SHA256；`dependencies` 来自 `go list -m -json all`；`tools` 记录 Go、`golangci-lint` 和 `govulncheck` 的版本或可用状态。这些字段由 `internal/tools/releasemanifest` 生成并校验，不再由 shell 拼接 JSON。
 
-`make integration` 会调用 `scripts/render_template.sh` 生成临时 `foundationx` 和 `corekit` 两个下游库，并对每个生成目录执行：
+`make integration` 会通过 `cmd/xlibgate integration` 调用 `scripts/render_template.sh`，生成临时 `kernel` 和 `corekit` 两个下游库，并对每个生成目录执行：
 
 - 模块路径、包目录和旧模板标识扫描。
 - `GOWORK=off go test ./...`
@@ -131,3 +139,13 @@ Extended Evidence 推荐额外记录：
 - 不得在 release manifest、PR、Issue 或变更日志条目中包含原始凭据。
 - 不得依赖 `github.com/bytechainx/x.go` 或 `github.com/ZoneCNH/x.go`。
 - public API、config schema、error kind、health JSON、metrics name 或 release manifest schema 变更必须在 release notes 或 release manifest 中显式标记 breaking change。
+
+## Release Score 与 Workflow Evidence
+
+发布分数是 release gate 的显式合同：
+
+```bash
+go run ./cmd/xlibgate score --min 9.8
+```
+
+`release/manifest/latest.json` 必须记录 `score` 与 `workflow` 字段。`workflow_run_id`、`artifact_name`、`artifact_url` 用来把本地 manifest 与 GitHub Actions 上传的 `release-manifest-<workflow-run-id>` artifact 对齐；本地运行时允许使用 `local:*` artifact URL。`release-final-check` 会在 clean tree 要求之外校验 manifest 内的 score threshold。

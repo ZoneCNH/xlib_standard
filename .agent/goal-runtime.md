@@ -1,24 +1,28 @@
-# Goal Runtime
+# Full Goal Runtime v3.1
 
-本文件定义 Agent 执行 `baselib-template` 目标时的运行时契约。目标文本见 [.agent/goal.md](goal.md)，标准入口见 [docs/standard/README.md](../docs/standard/README.md)。
+Runtime: `xlib-standard` Full Goal Runtime v3.1.
 
-## 阶段
+## Purpose
 
-1. Context：读取 ADR、README、docs、Makefile、contracts、scripts 和 `.agent/`。
-2. Goal：确认目标、非目标、禁止项和完成声明格式。
-3. Spec：对照标准文档检查缺口。
-4. Plan：列出最小可验证变更。
-5. Implementation：只修改目标要求的文件。
-6. Test：运行相关 gate。
-7. Evidence：生成或校验 release manifest。
-8. Review：按 `.agent/review-template.md` 检查。
-9. Retrospective：失败时按 `.agent/retrospective-template.md` 记录补丁。
+把 Goal、Spec、Requirement、Acceptance Criteria、Design、ADR、Plan、Task、Test、Evidence、Risk、Decision、Review、Release、Retrospective 和 Patch 连接为同一条可审计链。完成不是 MVA，而是 `DONE with evidence:`：REQ-001..REQ-010 全部关闭、release-final-check 通过、score >= 9.8、kernel downstream integration 通过、manifest 完整。
 
-## 停止条件
+## Required artifacts
 
-- 所有 ADR 必需项已实现。
-- 相关 gate 有新鲜 Evidence。
-- known gaps 已明确记录。
-- 最终声明使用 `DONE with evidence:`。
+- `.agent/object-model.md`
+- `.agent/state-machine.md`
+- `.agent/traceability-matrix.md`
+- `.agent/harness.yaml`
+- `.agent/evidence-protocol.md`
+- `.agent/review-template.md`
+- `.agent/release-template.md`
+- `.agent/retrospective-template.md`
+- `.agent/risk-register.md`
+- `.agent/decision-log.md`
+- `.agent/rollback-protocol.md`
+- `.agent/prompt-patches.md`
+- `.agent/harness-patches.md`
+- `.agent/rule-patches.md`
 
-未满足上述条件时不得声称完成。
+## Stop condition
+
+Only stop when Evidence proves the current slice is complete or a blocker is recorded with owner, scope and next action. A final goal claim must include commands, outputs, manifest/checksum state, score state and known gaps.

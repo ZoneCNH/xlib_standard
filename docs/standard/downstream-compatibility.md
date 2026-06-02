@@ -1,37 +1,19 @@
-# 下游兼容标准
+# Downstream Compatibility
 
-下游兼容验证用于证明模板可以生成真实基础库，而不是只在自身仓库内通过测试。
+`xlib-standard` 的下游兼容性必须通过真实生成库 smoke 证明，而不是只证明模板仓库自身可用。
 
-## 代表性下游
+## 默认下游
 
-当前代表性下游：
+- `kernel`：默认 L0 集成目标，module path 为 `github.com/ZoneCNH/kernel`，是 Full Goal Runtime v3.1 的必跑下游集成目标。
+- `corekit`：中性组织路径 smoke，module path 为 `example.com/acme/corekit`，用于证明 generator 不依赖固定组织、GitHub owner 或 module prefix。
 
-- `foundationx`：组织内常规 module path，使用 `github.com/ZoneCNH/foundationx`。
-- `corekit`：中性 module path，使用 `example.com/acme/corekit`，用于证明 generator 不依赖固定组织、GitHub owner 或 module prefix。
+旧 `foundationx` 只作为迁移兼容名出现，不再是默认下游。
 
-未来 L1/L2 profile 可以扩展：
+## 目标库矩阵
 
-- `postgresx`
-- `redisx`
-- `kafkax`
-- `taosx`
-- `ossx`
-- `clickhousex`
+详细 module path、package、layer、allowed deps 和 forbidden deps 见 [`../downstream-matrix.md`](../downstream-matrix.md)。矩阵至少覆盖：`kernel`、`configx`、`observex`、`testkitx`、`postgresx`、`redisx`、`kafkax`、`taosx`、`ossx`、`clickhousex`。
 
-## 兼容要求
-
-生成库必须满足：
-
-- 独立 `go test ./...` 可运行。
-- module path、package name 和 README 已替换。
-- contracts 和 metrics schema 可校验。
-- `.agent/`、Issue/PR 模板、release manifest 规则被复制。
-- 无 `x.go` 依赖。
-- 无模板占位符残留。
-- 无 `templatex_` metrics prefix 残留。
-- `GOWORK=off go mod tidy` 后 `go.mod` 和 `go.sum` 保持 clean。
-
-## Tool Matrix
+## 工具要求
 
 | 工具 | 用途 | 要求 |
 | --- | --- | --- |
@@ -44,13 +26,11 @@
 | `sha256sum` | 计算 `latest.json` hash | CI artifact Evidence 必需 |
 | GitHub Actions artifact | 保存 `release/manifest/latest.json` | 远端 release Evidence 必需 |
 
-## 验证方式
+## Gate
 
-`GOWORK=off make integration` 是默认下游兼容 gate。它应覆盖 generator smoke、foundationx/corekit 代表路径和关键边界检查。
+`GOWORK=off make integration` 是默认下游兼容 gate。它通过 `cmd/xlibgate integration` 覆盖 generator smoke、`kernel`/`corekit` 代表路径和关键边界检查。
 
-当新增 profile 时，在不污染默认 `make ci` 的前提下补充 profile-specific smoke 或 extended gate。
-
-代表性下游验证至少覆盖：
+生成出的每个代表下游必须通过：
 
 ```bash
 GOWORK=off go mod tidy
@@ -61,7 +41,7 @@ CHECK_STATUS=passed GOWORK=off make evidence
 RELEASE_EVIDENCE_REQUIRE_PASSED=1 GOWORK=off make release-evidence-check
 ```
 
-这些命令需要在 `foundationx` 和 `corekit` 的渲染结果中通过，失败时不得宣称 downstream compatible。
+这些命令需要在 `kernel` 和 `corekit` 的渲染结果中通过；失败时不得宣称 downstream compatible。当新增 profile 时，在不污染默认 `make ci` 的前提下补充 profile-specific smoke 或 extended gate。
 
 ## 兼容破坏
 

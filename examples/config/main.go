@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ZoneCNH/baselib-template/pkg/templatex"
+	"github.com/ZoneCNH/xlib-standard/pkg/templatex"
 )
 
 func main() {

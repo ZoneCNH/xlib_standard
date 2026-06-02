@@ -9,7 +9,7 @@ import (
 
 func TestMainPrintsModuleName(t *testing.T) {
 	output := captureStdout(t, main)
-	if output != "github.com/ZoneCNH/baselib-template\n" {
+	if output != "github.com/ZoneCNH/xlib-standard\n" {
 		t.Fatalf("unexpected output: %q", output)
 	}
 }
