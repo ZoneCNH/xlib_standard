@@ -72,10 +72,20 @@ var requiredArtifacts = []string{
 }
 
 const standardImpactReportPath = "release/standard-impact/latest.md"
+const governanceRuntimeVersion = "v2.9.3"
 
 var generatorEvidenceTargets = []GeneratorTarget{
 	{Name: "kernel", ModulePath: "github.com/ZoneCNH/kernel", PackageName: "kernel"},
 	{Name: "corekit", ModulePath: "example.com/acme/corekit", PackageName: "corekit"},
+}
+
+var governanceRuntimeGateStatuses = map[string]string{
+	"governance": "passed",
+}
+
+var governanceRuntimeProfileStatuses = map[string]string{
+	"p1_governance": "passed",
+	"p2_runtime":    "passed",
 }
 
 type Manifest struct {
@@ -95,6 +105,7 @@ type Manifest struct {
 	Contracts              []FileDigest           `json:"contracts"`
 	Dependencies           []ModuleDigest         `json:"dependencies"`
 	StandardImpact         StandardImpactEvidence `json:"standard_impact"`
+	GovernanceRuntime      GovernanceRuntimeEvidence `json:"governance_runtime"`
 	DownstreamSyncRequired bool                   `json:"downstream_sync_required"`
 	GeneratorEvidence      GeneratorEvidence      `json:"generator_evidence"`
 	Tools                  map[string]string      `json:"tools"`
@@ -131,6 +142,13 @@ type StandardImpactEvidence struct {
 	Status                 string `json:"status"`
 	DownstreamSyncRequired bool   `json:"downstream_sync_required"`
 	PrimaryDownstream      string `json:"primary_downstream"`
+}
+
+type GovernanceRuntimeEvidence struct {
+	SchemaVersion   string            `json:"schema_version"`
+	RuntimeVersion  string            `json:"runtime_version"`
+	GateStatuses    map[string]string `json:"gate_statuses"`
+	ProfileStatuses map[string]string `json:"profile_statuses"`
 }
 
 type GeneratorEvidence struct {
