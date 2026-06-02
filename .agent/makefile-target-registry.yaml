@@ -10,6 +10,18 @@ targets:
   - security
   - contracts
   - docs-check
+  - debt
+  - architecture
+  - domain
+  - docs-drift
+  - dependency-debt
+  - security-debt
+  - testing-debt
+  - implementation-debt
+  - downstream-debt
+  - debt-evidence
+  - debt-evidence-hash
+  - debt-evidence-checksum-check
   - evidence
   - score-check
   - main-guard

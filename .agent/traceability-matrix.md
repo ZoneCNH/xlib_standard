@@ -16,3 +16,4 @@
 | REQ-009 | downstream matrix and kernel integration | docs/downstream-matrix.md; docs/adr/ADR-20260602-002-kernel-rename.md | downstream integration worker evidence | downstream/runtime |
 | REQ-010 | x.go integration boundary | docs/xgo-integration-boundary.md; docs/standard/module-boundary.md | boundary gate; import scan | boundary/runtime |
 | REQ-011 | 当前事实状态、命令实现状态、release required gates、Evidence 可用性和下游采纳状态可追踪 | .agent/truth-state.yaml; .agent/command-implementation-status.yaml; .agent/release-required-gates.yaml; .agent/evidence-usability.yaml; .agent/downstream-adoption-status.yaml; docs/project-analysis-20260602.md; docs/structural-issues-20260602.md | docs-check; status yaml inventory; traceability review | agent-runtime |
+| REQ-012 | P0 debt governance runtime gates and release evidence | .agent/debt/*; cmd/xlibgate/debt.go; internal/debtcheck; release/debt/latest.json | debt; debt-evidence; release manifest debt evidence | debt-governance |

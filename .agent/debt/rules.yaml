@@ -1,0 +1,17 @@
+schema_version: "1.0"
+module: xlib-standard
+policy: debt-governance
+min_score: 9.8
+p0_policy:
+  severity: critical
+  rule: "P0 debt findings block release and cannot be waived."
+  exceptions_allowed: false
+scopes:
+  - architecture
+  - domain
+  - docs-drift
+  - dependency-debt
+  - security-debt
+  - testing-debt
+  - implementation-debt
+  - downstream-debt

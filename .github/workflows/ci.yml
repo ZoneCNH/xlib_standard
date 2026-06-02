@@ -58,12 +58,21 @@ jobs:
         run: |
           digest="$(./scripts/hash_release_evidence.sh)"
           echo "latest_json_sha256=${digest}" >> "$GITHUB_OUTPUT"
+          debt_digest=""
+          if [ -f release/debt/latest.json ]; then
+            debt_digest="$(./scripts/hash_release_evidence.sh release/debt/latest.json release/debt/latest.json.sha256)"
+            echo "debt_json_sha256=${debt_digest}" >> "$GITHUB_OUTPUT"
+          fi
           {
             echo "## Release evidence"
             echo "- Artifact: \`release-manifest-${{ github.run_id }}\`"
             echo "- Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
             echo "- Manifest: \`release/manifest/latest.json\`"
             echo "- SHA256: \`${digest}\`"
+            if [ -n "$debt_digest" ]; then
+              echo "- Debt evidence: \`release/debt/latest.json\`"
+              echo "- Debt SHA256: \`${debt_digest}\`"
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload release evidence
@@ -74,4 +83,7 @@ jobs:
           path: |
             release/manifest/latest.json
             release/manifest/latest.json.sha256
+            release/debt/latest.json
+            release/debt/latest.md
+            release/debt/latest.json.sha256
           if-no-files-found: warn

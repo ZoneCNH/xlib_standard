@@ -47,6 +47,18 @@
 - `secrets`
 - `security`
 - `standard-impact-check`
+- `debt`
+- `architecture`
+- `domain`
+- `docs-drift`
+- `dependency-debt`
+- `security-debt`
+- `testing-debt`
+- `implementation-debt`
+- `downstream-debt`
+- `debt-evidence`
+- `debt-evidence-checksum-check`
+- `debt-evidence-hash`
 
 ## P1 commands
 
@@ -85,6 +97,12 @@
 - `downstream-baseline --repo kernel/configx --mode patch-only`
 - `downstream-adoption --repo kernel/configx --mode patch-only`
 - `execution-context`
+
+## Debt governance commands
+
+Debt governance commands are P0 release-blocking gates. `xlibgate debt` runs the full debt scanner, while `architecture`, `domain`, `docs-drift`, `dependency-debt`, `security-debt`, `testing-debt`, `implementation-debt`, and `downstream-debt` run focused slices of the same policy. The scanner reuses existing local scripts for boundary, docs, dependency diff, and secret checks; scanner failures return non-zero and cannot be treated as passed evidence.
+
+`xlibgate debt-evidence` writes generated evidence to `release/debt/latest.json`, `release/debt/latest.md`, and `release/debt/latest.json.sha256`. These latest evidence files are reproducible release artifacts and are intentionally ignored by git. P0 debt rules are not exceptable: policy files under `.agent/debt/` must not introduce P0 exception markers, and release verification must fail if debt status is not `passed`.
 
 ## 执行约束
 

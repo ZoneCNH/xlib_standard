@@ -49,6 +49,22 @@ standard-impact-check:
 docs-check:
 	$(XLIBGATE) docs-check
 
+.PHONY: debt architecture domain docs-drift dependency-debt security-debt testing-debt implementation-debt downstream-debt
+debt architecture domain docs-drift dependency-debt security-debt testing-debt implementation-debt downstream-debt:
+	$(XLIBGATE) $@
+
+.PHONY: debt-evidence
+debt-evidence:
+	$(XLIBGATE) debt-evidence
+
+.PHONY: debt-evidence-hash
+debt-evidence-hash:
+	$(XLIBGATE) debt-evidence-hash
+
+.PHONY: debt-evidence-checksum-check
+debt-evidence-checksum-check:
+	$(XLIBGATE) debt-evidence-checksum-check
+
 .PHONY: security
 security:
 	@if command -v govulncheck >/dev/null 2>&1; then \
@@ -105,7 +121,7 @@ score:
 
 .PHONY: score-check
 score-check:
-	# Release evidence verifier default: RELEASE_EVIDENCE_MIN_SCORE=9.5
+	# Release evidence verifier default: RELEASE_EVIDENCE_MIN_SCORE=9.8
 	# Direct equivalent for docs/CI drift checks: go run ./cmd/xlibgate score --min 9.8
 	$(XLIBGATE) score --min 9.8
 
@@ -158,7 +174,7 @@ execution-context:
 	$(XLIBGATE) $@ --dry-run --verify
 
 .PHONY: governance-check
-governance-check: require-gowork-off main-guard worktree-guard evidence-check boundary security contracts docs-check cli-contract issue-registry command-registry makefile-baseline
+governance-check: require-gowork-off main-guard worktree-guard evidence-check boundary security contracts docs-check debt cli-contract issue-registry command-registry makefile-baseline
 
 .PHONY: p1-governance-check
 p1-governance-check: agent-team-contract scope-lock pr-template acceptance-matrix runtime-health upgrade-standard conformance-profile downstream-registry self-healing-skeleton goal-runtime github-governance supply-chain changelog governance-fixture-test autoresearch policy-schema github-settings toolchain evidence-artifacts naming
@@ -188,7 +204,7 @@ context-standard: require-gowork-off governance-check p1-governance-check docs-c
 context-full: require-gowork-off governance-check p1-governance-check p2-runtime-check
 
 .PHONY: context-release
-context-release: require-gowork-off context-full integration dependency-check standard-impact-check score-check
+context-release: require-gowork-off context-full integration dependency-check standard-impact-check score-check debt-evidence
 	CHECK_STATUS=passed $(MAKE) evidence
 	$(MAKE) release-evidence-hash
 	$(MAKE) release-evidence-check
@@ -210,14 +226,14 @@ ci: fmt vet lint test race boundary security contracts governance-check score
 ci-extended: ci property golden fuzz-smoke
 
 .PHONY: release-check
-release-check: require-gowork-off ci integration dependency-check standard-impact-check docs-check score-check governance-check p1-governance-check p2-runtime-check
+release-check: require-gowork-off ci integration dependency-check standard-impact-check docs-check score-check governance-check p1-governance-check p2-runtime-check debt-evidence
 	CHECK_STATUS=passed $(MAKE) evidence
 	$(MAKE) release-evidence-hash
 	$(MAKE) release-evidence-check
 	$(MAKE) release-evidence-checksum-check
 
 .PHONY: release-check-extended
-release-check-extended: require-gowork-off ci-extended integration dependency-check standard-impact-check docs-check score-check governance-check p1-governance-check p2-runtime-check
+release-check-extended: require-gowork-off ci-extended integration dependency-check standard-impact-check docs-check score-check governance-check p1-governance-check p2-runtime-check debt-evidence
 	CHECK_STATUS=passed $(MAKE) evidence
 	$(MAKE) release-evidence-hash
 	$(MAKE) release-evidence-check
@@ -227,7 +243,7 @@ release-check-extended: require-gowork-off ci-extended integration dependency-ch
 release-final-check:
 	XLIB_CONTEXT=release_verify GOWORK=off $(MAKE) context-release
 	$(XLIBGATE) score --min 9.8
-	RELEASE_EVIDENCE_REQUIRE_PASSED=1 RELEASE_EVIDENCE_REQUIRE_CLEAN=1 RELEASE_EVIDENCE_MIN_SCORE=9.5 ./scripts/check_release_evidence.sh
+	RELEASE_EVIDENCE_REQUIRE_PASSED=1 RELEASE_EVIDENCE_REQUIRE_CLEAN=1 RELEASE_EVIDENCE_MIN_SCORE=9.8 ./scripts/check_release_evidence.sh
 	$(MAKE) release-evidence-checksum-check
 
 .PHONY: release-preflight

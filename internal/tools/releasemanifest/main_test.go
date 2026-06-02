@@ -52,6 +52,15 @@ func TestCheckNamesCoverReleaseTargets(t *testing.T) {
 		"property",
 		"golden",
 		"fuzz_smoke",
+		"debt",
+		"architecture",
+		"domain",
+		"docs_drift",
+		"dependency_debt",
+		"security_debt",
+		"testing_debt",
+		"implementation_debt",
+		"downstream_debt",
 	}
 
 	if strings.Join(checkNames, ",") != strings.Join(wantNames, ",") {
@@ -155,6 +164,9 @@ func TestRunCLIGeneratesManifestToOut(t *testing.T) {
 	}
 	if manifest.StandardImpact.Status == "present" && (manifest.StandardImpact.DownstreamReleaseDecision == "" || manifest.StandardImpact.RepositoryRulesReleaseDecision == "") {
 		t.Fatalf("standard impact release decisions are incomplete: %+v", manifest.StandardImpact)
+	}
+	if manifest.Debt.ReportPath != debtReportPath || manifest.Debt.Status != "passed" || manifest.Debt.CheckCount == 0 {
+		t.Fatalf("debt evidence is incomplete: %+v", manifest.Debt)
 	}
 	assertGovernanceRuntimeEvidence(t, manifest.GovernanceRuntime)
 	if manifest.DownstreamSyncRequired != manifest.StandardImpact.DownstreamSyncRequired {
@@ -348,6 +360,7 @@ func TestRunCLIVerifyReportsDrift(t *testing.T) {
 	manifest.SourceDigest = "sha256:stale"
 	manifest.Checks["lint"] = "failed"
 	manifest.StandardImpact.Status = "stale"
+	manifest.Debt.Status = "stale"
 	manifest.GovernanceRuntime.Status = "stale"
 	manifest.DownstreamSyncRequired = !manifest.StandardImpact.DownstreamSyncRequired
 	manifest.GovernanceRuntime.RuntimeVersion = "v2.9.2"
@@ -371,6 +384,8 @@ func TestRunCLIVerifyReportsDrift(t *testing.T) {
 		"ERROR: release evidence verification failed",
 		"source_digest does not match current tracked file contents",
 		"standard_impact does not match current standard impact evidence",
+		"debt does not match current debt evidence",
+		`debt.status must be passed, got "stale"`,
 		"governance_runtime does not match current context runtime evidence",
 		"generator_evidence does not match current integration evidence",
 		`checks.lint must be passed, got "failed"`,
@@ -641,6 +656,22 @@ func TestBuildManifestReportsBuilderFailures(t *testing.T) {
 			},
 			wantError: "is a directory",
 		},
+		{
+			name: "debt evidence",
+			setup: func(t *testing.T) string {
+				t.Setenv("GOWORK", "off")
+				repo := releaseManifestFixtureRepo(t)
+				reportPath := filepath.Join(repo, filepath.FromSlash(debtReportPath))
+				if err := os.Remove(reportPath); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.MkdirAll(reportPath, 0o755); err != nil {
+					t.Fatal(err)
+				}
+				return repo
+			},
+			wantError: "is a directory",
+		},
 	}
 
 	for _, tc := range cases {
@@ -685,6 +716,7 @@ func TestVerifyManifestAcceptsFreshManifestAndRejectsDrift(t *testing.T) {
 	manifest.Checks["lint"] = "unknown"
 	manifest.Artifacts = []string{"release/manifest/latest.json"}
 	manifest.StandardImpact.Status = "stale"
+	manifest.Debt.Status = "stale"
 	manifest.GovernanceRuntime.Status = "stale"
 	manifest.DownstreamSyncRequired = !manifest.StandardImpact.DownstreamSyncRequired
 	manifest.GovernanceRuntime.GateStatuses["governance"] = "failed"
@@ -704,6 +736,7 @@ func TestVerifyManifestAcceptsFreshManifestAndRejectsDrift(t *testing.T) {
 		`checks.lint must be passed, got "unknown"`,
 		"artifacts must include release/manifest/latest.json.sha256",
 		"standard_impact does not match current standard impact evidence",
+		"debt does not match current debt evidence",
 		"governance_runtime does not match current context runtime evidence",
 		"downstream_sync_required must match standard_impact.downstream_sync_required",
 		"governance_runtime does not match current governance runtime evidence",
@@ -825,6 +858,7 @@ func TestVerifyManifestRejectsCorruptedManifestFields(t *testing.T) {
 	manifest.Contracts = nil
 	manifest.Dependencies = nil
 	manifest.GovernanceRuntime = GovernanceRuntime{}
+	manifest.Debt = DebtEvidence{}
 	manifest.GeneratorEvidence.Required = false
 	manifest.Tools = map[string]string{}
 
@@ -851,6 +885,8 @@ func TestVerifyManifestRejectsCorruptedManifestFields(t *testing.T) {
 		"contract fingerprints do not match current contract files",
 		"dependency inventory does not match go list -m -json all",
 		"governance_runtime.runtime is required",
+		"debt.report_path is required",
+		"debt.status is required",
 		"governance_runtime.profiles is required",
 		"governance_runtime.legacy_aliases is required",
 		"generator_evidence.required must be true",
@@ -983,6 +1019,56 @@ func TestBuildStandardImpactEvidenceReportsReadError(t *testing.T) {
 
 	if _, err := buildStandardImpactEvidence(); err == nil {
 		t.Fatal("buildStandardImpactEvidence succeeded for directory report, want error")
+	}
+}
+
+func TestBuildDebtEvidenceAllowsMissingReport(t *testing.T) {
+	chdir(t, t.TempDir())
+
+	got, err := buildDebtEvidence()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if got.ReportPath != debtReportPath || got.MarkdownPath != debtMarkdownPath || got.ChecksumPath != debtChecksumPath {
+		t.Fatalf("paths = %+v, want debt evidence paths", got)
+	}
+	if got.Status != "missing" {
+		t.Fatalf("status = %q, want missing", got.Status)
+	}
+	if got.MinScore != 9.8 {
+		t.Fatalf("min_score = %.1f, want 9.8", got.MinScore)
+	}
+}
+
+func TestBuildDebtEvidenceReadsReport(t *testing.T) {
+	root := t.TempDir()
+	writeDebtReportFixture(t, root)
+	chdir(t, root)
+
+	got, err := buildDebtEvidence()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if got.Status != "passed" || got.Score != 9.8 || got.MinScore != 9.8 || got.CheckCount != 1 {
+		t.Fatalf("debt evidence = %+v, want passed score and one check", got)
+	}
+	if !strings.HasPrefix(got.ReportSHA256, "sha256:") {
+		t.Fatalf("report_sha256 = %q, want sha256 prefix", got.ReportSHA256)
+	}
+}
+
+func TestBuildDebtEvidenceReportsReadError(t *testing.T) {
+	root := t.TempDir()
+	reportPath := filepath.Join(root, filepath.FromSlash(debtReportPath))
+	if err := os.MkdirAll(reportPath, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	chdir(t, root)
+
+	if _, err := buildDebtEvidence(); err == nil {
+		t.Fatal("buildDebtEvidence succeeded for directory report, want error")
 	}
 }
 
@@ -1432,6 +1518,7 @@ func releaseManifestFixtureRepo(t *testing.T) string {
 		}
 	}
 	writeFixtureOMCState(t, repo)
+	writeDebtReportFixture(t, repo)
 	runTestCommand(t, repo, "git", "add", ".")
 	return repo
 }
@@ -1455,6 +1542,42 @@ func writeStandardImpactReportFixture(t *testing.T, repo string) {
 		"",
 	}, "\n")
 	if err := os.WriteFile(reportPath, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func writeDebtReportFixture(t *testing.T, repo string) {
+	t.Helper()
+
+	reportPath := filepath.Join(repo, filepath.FromSlash(debtReportPath))
+	if err := os.MkdirAll(filepath.Dir(reportPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	data := []byte(`{
+  "schema_version": "1.0",
+  "generated_at": "2026-06-02T00:00:00Z",
+  "status": "passed",
+  "score": 9.8,
+  "min_score": 9.8,
+  "policy_path": ".agent/debt/rules.yaml",
+  "checks": [
+    {"id": "policy", "status": "passed"}
+  ],
+  "downstream_targets": ["kernel/configx", "kernel/redisx", "corekit"]
+}` + "\n")
+	if err := os.WriteFile(reportPath, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	markdownPath := filepath.Join(repo, filepath.FromSlash(debtMarkdownPath))
+	if err := os.WriteFile(markdownPath, []byte("# Debt Evidence\n\n- status: passed\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	sum := sha256.Sum256(data)
+	checksum := hex.EncodeToString(sum[:]) + "  release/debt/latest.json\n"
+	checksumPath := filepath.Join(repo, filepath.FromSlash(debtChecksumPath))
+	if err := os.WriteFile(checksumPath, []byte(checksum), 0o644); err != nil {
 		t.Fatal(err)
 	}
 }
