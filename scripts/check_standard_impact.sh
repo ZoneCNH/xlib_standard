@@ -184,24 +184,24 @@ if (( ${#contracts_files[@]} > 0 || ${#context_runtime_files[@]} > 0 || ${#gover
   downstream_sync_required="true"
 fi
 
-context_runtime_change="unchanged"
+context_runtime_change="false"
 if (( ${#context_runtime_files[@]} > 0 )); then
-  context_runtime_change="changed"
+  context_runtime_change="true"
 fi
 
-governance_registry_change="unchanged"
+governance_registry_change="false"
 if (( ${#governance_registry_files[@]} > 0 )); then
-  governance_registry_change="changed"
+  governance_registry_change="true"
 fi
 
-downstream_release_decision="sync-not-required"
+downstream_release_decision="downstream-sync-not-required"
 if [[ "$downstream_sync_required" == "true" ]]; then
-  downstream_release_decision="sync-required"
+  downstream_release_decision="downstream-sync-required"
 fi
 
-repository_rules_release_decision="release-review-not-required"
+repository_rules_release_decision="repository-rules-release-not-required"
 if (( ${#repository_rules_files[@]} > 0 )); then
-  repository_rules_release_decision="release-review-required"
+  repository_rules_release_decision="repository-rules-release-required"
 fi
 
 mkdir -p "$(dirname "$report_path")"
@@ -254,10 +254,10 @@ write_file_list() {
 
   printf '## Sync Decision\n\n'
   if [[ "$downstream_sync_required" == "true" ]]; then
-    printf -- '- `downstream-sync-required`\n'
+    printf -- '- `%s`\n' "$downstream_release_decision"
     printf -- '- 原因：contracts、context_runtime、governance_registry、harness、repository_rules、generator、downstream_context 或 evidence 影响面发生变化。\n'
   else
-    printf -- '- `downstream-sync-not-required`\n'
+    printf -- '- `%s`\n' "$downstream_release_decision"
     printf -- '- 原因：未发现 contracts、context_runtime、governance_registry、harness、repository_rules、generator、downstream_context 或 evidence 影响面变化。\n'
   fi
 } > "$report_path"

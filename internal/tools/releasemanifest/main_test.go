@@ -153,6 +153,9 @@ func TestRunCLIGeneratesManifestToOut(t *testing.T) {
 	if manifest.StandardImpact.ReportPath != standardImpactReportPath || manifest.StandardImpact.Status == "" {
 		t.Fatalf("standard impact evidence is incomplete: %+v", manifest.StandardImpact)
 	}
+	if manifest.StandardImpact.DownstreamReleaseDecision == "" || manifest.StandardImpact.RepositoryRulesReleaseDecision == "" {
+		t.Fatalf("standard impact release decisions are incomplete: %+v", manifest.StandardImpact)
+	}
 	assertGovernanceRuntimeEvidence(t, manifest.GovernanceRuntime)
 	if manifest.DownstreamSyncRequired != manifest.StandardImpact.DownstreamSyncRequired {
 		t.Fatalf("downstream_sync_required = %t, want standard impact value %t", manifest.DownstreamSyncRequired, manifest.StandardImpact.DownstreamSyncRequired)
@@ -811,6 +814,18 @@ func TestBuildStandardImpactEvidenceAllowsMissingReport(t *testing.T) {
 	if got.DownstreamSyncRequired {
 		t.Fatal("downstream_sync_required = true, want false")
 	}
+	if got.ContextRuntimeChange {
+		t.Fatal("context_runtime_change = true, want false")
+	}
+	if got.GovernanceRegistryChange {
+		t.Fatal("governance_registry_change = true, want false")
+	}
+	if got.DownstreamReleaseDecision != "" {
+		t.Fatalf("downstream_release_decision = %q, want empty", got.DownstreamReleaseDecision)
+	}
+	if got.RepositoryRulesReleaseDecision != "" {
+		t.Fatalf("repository_rules_release_decision = %q, want empty", got.RepositoryRulesReleaseDecision)
+	}
 }
 
 func TestBuildStandardImpactEvidenceReadsReport(t *testing.T) {
@@ -819,7 +834,17 @@ func TestBuildStandardImpactEvidenceReadsReport(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(reportPath), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	content := "# Standard Impact\n\n- downstream_sync_required: `true`\n- primary_downstream: `github.com/ZoneCNH/kernel`\n"
+	content := strings.Join([]string{
+		"# Standard Impact",
+		"",
+		"- downstream_sync_required: `true`",
+		"- primary_downstream: `github.com/ZoneCNH/kernel`",
+		"- context_runtime_change: `true`",
+		"- governance_registry_change: `true`",
+		"- downstream_release_decision: `downstream-sync-required`",
+		"- repository_rules_release_decision: `repository-rules-release-required`",
+		"",
+	}, "\n")
 	if err := os.WriteFile(reportPath, []byte(content), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -841,6 +866,18 @@ func TestBuildStandardImpactEvidenceReadsReport(t *testing.T) {
 	}
 	if got.PrimaryDownstream != "github.com/ZoneCNH/kernel" {
 		t.Fatalf("primary_downstream = %q, want github.com/ZoneCNH/kernel", got.PrimaryDownstream)
+	}
+	if !got.ContextRuntimeChange {
+		t.Fatal("context_runtime_change = false, want true")
+	}
+	if !got.GovernanceRegistryChange {
+		t.Fatal("governance_registry_change = false, want true")
+	}
+	if got.DownstreamReleaseDecision != "downstream-sync-required" {
+		t.Fatalf("downstream_release_decision = %q, want downstream-sync-required", got.DownstreamReleaseDecision)
+	}
+	if got.RepositoryRulesReleaseDecision != "repository-rules-release-required" {
+		t.Fatalf("repository_rules_release_decision = %q, want repository-rules-release-required", got.RepositoryRulesReleaseDecision)
 	}
 }
 
