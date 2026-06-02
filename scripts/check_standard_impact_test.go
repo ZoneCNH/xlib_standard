@@ -17,7 +17,7 @@ func TestStandardImpactRequiresDownstreamSyncForHarnessGeneratorEvidence(t *test
 
 	assertReportContains(t, report,
 		"- downstream_sync_required: `true`",
-		"- downstream_release_decision: `downstream-sync-required`",
+		"- downstream_release_decision: `required`",
 		"- changed_file_count: `3`",
 		"## harness",
 		"- `scripts/check_docs.sh`",
@@ -25,7 +25,7 @@ func TestStandardImpactRequiresDownstreamSyncForHarnessGeneratorEvidence(t *test
 		"- `scripts/render_template.sh`",
 		"## evidence",
 		"- `internal/tools/releasemanifest/main.go`",
-		"- `downstream-sync-required`",
+		"- `required`",
 	)
 }
 
@@ -34,7 +34,11 @@ func TestStandardImpactRequiresDownstreamSyncForContextRuntimeV4Categories(t *te
 		"cmd/xlibgate/main.go",
 		".agent/context/runtime.md",
 		".agent/command-registry.yaml",
+		".agent/issue-registry.yaml",
+		".agent/makefile-baseline.yaml",
+		".agent/makefile-target-registry.yaml",
 		".github/CODEOWNERS",
+		".github/dependabot.yml",
 		".github/rulesets/default.yml",
 		"infra/github-rules/default.yml",
 		"templates/context-consumer/README.md",
@@ -44,9 +48,9 @@ func TestStandardImpactRequiresDownstreamSyncForContextRuntimeV4Categories(t *te
 		"- downstream_sync_required: `true`",
 		"- context_runtime_change: `true`",
 		"- governance_registry_change: `true`",
-		"- downstream_release_decision: `downstream-sync-required`",
-		"- repository_rules_release_decision: `repository-rules-review-required`",
-		"- changed_file_count: `7`",
+		"- downstream_release_decision: `required`",
+		"- repository_rules_release_decision: `audit_required`",
+		"- changed_file_count: `11`",
 		"## context_runtime",
 		"- `.agent/context/runtime.md`",
 		"- `cmd/xlibgate/main.go`",
@@ -57,12 +61,13 @@ func TestStandardImpactRequiresDownstreamSyncForContextRuntimeV4Categories(t *te
 		"- `.agent/makefile-target-registry.yaml`",
 		"## repository_rules",
 		"- `.github/CODEOWNERS`",
+		"- `.github/dependabot.yml`",
 		"- `.github/rulesets/default.yml`",
 		"- `infra/github-rules/default.yml`",
 		"## downstream_context",
 		"- `templates/context-consumer/README.md`",
-		"- `downstream-sync-required`",
-		"- `repository-rules-review-required`",
+		"- `required`",
+		"- repository_rules: `audit_required`",
 		"context_runtime、governance_registry",
 		"downstream_context",
 	)
@@ -112,7 +117,7 @@ func TestStandardImpactRequiresDownstreamSyncForDeletedImpactFiles(t *testing.T)
 	assertReportContains(t, report,
 		"- downstream_sync_required: `true`",
 		"- context_runtime_change: `true`",
-		"- downstream_release_decision: `downstream-sync-required`",
+		"- downstream_release_decision: `required`",
 		"- changed_file_count: `3`",
 		"## contracts",
 		"- `contracts/deleted.schema.json`",
@@ -120,119 +125,7 @@ func TestStandardImpactRequiresDownstreamSyncForDeletedImpactFiles(t *testing.T)
 		"- `.agent/context/runtime.md`",
 		"## evidence",
 		"- `internal/tools/releasemanifest/deleted.go`",
-		"- `downstream-sync-required`",
-	)
-}
-
-func TestStandardImpactRequiresDownstreamSyncForDeletedImpactFiles(t *testing.T) {
-	scriptsDir, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("get working directory: %v", err)
-	}
-	scriptPath := filepath.Join(scriptsDir, "check_standard_impact.sh")
-
-	tempDir := t.TempDir()
-	repoDir := filepath.Join(tempDir, "repo")
-	if err := os.Mkdir(repoDir, 0o755); err != nil {
-		t.Fatalf("create temp repo: %v", err)
-	}
-
-	runGit(t, repoDir, "init", "-b", "main")
-	runGit(t, repoDir, "config", "user.name", "Standard Impact Test")
-	runGit(t, repoDir, "config", "user.email", "standard-impact@example.com")
-	writeFixtureFile(t, repoDir, "contracts/deleted.schema.json")
-	writeFixtureFile(t, repoDir, ".agent/context/runtime.md")
-	writeFixtureFile(t, repoDir, "internal/tools/releasemanifest/deleted.go")
-	runGit(t, repoDir, "add", ".")
-	runGit(t, repoDir, "commit", "-m", "base")
-	runGit(t, repoDir, "rm", "contracts/deleted.schema.json", ".agent/context/runtime.md", "internal/tools/releasemanifest/deleted.go")
-
-	reportPath := filepath.Join(tempDir, "standard-impact.md")
-	cmd := exec.Command("bash", scriptPath)
-	cmd.Dir = repoDir
-	cmd.Env = append(os.Environ(),
-		"STANDARD_IMPACT_REPORT="+reportPath,
-		"STANDARD_IMPACT_BASE=HEAD",
-		"STANDARD_IMPACT_GENERATED_AT=2026-06-02T00:00:00Z",
-	)
-	if output, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("standard impact check failed: %v\n%s", err, output)
-	}
-
-	reportBytes, err := os.ReadFile(reportPath)
-	if err != nil {
-		t.Fatalf("read report: %v", err)
-	}
-	report := string(reportBytes)
-
-	assertReportContains(t, report,
-		"- downstream_sync_required: `true`",
-		"- context_runtime_change: `true`",
-		"- downstream_release_decision: `downstream-sync-required`",
-		"- changed_file_count: `3`",
-		"## contracts",
-		"- `contracts/deleted.schema.json`",
-		"## context_runtime",
-		"- `.agent/context/runtime.md`",
-		"## evidence",
-		"- `internal/tools/releasemanifest/deleted.go`",
-		"- `downstream-sync-required`",
-	)
-}
-
-func TestStandardImpactRequiresDownstreamSyncForDeletedImpactFiles(t *testing.T) {
-	scriptsDir, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("get working directory: %v", err)
-	}
-	scriptPath := filepath.Join(scriptsDir, "check_standard_impact.sh")
-
-	tempDir := t.TempDir()
-	repoDir := filepath.Join(tempDir, "repo")
-	if err := os.Mkdir(repoDir, 0o755); err != nil {
-		t.Fatalf("create temp repo: %v", err)
-	}
-
-	runGit(t, repoDir, "init", "-b", "main")
-	runGit(t, repoDir, "config", "user.name", "Standard Impact Test")
-	runGit(t, repoDir, "config", "user.email", "standard-impact@example.com")
-	writeFixtureFile(t, repoDir, "contracts/deleted.schema.json")
-	writeFixtureFile(t, repoDir, ".agent/context/runtime.md")
-	writeFixtureFile(t, repoDir, "internal/tools/releasemanifest/deleted.go")
-	runGit(t, repoDir, "add", ".")
-	runGit(t, repoDir, "commit", "-m", "base")
-	runGit(t, repoDir, "rm", "contracts/deleted.schema.json", ".agent/context/runtime.md", "internal/tools/releasemanifest/deleted.go")
-
-	reportPath := filepath.Join(tempDir, "standard-impact.md")
-	cmd := exec.Command("bash", scriptPath)
-	cmd.Dir = repoDir
-	cmd.Env = append(os.Environ(),
-		"STANDARD_IMPACT_REPORT="+reportPath,
-		"STANDARD_IMPACT_BASE=HEAD",
-		"STANDARD_IMPACT_GENERATED_AT=2026-06-02T00:00:00Z",
-	)
-	if output, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("standard impact check failed: %v\n%s", err, output)
-	}
-
-	reportBytes, err := os.ReadFile(reportPath)
-	if err != nil {
-		t.Fatalf("read report: %v", err)
-	}
-	report := string(reportBytes)
-
-	assertReportContains(t, report,
-		"- downstream_sync_required: `true`",
-		"- context_runtime_change: `true`",
-		"- downstream_release_decision: `downstream-sync-required`",
-		"- changed_file_count: `3`",
-		"## contracts",
-		"- `contracts/deleted.schema.json`",
-		"## context_runtime",
-		"- `.agent/context/runtime.md`",
-		"## evidence",
-		"- `internal/tools/releasemanifest/deleted.go`",
-		"- `downstream-sync-required`",
+		"- `required`",
 	)
 }
 
@@ -288,7 +181,7 @@ func TestStandardImpactUsesUpstreamMergeBaseForCleanBranches(t *testing.T) {
 		"- `docs/standard/README.md`",
 		"## harness",
 		"- `scripts/check_docs.sh`",
-		"- `downstream-sync-required`",
+		"- `required`",
 	)
 }
 
@@ -304,7 +197,7 @@ func TestStandardImpactIgnoresLocalAgentRuntimeState(t *testing.T) {
 		"- changed_file_count: `1`",
 		"## docs",
 		"- `docs/standard/README.md`",
-		"- `downstream-sync-not-required`",
+		"- `not_required`",
 	)
 
 	for _, localStatePath := range []string{".omc/", ".omx/", ".worktree/"} {
@@ -362,6 +255,9 @@ func TestStandardImpactSortsCommittedAndWorktreeChanges(t *testing.T) {
 	report := string(reportBytes)
 
 	assertReportContains(t, report,
+		"- downstream_sync_required: `true`",
+		"- downstream_release_decision: `required`",
+		"- repository_rules_release_decision: `audit_required`",
 		"- changed_file_count: `4`",
 		"## repository_rules",
 		"- `.github/dependabot.yml`",
@@ -383,16 +279,16 @@ func TestStandardImpactDoesNotRequireDownstreamSyncForDocsOnly(t *testing.T) {
 
 	assertReportContains(t, report,
 		"- downstream_sync_required: `false`",
-		"- downstream_release_decision: `downstream-sync-not-required`",
-		"- repository_rules_release_decision: `repository-rules-review-not-required`",
+		"- downstream_release_decision: `not_required`",
+		"- repository_rules_release_decision: `not_required`",
 		"- changed_file_count: `2`",
 		"## docs",
 		"- `README.md`",
 		"- `docs/standard/README.md`",
-		"- `downstream-sync-not-required`",
+		"- `not_required`",
 	)
 
-	if strings.Contains(report, "- `downstream-sync-required`") {
+	if strings.Contains(report, "- downstream_release_decision: `required`") {
 		t.Fatalf("docs-only report unexpectedly required downstream sync:\n%s", report)
 	}
 }
@@ -406,10 +302,10 @@ func TestStandardImpactReportIncludesDecisionEvidence(t *testing.T) {
 
 	assertReportContains(t, report,
 		"- primary_downstream: `github.com/ZoneCNH/kernel`",
-		"- context_runtime_change: `unchanged`",
-		"- governance_registry_change: `unchanged`",
-		"- downstream_release_decision: `sync-required`",
-		"- repository_rules_release_decision: `release-review-not-required`",
+		"- context_runtime_change: `false`",
+		"- governance_registry_change: `false`",
+		"- downstream_release_decision: `required`",
+		"- repository_rules_release_decision: `not_required`",
 		"- changed_file_count: `3`",
 		"## contracts",
 		"- `contracts/template.md`",

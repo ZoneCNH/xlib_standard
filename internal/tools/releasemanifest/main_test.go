@@ -742,8 +742,6 @@ func TestVerifyManifestRequiresStandardImpactEvidenceWhenChecksRequired(t *testi
 	for _, want := range []string{
 		`standard_impact.status must be present, got "missing"`,
 		"standard_impact.report_sha256 is required",
-		"standard_impact.downstream_release_decision is required",
-		"standard_impact.repository_rules_release_decision is required",
 		"standard_impact.primary_downstream is required",
 	} {
 		if !strings.Contains(message, want) {
@@ -860,11 +858,11 @@ func TestBuildStandardImpactEvidenceAllowsMissingReport(t *testing.T) {
 	if got.GovernanceRegistryChange {
 		t.Fatal("governance_registry_change = true, want false")
 	}
-	if got.DownstreamReleaseDecision != "" {
-		t.Fatalf("downstream_release_decision = %q, want empty", got.DownstreamReleaseDecision)
+	if got.DownstreamReleaseDecision != "not_required" {
+		t.Fatalf("downstream_release_decision = %q, want not_required", got.DownstreamReleaseDecision)
 	}
-	if got.RepositoryRulesReleaseDecision != "" {
-		t.Fatalf("repository_rules_release_decision = %q, want empty", got.RepositoryRulesReleaseDecision)
+	if got.RepositoryRulesReleaseDecision != "not_required" {
+		t.Fatalf("repository_rules_release_decision = %q, want not_required", got.RepositoryRulesReleaseDecision)
 	}
 }
 
@@ -880,8 +878,8 @@ func TestBuildStandardImpactEvidenceReadsReport(t *testing.T) {
 		"- downstream_sync_required: `true`",
 		"- context_runtime_change: `true`",
 		"- governance_registry_change: `true`",
-		"- downstream_release_decision: `downstream-sync-required`",
-		"- repository_rules_release_decision: `repository-rules-review-required`",
+		"- downstream_release_decision: `required`",
+		"- repository_rules_release_decision: `audit_required`",
 		"- primary_downstream: `github.com/ZoneCNH/kernel`",
 		"",
 	}, "\n")
@@ -910,26 +908,14 @@ func TestBuildStandardImpactEvidenceReadsReport(t *testing.T) {
 	if !got.GovernanceRegistryChange {
 		t.Fatal("governance_registry_change = false, want true")
 	}
-	if got.DownstreamReleaseDecision != "downstream-sync-required" {
-		t.Fatalf("downstream_release_decision = %q, want downstream-sync-required", got.DownstreamReleaseDecision)
+	if got.DownstreamReleaseDecision != "required" {
+		t.Fatalf("downstream_release_decision = %q, want required", got.DownstreamReleaseDecision)
 	}
-	if got.RepositoryRulesReleaseDecision != "repository-rules-review-required" {
-		t.Fatalf("repository_rules_release_decision = %q, want repository-rules-review-required", got.RepositoryRulesReleaseDecision)
+	if got.RepositoryRulesReleaseDecision != "audit_required" {
+		t.Fatalf("repository_rules_release_decision = %q, want audit_required", got.RepositoryRulesReleaseDecision)
 	}
 	if got.PrimaryDownstream != "github.com/ZoneCNH/kernel" {
 		t.Fatalf("primary_downstream = %q, want github.com/ZoneCNH/kernel", got.PrimaryDownstream)
-	}
-	if got.ContextRuntimeChange != "changed" {
-		t.Fatalf("context_runtime_change = %q, want changed", got.ContextRuntimeChange)
-	}
-	if got.GovernanceRegistryChange != "changed" {
-		t.Fatalf("governance_registry_change = %q, want changed", got.GovernanceRegistryChange)
-	}
-	if got.DownstreamReleaseDecision != "sync-required" {
-		t.Fatalf("downstream_release_decision = %q, want sync-required", got.DownstreamReleaseDecision)
-	}
-	if got.RepositoryRulesReleaseDecision != "release-review-required" {
-		t.Fatalf("repository_rules_release_decision = %q, want release-review-required", got.RepositoryRulesReleaseDecision)
 	}
 }
 
@@ -1409,8 +1395,8 @@ func writeStandardImpactReportFixture(t *testing.T, repo string) {
 		"- downstream_sync_required: `true`",
 		"- context_runtime_change: `true`",
 		"- governance_registry_change: `true`",
-		"- downstream_release_decision: `downstream-sync-required`",
-		"- repository_rules_release_decision: `repository-rules-review-required`",
+		"- downstream_release_decision: `required`",
+		"- repository_rules_release_decision: `audit_required`",
 		"- primary_downstream: `github.com/ZoneCNH/kernel`",
 		"",
 	}, "\n")
