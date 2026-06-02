@@ -41,6 +41,12 @@ func run(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) int
 		return runCommandRegistry(args[1:], stdout, stderr)
 	case "makefile-baseline":
 		return runMakefileBaseline(args[1:], stdout, stderr)
+	case "context-profile":
+		return runContextProfile(args[1:], stdout, stderr)
+	case "context-profile-check", "context-schema-check":
+		return runContextProfileCheck(args[0], args[1:], stdout, stderr)
+	case "context-lite", "context-standard", "context-full", "context-release", "context-fast-check", "context-standard-check", "context-full-check":
+		return runContextProfileAlias(args[0], args[1:], stdout, stderr)
 	case "minimal-kernel", "done-assertion", "agent-team-contract", "scope-lock", "pr-template", "acceptance-matrix", "runtime-health", "goal-runtime", "naming", "upgrade-standard", "conformance-profile", "downstream-registry", "self-healing-skeleton", "policy-schema", "github-settings", "toolchain", "evidence-artifacts", "install-runtime", "upgrade-runtime", "release-ready", "evidence-replay", "attest-conformance", "pack-standard", "pack-gate", "pack-evidence", "runtime-file-ownership", "downstream-baseline", "downstream-adoption", "autoresearch", "changelog", "github-governance", "governance-fixture-test", "supply-chain", "execution-context":
 		return runPlannedCommand(args[0], args[1:], stdout, stderr)
 	case "boundary":
@@ -142,6 +148,16 @@ commands:
   cli-contract [--json|--output <path>|--explain]
   command-registry
   conformance-profile [--profile <name>]
+  context-fast-check
+  context-full
+  context-full-check
+  context-lite
+  context-profile [--profile lite|standard|full|release]
+  context-profile-check [--json|--strict]
+  context-release
+  context-schema-check [--json|--strict]
+  context-standard
+  context-standard-check
   contracts
   dependency-check
   doctor [--json]
