@@ -76,6 +76,17 @@
     "downstream_sync_required": false,
     "primary_downstream": "{{PRIMARY_DOWNSTREAM}}"
   },
+  "governance_runtime": {
+    "schema_version": "v2.9.3",
+    "runtime_version": "v2.9.3",
+    "gate_statuses": {
+      "governance": "passed"
+    },
+    "profile_statuses": {
+      "p1_governance": "passed",
+      "p2_runtime": "passed"
+    }
+  },
   "downstream_sync_required": false,
   "generator_evidence": {
     "command": "GOWORK=off make integration",
