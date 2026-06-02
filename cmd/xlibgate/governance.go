@@ -204,7 +204,7 @@ var contextProfileGates = map[string][]string{
 	"lite":     {"governance-check"},
 	"standard": {"governance-check", "p1-governance-check", "docs-check"},
 	"full":     {"governance-check", "p1-governance-check", "p2-runtime-check"},
-	"release":  {"context-full", "integration", "dependency-check", "standard-impact-check", "score-check", "evidence", "release-evidence-hash", "release-evidence-check", "release-evidence-checksum-check"},
+	"release":  {"context-full", "integration", "dependency-check", "standard-impact-check", "score-check", "debt-evidence", "evidence", "release-evidence-hash", "release-evidence-check", "release-evidence-checksum-check"},
 }
 
 func runContextProfile(args []string, stdout io.Writer, stderr io.Writer) int {

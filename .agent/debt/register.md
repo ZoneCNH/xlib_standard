@@ -1,7 +1,4 @@
-# Debt governance register
+# Debt Register
 
-This register is the source for the dependency-free debt governance runtime v3.6.
-P0 debt exceptions are forbidden, scanner failures fail closed, and generated
-release debt evidence is written to ignored `release/debt/` artifacts.
-
-Required downstream debt evidence targets: kernel, configx, redisx.
+The active debt register is generated from `.agent/debt/*.yaml` policy files and the `xlibgate debt` scanner.
+Release artifacts are generated under `release/debt/` and are intentionally ignored.

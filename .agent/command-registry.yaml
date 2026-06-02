@@ -37,6 +37,30 @@ commands:
   - name: boundary
     phase: P0
     target: boundary
+  - name: architecture
+    phase: P0
+    target: architecture
+  - name: domain
+    phase: P0
+    target: domain
+  - name: docs-drift
+    phase: P0
+    target: docs-drift
+  - name: dependency-debt
+    phase: P0
+    target: dependency-debt
+  - name: testing-debt
+    phase: P0
+    target: testing-debt
+  - name: implementation-debt
+    phase: P0
+    target: implementation-debt
+  - name: security-debt
+    phase: P0
+    target: security-debt
+  - name: debt
+    phase: P0
+    target: debt
   - name: contracts
     phase: P0
     target: contracts

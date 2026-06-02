@@ -1,93 +1,80 @@
 package debtcheck
 
 import (
-	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
-func TestEvaluateDebtPassesWithPolicyAndAnchors(t *testing.T) {
+func TestRunPassesWithPolicyFilesAndCleanTree(t *testing.T) {
 	root := t.TempDir()
-	writeFixture(t, root)
-	report := Evaluate(root, "debt")
-	if report.Status != "passed" {
-		t.Fatalf("status = %s, gaps = %#v", report.Status, report.Gaps)
-	}
-	if report.GateStatuses["debt"] != "passed" {
-		t.Fatalf("debt gate status = %q", report.GateStatuses["debt"])
-	}
-	for _, gate := range GateNames {
-		if report.GateStatuses[gate] != "passed" {
-			t.Fatalf("gate %s status = %q", gate, report.GateStatuses[gate])
-		}
-	}
-}
+	writePolicyFiles(t, root)
+	writeFile(t, root, "safe.go", "package fixture\n")
 
-func TestEvaluateFailsClosedForMissingPolicy(t *testing.T) {
-	root := t.TempDir()
-	write(t, root, "go.mod", "module example.com/x\n")
-	report := Evaluate(root, "dependency-debt")
-	if report.Status != "failed" {
-		t.Fatalf("status = %s, want failed", report.Status)
-	}
-	if len(report.Gaps) == 0 {
-		t.Fatal("expected fail-closed gaps")
-	}
-}
-
-func TestWriteEvidenceWritesDeterministicArtifacts(t *testing.T) {
-	root := t.TempDir()
-	writeFixture(t, root)
-	report := Evaluate(root, "debt")
-	outDir := filepath.Join(root, "release", "debt")
-	if err := WriteEvidence(root, outDir, report); err != nil {
-		t.Fatal(err)
-	}
-	data, err := os.ReadFile(filepath.Join(outDir, "latest.json"))
+	report, err := Run(Options{Root: root, Mode: "enforce", MinScore: DefaultMinScore})
 	if err != nil {
 		t.Fatal(err)
 	}
-	var got Report
-	if err := json.Unmarshal(data, &got); err != nil {
-		t.Fatal(err)
+
+	if report.Status != "passed" {
+		t.Fatalf("status = %q, want passed: %+v", report.Status, report.Summary)
 	}
-	if got.Runtime != Runtime || got.SchemaVersion != SchemaVersion || got.Status != "passed" {
-		t.Fatalf("unexpected evidence: %#v", got)
+	if code := ExitCode(report); code != 0 {
+		t.Fatalf("ExitCode = %d, want 0", code)
 	}
-	for _, name := range []string{"latest.md", "latest.json.sha256"} {
-		if _, err := os.Stat(filepath.Join(outDir, name)); err != nil {
-			t.Fatalf("missing %s: %v", name, err)
-		}
+	if problems := ValidateEvidence(EvidenceFromReport(report), DefaultMinScore); len(problems) != 0 {
+		t.Fatalf("ValidateEvidence problems = %v, want none", problems)
+	}
+	if report.Digests.Report == "" || report.Digests.Rules == "missing" {
+		t.Fatalf("digests = %+v, want populated policy and report digests", report.Digests)
 	}
 }
 
-func writeFixture(t *testing.T, root string) {
-	t.Helper()
-	for _, path := range policyFiles {
-		content := "schema_version: \"1.0\"\n"
-		if path == ".agent/debt/rules.yaml" {
-			content += "p0_exceptions: forbidden\n"
-		}
-		if path == ".agent/debt/rule-registry.yaml" {
-			content += "fail_closed: true\n"
-		}
-		write(t, root, path, content)
+func TestRunFailsOnLegacyProductionImport(t *testing.T) {
+	root := t.TempDir()
+	writePolicyFiles(t, root)
+	writeFile(t, root, "bad.go", "package fixture\n\nimport _ \"github.com/ZoneCNH/x.go\"\n")
+
+	report, err := Run(Options{Root: root, Section: "architecture", Mode: "enforce", MinScore: DefaultMinScore})
+	if err != nil {
+		t.Fatal(err)
 	}
-	for _, anchors := range gateAnchors {
-		for _, path := range anchors {
-			write(t, root, path, "fixture\n")
-		}
+
+	if report.Status != "failed" {
+		t.Fatalf("status = %q, want failed", report.Status)
+	}
+	if report.Summary.P0 != 1 {
+		t.Fatalf("P0 = %d, want 1", report.Summary.P0)
+	}
+	if code := ExitCode(report); code != 1 {
+		t.Fatalf("ExitCode = %d, want 1", code)
+	}
+	if !strings.Contains(ToMarkdown(report), "legacy ZoneCNH x module") {
+		t.Fatalf("markdown missing legacy import finding: %s", ToMarkdown(report))
 	}
 }
 
-func write(t *testing.T, root, path, content string) {
+func writePolicyFiles(t *testing.T, root string) {
 	t.Helper()
-	full := filepath.Join(root, filepath.FromSlash(path))
-	if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+	files := map[string]string{
+		DefaultRulesPath:    "schema_version: debt-rules/v1\nprofile: test\n",
+		DefaultRegistryPath: "schema_version: debt-rule-registry/v1\nrules: []\n",
+		DefaultExceptions:   "schema_version: debt-exceptions/v1\nexceptions: []\n",
+		DefaultPurpose:      "schema_version: debt-dependency-purpose/v1\npurposes: []\n",
+	}
+	for path, content := range files {
+		writeFile(t, root, path, content)
+	}
+}
+
+func writeFile(t *testing.T, root, path, content string) {
+	t.Helper()
+	fullPath := filepath.Join(root, filepath.FromSlash(path))
+	if err := os.MkdirAll(filepath.Dir(fullPath), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(full, []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(fullPath, []byte(content), 0o644); err != nil {
 		t.Fatal(err)
 	}
 }

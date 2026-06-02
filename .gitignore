@@ -94,3 +94,6 @@ Thumbs.db
 *.swp
 *.swo
 *~
+release/debt/latest.json
+release/debt/latest.md
+release/debt/latest.json.sha256

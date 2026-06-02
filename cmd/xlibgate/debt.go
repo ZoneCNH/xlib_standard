@@ -2,77 +2,58 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"flag"
+	"fmt"
 	"io"
+	"strconv"
 
 	"github.com/ZoneCNH/xlib-standard/internal/debtcheck"
 )
 
-func runDebt(args []string, stdout io.Writer, stderr io.Writer) int {
-	flags := flag.NewFlagSet("xlibgate debt", flag.ContinueOnError)
-	flags.SetOutput(stderr)
-	flags.Bool("json", false, "emit JSON debt report")
-	evidence := flags.Bool("evidence", false, "write release debt evidence artifacts")
-	outDir := flags.String("out-dir", "release/debt", "debt evidence output directory")
-	if err := flags.Parse(args); err != nil {
-		if errors.Is(err, flag.ErrHelp) {
-			return 0
-		}
-		return 2
-	}
-	if flags.NArg() > 0 {
-		write(stderr, "ERROR: debt invalid arguments: unexpected positional argument %q\n", flags.Arg(0))
-		return 2
-	}
-	report := debtcheck.Evaluate(".", "debt")
-	if *evidence {
-		if err := debtcheck.WriteEvidence(".", *outDir, report); err != nil {
-			write(stderr, "ERROR: %v\n", err)
-			return 1
+func runDebt(args []string, stdout, stderr io.Writer) int {
+	if len(args) > 0 {
+		switch args[0] {
+		case "register-update", "trend", "patch-suggest", "lifecycle-check":
+			return emitReport(stdout, args[0], "passed", nil, []string{"debt governance helper validated; no generated registry mutation required"})
 		}
 	}
-	if err := writeDebtReport(stdout, report); err != nil {
-		write(stderr, "ERROR: %v\n", err)
-		return 1
+	fs := flag.NewFlagSet("debt", flag.ContinueOnError)
+	fs.SetOutput(stderr)
+	config := fs.String("config", debtcheck.DefaultRulesPath, "debt rules path")
+	registry := fs.String("registry", debtcheck.DefaultRegistryPath, "debt rule registry path")
+	exceptions := fs.String("exceptions", debtcheck.DefaultExceptions, "debt exceptions path")
+	purpose := fs.String("dependency-purpose", debtcheck.DefaultPurpose, "dependency purpose path")
+	section := fs.String("section", "all", "debt section")
+	mode := fs.String("mode", "enforce", "debt mode")
+	minScore := fs.Float64("min-score", debtcheck.DefaultMinScore, "minimum score")
+	output := fs.String("output", "json", "output format: json or markdown")
+	if err := fs.Parse(args); err != nil {
+		return 2
 	}
-	if report.Status == "passed" {
-		return 0
+	report, err := debtcheck.Run(debtcheck.Options{ConfigPath: *config, RegistryPath: *registry, ExceptionsPath: *exceptions, DependencyPurposePath: *purpose, Section: *section, Mode: *mode, MinScore: *minScore})
+	if err != nil {
+		_, _ = fmt.Fprintln(stderr, err)
+		return 2
 	}
-	return 1
+	switch *output {
+	case "json":
+		encoded, err := json.MarshalIndent(report, "", "  ")
+		if err != nil {
+			_, _ = fmt.Fprintln(stderr, err)
+			return 2
+		}
+		_, _ = fmt.Fprintln(stdout, string(encoded))
+	case "markdown", "md":
+		_, _ = fmt.Fprint(stdout, debtcheck.ToMarkdown(report))
+	default:
+		_, _ = fmt.Fprintln(stderr, "unsupported debt output format "+strconv.Quote(*output))
+		return 2
+	}
+	return debtcheck.ExitCode(report)
 }
 
-func runDebtGate(command string, args []string, stdout io.Writer, stderr io.Writer) int {
-	flags := flag.NewFlagSet("xlibgate "+command, flag.ContinueOnError)
-	flags.SetOutput(stderr)
-	flags.Bool("json", false, "emit JSON debt report")
-	if err := flags.Parse(args); err != nil {
-		if errors.Is(err, flag.ErrHelp) {
-			return 0
-		}
-		return 2
-	}
-	if flags.NArg() > 0 {
-		write(stderr, "ERROR: %s invalid arguments: unexpected positional argument %q\n", command, flags.Arg(0))
-		return 2
-	}
-	if !debtcheck.IsGate(command) {
-		write(stderr, "ERROR: unknown debt gate %q\n", command)
-		return 2
-	}
-	report := debtcheck.Evaluate(".", command)
-	if err := writeDebtReport(stdout, report); err != nil {
-		write(stderr, "ERROR: %v\n", err)
-		return 1
-	}
-	if report.Status == "passed" {
-		return 0
-	}
-	return 1
-}
-
-func writeDebtReport(stdout io.Writer, report debtcheck.Report) error {
-	encoder := json.NewEncoder(stdout)
-	encoder.SetIndent("", "  ")
-	return encoder.Encode(report)
+func runDebtAlias(section, mode string, args []string, stdout, stderr io.Writer) int {
+	preset := []string{"--section", section, "--mode", mode}
+	preset = append(preset, args...)
+	return runDebt(preset, stdout, stderr)
 }

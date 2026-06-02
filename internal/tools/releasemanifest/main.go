@@ -140,7 +140,7 @@ type Manifest struct {
 	Contracts              []FileDigest           `json:"contracts"`
 	Dependencies           []ModuleDigest         `json:"dependencies"`
 	StandardImpact         StandardImpactEvidence `json:"standard_impact"`
-	Debt                   DebtEvidence           `json:"debt"`
+	Debt                   debtcheck.Evidence     `json:"debt"`
 	GovernanceRuntime      GovernanceRuntime      `json:"governance_runtime"`
 	DownstreamSyncRequired bool                   `json:"downstream_sync_required"`
 	GeneratorEvidence      GeneratorEvidence      `json:"generator_evidence"`
@@ -304,7 +304,7 @@ func buildManifest() (Manifest, error) {
 	if err != nil {
 		return Manifest{}, err
 	}
-	debtEvidence, err := buildDebtEvidence()
+	debtReport, err := debtcheck.Run(debtcheck.Options{Mode: "enforce", MinScore: debtcheck.DefaultMinScore})
 	if err != nil {
 		return Manifest{}, err
 	}
@@ -326,7 +326,7 @@ func buildManifest() (Manifest, error) {
 		Contracts:              contracts,
 		Dependencies:           dependencies,
 		StandardImpact:         standardImpact,
-		Debt:                   debtEvidence,
+		Debt:                   debtcheck.EvidenceFromReport(debtReport),
 		GovernanceRuntime:      buildGovernanceRuntime(),
 		DownstreamSyncRequired: standardImpact.DownstreamSyncRequired,
 		GeneratorEvidence:      buildGeneratorEvidence(),
@@ -425,7 +425,10 @@ func verifyManifest(path string, requirePassed bool, requireClean bool, expectVe
 		failures = append(failures, "standard_impact does not match current standard impact evidence")
 	}
 	if !reflect.DeepEqual(got.Debt, current.Debt) {
-		failures = append(failures, "debt does not match current debt evidence")
+		failures = append(failures, "debt does not match current debt governance evidence")
+	}
+	if debtFailures := debtcheck.ValidateEvidence(got.Debt, debtcheck.DefaultMinScore); len(debtFailures) > 0 {
+		failures = append(failures, debtFailures...)
 	}
 	if !reflect.DeepEqual(got.GovernanceRuntime, current.GovernanceRuntime) {
 		failures = append(failures, "governance_runtime does not match current context runtime evidence")
