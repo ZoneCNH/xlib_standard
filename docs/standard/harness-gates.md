@@ -39,18 +39,18 @@ Full Goal Runtime v3.1 以 `cmd/xlibgate` 作为 Go gate runtime。Makefile targ
 
 `.agent/harness.yaml` 中的 `_check`、`_chain` 和 `_release_scope` 是不同 evidence node：`*_check` 对应 Makefile target，`*_chain` 对应 harness chain 集成，`*_release_scope` 对应 release 场景覆盖。三者命名相近但不得互相替代，也不得把任一节点的通过结果升级成另一个节点的 evidence。
 
-## Context Runtime v4.0 Profile Baseline（目标/当前态）
+## Context Runtime v4.0 Profile Baseline（REQ-014 当前可执行态）
 
-本节是 `GOAL-20260602-XLIB-RUNTIME-CONSOLIDATION-V4` 的冻结守则，不宣称 Context Runtime v4.0 已经落地。当前仓库事实仍由 `Makefile`、`cmd/xlibgate` 和四个 SSOT registry（`.agent/command-registry.yaml`、`.agent/issue-registry.yaml`、`.agent/makefile-baseline.yaml`、`.agent/makefile-target-registry.yaml`）共同证明；除非这些物理文件和 registry 都已更新，否则不得把 `.agent/context/*`、profile wrapper 或 registry bridge 写成已交付。
+本节是 `GOAL-20260602-XLIB-RUNTIME-CONSOLIDATION-V4` / `REQ-014` 的冻结守则。当前可执行事实由 `Makefile`、`cmd/xlibgate` 和四个 SSOT registry（`.agent/command-registry.yaml`、`.agent/issue-registry.yaml`、`.agent/makefile-baseline.yaml`、`.agent/makefile-target-registry.yaml`）共同证明；profile wrapper 与 registry bridge 已落地为 release gate 的一部分。物理 `.agent/context/*` packs/templates 仍不得被描述为已交付，除非对应文件实际进入仓库并被 registry/evidence 覆盖。
 
-| Profile | 目标组合 | 冻结守则 |
+| Profile | 当前组合 | 冻结守则 |
 | --- | --- | --- |
-| `context-lite` | 轻量上下文检查入口，由 profile wrapper 明确列出 | 未在 `Makefile`、`cmd/xlibgate` 和 registry 中出现前，只能记录为目标，不得作为已通过 gate。 |
+| `context-lite` | `governance-check` | 轻量上下文入口；`context-profile-check` 必须证明 Makefile、CLI、command registry 和 Makefile registry 均包含该 wrapper。 |
 | `context-standard` | `governance-check + p1-governance-check + docs-check` | `docs-check` 是显式组成项；它只能证明静态文本和链接守则，不能替代语义审查。 |
 | `context-full` | `governance-check + p1-governance-check + p2-runtime-check` | 不能用 docs-only 或 score-only 结论替代 P2 runtime dry run。 |
-| `context-release` | release_verify profile 的 v4 入口 | `context-release` 不得包含 `release-check` 或 `release-final-check`；`release-final-check` 可以调用 `context-release`。 |
+| `context-release` | `context-full + integration + dependency-check + standard-impact-check + score-check + evidence + release-evidence-*` | `context-release` 不得包含 `release-check` 或 `release-final-check`；`release-final-check` 必须单向调用 `context-release`，不得反向递归。 |
 
-兼容别名 `context-fast-check`、`context-standard-check`、`context-full-check` 必须保留并与 profile wrapper 指向同一 SSOT registry 语义。任何新增 profile、alias 或 context registry bridge 都必须同步更新四个 registry；registry 仍是单一事实源，不能由临时脚本、文档表格或 `.agent/context/*` 片段取代。intake 明确禁止的 context ID 不得进入源码、registry 或文档；若 review 发现该 ID，应视为命名污染而不是新增上下文任务。
+兼容别名 `context-fast-check`、`context-standard-check`、`context-full-check` 必须保留并与 profile wrapper 指向同一 SSOT registry 语义。任何新增 profile、alias 或 context registry bridge 都必须同步更新四个 registry；registry 仍是单一事实源，不能由临时脚本、文档表格或 `.agent/context/*` 片段取代。`context-profile-check` 同时校验 unknown profile、未知 Makefile gate、重复 target、forbidden release edge、profile DAG cycle 和 `release-final-check` 自递归，intake 明确禁止的 context ID 不得进入源码、registry 或文档；若 review 发现该 ID，应视为命名污染而不是新增上下文任务。
 
 ## Extended Gate
 
