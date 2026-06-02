@@ -28,6 +28,30 @@ func TestStandardImpactRequiresDownstreamSyncForHarnessGeneratorEvidence(t *test
 	)
 }
 
+func TestStandardImpactRequiresDownstreamSyncForContextRuntimeV4Categories(t *testing.T) {
+	report := runStandardImpact(t, []string{
+		"cmd/xlibgate/main.go",
+		".agent/command-registry.yaml",
+		"AGENTS.md",
+		"templates/context-consumer/README.md",
+	})
+
+	assertReportContains(t, report,
+		"- downstream_sync_required: `true`",
+		"- changed_file_count: `4`",
+		"## context_runtime",
+		"- `cmd/xlibgate/main.go`",
+		"## governance_registry",
+		"- `.agent/command-registry.yaml`",
+		"## repository_rules",
+		"- `AGENTS.md`",
+		"## context_consumer_template",
+		"- `templates/context-consumer/README.md`",
+		"- `downstream-sync-required`",
+		"context_runtime、governance_registry",
+	)
+}
+
 func TestStandardImpactUsesUpstreamMergeBaseForCleanBranches(t *testing.T) {
 	scriptsDir, err := os.Getwd()
 	if err != nil {
@@ -155,6 +179,8 @@ func TestStandardImpactSortsCommittedAndWorktreeChanges(t *testing.T) {
 
 	assertReportContains(t, report,
 		"- changed_file_count: `4`",
+		"## repository_rules",
+		"- `.github/dependabot.yml`",
 		"## other",
 	)
 	assertReportOrder(t, report,

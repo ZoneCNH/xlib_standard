@@ -343,6 +343,7 @@ func TestRunCLIVerifyReportsDrift(t *testing.T) {
 	manifest.SourceDigest = "sha256:stale"
 	manifest.Checks["lint"] = "failed"
 	manifest.StandardImpact.Status = "stale"
+	manifest.GovernanceRuntime.Status = "stale"
 	manifest.DownstreamSyncRequired = !manifest.StandardImpact.DownstreamSyncRequired
 	manifest.GovernanceRuntime.RuntimeVersion = "v2.9.2"
 	manifest.GovernanceRuntime.ProfileStatuses["p2_runtime"] = "failed"
@@ -365,9 +366,7 @@ func TestRunCLIVerifyReportsDrift(t *testing.T) {
 		"ERROR: release evidence verification failed",
 		"source_digest does not match current tracked file contents",
 		"standard_impact does not match current standard impact evidence",
-		"governance_runtime does not match current governance runtime evidence",
-		`governance_runtime.runtime_version must be "v2.9.3", got "v2.9.2"`,
-		`governance_runtime.profile_statuses.p2_runtime must be passed, got "failed"`,
+		"governance_runtime does not match current context runtime evidence",
 		"generator_evidence does not match current integration evidence",
 		`checks.lint must be passed, got "failed"`,
 	} {
@@ -526,6 +525,28 @@ func TestBuildManifestRecordsFixtureRepositoryFacts(t *testing.T) {
 	if manifest.StandardImpact.Status != "missing" && manifest.StandardImpact.Status != "present" {
 		t.Fatalf("standard_impact.status = %q, want missing or present", manifest.StandardImpact.Status)
 	}
+	if manifest.GovernanceRuntime.Runtime != "context-runtime-v4.0" {
+		t.Fatalf("governance_runtime.runtime = %q, want context-runtime-v4.0", manifest.GovernanceRuntime.Runtime)
+	}
+	if manifest.GovernanceRuntime.SchemaVersion != "4.0" || manifest.GovernanceRuntime.Status != "present" {
+		t.Fatalf("governance_runtime = %+v, want schema 4.0 and present", manifest.GovernanceRuntime)
+	}
+	for _, profile := range []string{"context-lite", "context-standard", "context-full", "context-release"} {
+		if !contains(manifest.GovernanceRuntime.Profiles, profile) {
+			t.Fatalf("governance_runtime.profiles = %v, want %s", manifest.GovernanceRuntime.Profiles, profile)
+		}
+	}
+	if manifest.GovernanceRuntime.ProfileCheck != "context-profile-check" {
+		t.Fatalf("governance_runtime.profile_check = %q, want context-profile-check", manifest.GovernanceRuntime.ProfileCheck)
+	}
+	if manifest.GovernanceRuntime.ReleaseTarget != "context-release" {
+		t.Fatalf("governance_runtime.release_target = %q, want context-release", manifest.GovernanceRuntime.ReleaseTarget)
+	}
+	for _, alias := range []string{"context-fast-check", "context-standard-check", "context-full-check"} {
+		if !contains(manifest.GovernanceRuntime.LegacyAliases, alias) {
+			t.Fatalf("governance_runtime.legacy_aliases = %v, want %s", manifest.GovernanceRuntime.LegacyAliases, alias)
+		}
+	}
 	if manifest.DownstreamSyncRequired != manifest.StandardImpact.DownstreamSyncRequired {
 		t.Fatalf("downstream_sync_required = %t, want standard impact value %t", manifest.DownstreamSyncRequired, manifest.StandardImpact.DownstreamSyncRequired)
 	}
@@ -657,6 +678,7 @@ func TestVerifyManifestAcceptsFreshManifestAndRejectsDrift(t *testing.T) {
 	manifest.Checks["lint"] = "unknown"
 	manifest.Artifacts = []string{"release/manifest/latest.json"}
 	manifest.StandardImpact.Status = "stale"
+	manifest.GovernanceRuntime.Status = "stale"
 	manifest.DownstreamSyncRequired = !manifest.StandardImpact.DownstreamSyncRequired
 	manifest.GovernanceRuntime.GateStatuses["governance"] = "failed"
 	manifest.GeneratorEvidence.Command = "make old-integration"
@@ -675,6 +697,7 @@ func TestVerifyManifestAcceptsFreshManifestAndRejectsDrift(t *testing.T) {
 		`checks.lint must be passed, got "unknown"`,
 		"artifacts must include release/manifest/latest.json.sha256",
 		"standard_impact does not match current standard impact evidence",
+		"governance_runtime does not match current context runtime evidence",
 		"downstream_sync_required must match standard_impact.downstream_sync_required",
 		"governance_runtime does not match current governance runtime evidence",
 		`governance_runtime.gate_statuses.governance must be passed, got "failed"`,
@@ -706,7 +729,7 @@ func TestVerifyManifestRejectsCorruptedManifestFields(t *testing.T) {
 	manifest.Score.Threshold = 0
 	manifest.Contracts = nil
 	manifest.Dependencies = nil
-	manifest.GovernanceRuntime = GovernanceRuntimeEvidence{}
+	manifest.GovernanceRuntime = GovernanceRuntime{}
 	manifest.GeneratorEvidence.Required = false
 	manifest.Tools = map[string]string{}
 
@@ -732,11 +755,9 @@ func TestVerifyManifestRejectsCorruptedManifestFields(t *testing.T) {
 		"score.threshold is required",
 		"contract fingerprints do not match current contract files",
 		"dependency inventory does not match go list -m -json all",
-		`governance_runtime.schema_version must be "v2.9.3", got ""`,
-		`governance_runtime.runtime_version must be "v2.9.3", got ""`,
-		"governance_runtime.gate_statuses.governance is required",
-		"governance_runtime.profile_statuses.p1_governance is required",
-		"governance_runtime.profile_statuses.p2_runtime is required",
+		"governance_runtime.runtime is required",
+		"governance_runtime.profiles is required",
+		"governance_runtime.legacy_aliases is required",
 		"generator_evidence.required must be true",
 		"tools.go must be recorded",
 	} {
