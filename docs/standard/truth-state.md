@@ -53,7 +53,7 @@ artifact_exists != usable
 CHECK_STATUS=passed != release-ready evidence
 ```
 
-first-PR/MVA 的通过条件是：状态文件存在、语义清晰、docs-check 可发现本标准，并且 `GOWORK=off XLIB_CONTEXT=ci_pull_request make governance-check` 不因缺少该标准失败。
+first-PR/MVA 的通过条件是：状态文件存在、语义清晰、docs-check 可发现本标准，并且 `GOWORK=off make governance-check` 不因缺少该标准失败。
 
 ## DONE with evidence 要求
 
@@ -61,5 +61,5 @@ first-PR/MVA 的通过条件是：状态文件存在、语义清晰、docs-check
 
 - 修改的 `.agent/*status*.yaml` 或 `truth-state.yaml` 文件。
 - 是否触达 release manifest 或 release-check；first-PR/MVA 应明确写为未触达。
-- 至少一个本地命令证据，例如 `GOWORK=off XLIB_CONTEXT=ci_pull_request make governance-check`。
+- 至少一个本地命令证据，例如 `GOWORK=off make governance-check`。
 - 已知缺口：后续 gate-result runtime、release manifest cutover、artifact provenance、downstream migration-wave 若未实现必须继续列为 follow-up。

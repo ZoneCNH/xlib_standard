@@ -3,7 +3,7 @@ module: xlib-standard
 scope: first-pr-mva-truth-state
 source: "/home/xlib-standard/.worktree/patch.md"
 acceptance:
-  command: "GOWORK=off XLIB_CONTEXT=ci_pull_request make governance-check"
+  command: "GOWORK=off make governance-check"
   optional:
     - "GOWORK=off go test ./cmd/xlibgate ./contracts"
 summary: "记录 first-PR/MVA 只建立事实状态边界，不把计划、注册、dry-run 或本地检查升级为 release-usable。"
