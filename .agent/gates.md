@@ -17,8 +17,8 @@
 
 ## Final Gates
 
-- `GOWORK=off make release-final-check`
-- `GOWORK=off make release-preflight VERSION=<version>`
+- `XLIB_CONTEXT=release_verify GOWORK=off make release-final-check`
+- `XLIB_CONTEXT=release_verify GOWORK=off make release-preflight VERSION=<version>`
 - `xlibgate score --min 9.8`
 - kernel downstream smoke：渲染后执行 `GOWORK=off go test ./...`、`make contracts`、`make boundary` 和 release Evidence 校验。
 
@@ -33,3 +33,10 @@
 ## Policy
 
 Required Gates 是 `xlib-standard` 和所有生成基础库的强制基线。Extended Gates 推荐所有生成基础库实现，并对 storage、messaging、observability 和 security-sensitive 基础库强制执行。Chaos、mutation 和 long soak 等 profile-specific heavy gates 不进入默认 `make ci`。
+
+
+## Goal v2.9.3 Governance Gates
+
+- P0 Governance Gate：`XLIB_CONTEXT=local_write GOWORK=off make governance-check`，串联 `main-guard`、`worktree-guard`、`evidence-check`、`boundary`、`security`、`cli-contract`、`issue-registry`、`command-registry` 和 `makefile-baseline`。
+- P1 Governance Dry Run：`GOWORK=off make p1-governance-check`，只做本地文档/registry/schema 证明，不读取 GitHub secrets，不写外部路径。
+- P2 Runtime Dry Run：`GOWORK=off make p2-runtime-check`，验证 conformance profile、pack contract、downstream patch-only、runtime-file-ownership 和 execution-context 文档契约。

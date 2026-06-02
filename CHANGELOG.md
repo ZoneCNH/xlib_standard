@@ -2,19 +2,32 @@
 
 ## 未发布
 
+暂无。
+
+## v0.3.6 - 2026-06-02
+
 ### 修复
 
 - Release manifest 测试改用临时 git fixture 构造 `.omc/state/agent-replay-fixture.jsonl`，避免依赖本地 Agent 运行态文件。
 - GitHub Actions workflow 固定 `checkout`、`setup-go`、`cache` 和 `upload-artifact` 的 40 位 commit SHA，并将 `govulncheck` 固定为 `v1.3.0`。
 - Secret Gate 同时排除 `.omc` 和 `.omx` 本地运行态目录，避免扫描 Agent 状态文件时产生误报。
+- `xlibgate` dry-run verifier 在具备 manifest 覆盖时返回 `passed`，避免 `--verify` 模式继续报告 planned gap。
+- `downstream-baseline`、`downstream-adoption` 和 `upgrade-standard` 默认使用 manifest-only dry-run，只有显式传入 `--repo` 时才检查本地 downstream 路径。
+- Makefile baseline 将 `security` 目标对齐为 `$(XLIBGATE) security`，并把 `execution-context` 纳入强制 target 覆盖。
+
+### 治理
+
+- P2 Runtime Dry Run 新增 `execution-context` gate，并同步 `.agent` registry、Harness 文档和 docs-check 漂移检测。
 
 ### 测试
 
 - 补齐 `internal/releasequality` 对 `Compute`、`Verify` 和 `Marshal` 的单元测试。
+- 补充 `xlibgate` 对 `execution-context` baseline 缺口、manifest-backed verify 通过路径和 downstream 显式 repo gap 的回归测试。
 
 ### 文档
 
 - 对齐 `docs/independent-audit-20260602.md` 的修复状态，并补充 score 语义边界、workflow pinning 和固定工具版本要求。
+- 更新 Harness Gate 说明，明确 P2 Runtime Dry Run 覆盖 runtime-file-ownership 与 execution-context。
 
 ## v0.3.5 - 2026-06-02
 

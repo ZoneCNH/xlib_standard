@@ -99,6 +99,42 @@ func TestMetricsContractDocumentsPublicConstants(t *testing.T) {
 	}
 }
 
+func TestGoalRuntimeSchemasAreValidJSON(t *testing.T) {
+	for _, path := range []string{
+		"xlibgate-report.schema.json",
+		"issue-registry.schema.json",
+		"command-registry.schema.json",
+		"execution-context.schema.json",
+		"conformance-attestation.schema.json",
+		"policy.schema.json",
+	} {
+		t.Run(path, func(t *testing.T) {
+			content, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatalf("read %s: %v", path, err)
+			}
+			var schema map[string]any
+			if err := json.Unmarshal(content, &schema); err != nil {
+				t.Fatalf("parse %s: %v", path, err)
+			}
+			if schema["$schema"] == "" || schema["type"] != "object" {
+				t.Fatalf("%s must declare object JSON schema, got %#v", path, schema)
+			}
+		})
+	}
+}
+
+func TestExecutionContextContractMatchesGovernanceContexts(t *testing.T) {
+	schema := readSchema(t, "execution-context.schema.json")
+
+	expected := sortedStrings("local_write", "local_readonly", "ci_pull_request", "ci_main_verify", "release_verify")
+	actual := sortedStrings(schema.Properties["context"].Enum...)
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("execution context enum drift:\nactual:   %#v\nexpected: %#v", actual, expected)
+	}
+	requireFields(t, schema.Required, "context", "root", "gowork")
+}
+
 func requireSchemaFieldMapsToStructField(t *testing.T, schema objectSchema, structType reflect.Type, schemaField string, structField string, schemaType string) {
 	t.Helper()
 

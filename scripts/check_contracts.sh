@@ -8,6 +8,12 @@ REQUIRED_FILES=(
   "contracts/health.schema.json"
   "contracts/error.schema.json"
   "contracts/metrics.md"
+  "contracts/xlibgate-report.schema.json"
+  "contracts/issue-registry.schema.json"
+  "contracts/command-registry.schema.json"
+  "contracts/execution-context.schema.json"
+  "contracts/conformance-attestation.schema.json"
+  "contracts/policy.schema.json"
 )
 
 for file in "${REQUIRED_FILES[@]}"; do

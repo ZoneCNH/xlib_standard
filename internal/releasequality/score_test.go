@@ -148,6 +148,44 @@ func TestMarshalStableJSON(t *testing.T) {
 	}
 }
 
+func TestScoreGateDimensionAcceptsStricterScoreMinimum(t *testing.T) {
+	root := t.TempDir()
+	path := filepath.Join(root, "Makefile")
+	content := `score-check:
+	score --min 9.8
+release-final-check: score-check
+	score --min 9.8
+`
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatalf("write Makefile fixture: %v", err)
+	}
+
+	dimension := scoreGateDimension(path)
+	if !dimension.Passed {
+		t.Fatalf("dimension failed with detail %q", dimension.Detail)
+	}
+}
+
+func TestScoreGateDimensionRejectsWeakScoreMinimum(t *testing.T) {
+	root := t.TempDir()
+	path := filepath.Join(root, "Makefile")
+	content := `score-check:
+	score --min 9.4
+release-final-check: score-check
+`
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatalf("write Makefile fixture: %v", err)
+	}
+
+	dimension := scoreGateDimension(path)
+	if dimension.Passed {
+		t.Fatal("expected weak score minimum to fail")
+	}
+	if !strings.Contains(dimension.Detail, "score --min >= 9.8") {
+		t.Fatalf("dimension detail = %q; want threshold explanation", dimension.Detail)
+	}
+}
+
 func TestTextDimensionReportsMissingNeedles(t *testing.T) {
 	root := t.TempDir()
 	path := filepath.Join(root, "doc.txt")
@@ -193,7 +231,7 @@ func writeReleaseQualityFixture(t *testing.T, root string) {
 }`,
 		"cmd/xlibgate/main.go": "score --min",
 		"Makefile": `score-check:
-	score --min 9.5
+	score --min 9.8
 release-final-check: score-check
 `,
 		"scripts/check_release_evidence.sh": "RELEASE_EVIDENCE_MIN_SCORE --min-score",

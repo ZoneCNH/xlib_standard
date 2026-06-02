@@ -28,7 +28,7 @@
 ## Gate 契约
 
 - `GOWORK=off make release-check` 会运行 `score-check`，默认要求 `score >= 9.8`。
-- `GOWORK=off make release-final-check` 会再次运行 `go run ./cmd/xlibgate score --min 9.5`，并要求 release manifest 内记录的 `score.value` 满足 `RELEASE_EVIDENCE_MIN_SCORE=9.5`。
+- `GOWORK=off make release-final-check` 会再次运行 `go run ./cmd/xlibgate score --min 9.8`，并要求 release manifest 内记录的 `score.value` 满足 `RELEASE_EVIDENCE_MIN_SCORE=9.5`。
 - `release/manifest/latest.json` 会记录 `score` 和 `workflow`，其中 `workflow_run_id`、`artifact_name`、`artifact_url` 用于连接 CI artifact；本地运行时使用 `local:*` evidence URL。
 
 ## JSON 形状

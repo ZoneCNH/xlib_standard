@@ -1,0 +1,27 @@
+schema_version: "2.9.3"
+module: xlib-standard
+targets:
+  - fmt
+  - vet
+  - lint
+  - test
+  - race
+  - boundary
+  - security
+  - contracts
+  - docs-check
+  - evidence
+  - score-check
+  - main-guard
+  - worktree-guard
+  - evidence-check
+  - cli-contract
+  - issue-registry
+  - command-registry
+  - makefile-baseline
+  - governance-check
+  - p1-governance-check
+  - execution-context
+  - p2-runtime-check
+  - release-check
+  - release-final-check

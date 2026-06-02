@@ -16,7 +16,7 @@
 推荐入口是：
 
 ```bash
-GOWORK=off make release-check
+XLIB_CONTEXT=release_verify GOWORK=off make release-check
 ```
 
 `GOWORK=off` 用于证明模板不依赖父级 workspace。Makefile 的 gate 入口统一通过 `cmd/xlibgate` 调度；shell 脚本仍保留为兼容实现层，供本地排障和旧自动化复用。
@@ -32,7 +32,7 @@ CI 和 release workflow 必须在 release gate 后执行该评分，防止 Makef
 发布前的最终入口是：
 
 ```bash
-GOWORK=off make release-final-check
+XLIB_CONTEXT=release_verify GOWORK=off make release-final-check
 ```
 
 `release-final-check` 会在完整 gate 之后要求 `release/manifest/latest.json` 与当前 HEAD、源码摘要、contract 指纹和依赖清单一致，并要求 git 工作区为 `clean`。它适合在打 tag 或发布前运行；开发中的 `release-check` 允许工作区因为未提交改动显示为 `dirty`，但仍会校验 manifest 与当前内容一致。
@@ -40,10 +40,10 @@ GOWORK=off make release-final-check
 打 tag 前推荐使用 release preflight：
 
 ```bash
-make release-preflight VERSION=v0.1.0
+XLIB_CONTEXT=release_verify GOWORK=off make release-preflight VERSION=v0.1.0
 ```
 
-`release-preflight` 会先检查版本号、当前分支、工作区洁净状态、`main` 与 `origin/main` 是否一致、目标 tag 是否已存在、`CHANGELOG.md` 是否包含目标版本，以及 `golangci-lint` / `govulncheck` 是否已安装；随后以 `GOWORK=off` 运行 `release-final-check`。tag 应在该入口通过后再创建和推送。
+`release-preflight` 会先检查版本号、当前分支、工作区洁净状态、`main` 与 `origin/main` 是否一致、目标 tag 是否已存在、`CHANGELOG.md` 是否包含目标版本，以及 `golangci-lint` / `govulncheck` 是否已安装；随后以 `GOWORK=off` 和 `XLIB_CONTEXT=release_verify` 运行 `release-final-check`。tag 应在该入口通过后再创建和推送。
 
 ## Required Release Check
 

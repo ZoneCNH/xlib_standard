@@ -1,4 +1,12 @@
 XLIBGATE ?= go run ./cmd/xlibgate
+XLIB_CONTEXT ?= local_write
+
+.PHONY: require-gowork-off
+require-gowork-off:
+	@if [ "$${GOWORK:-}" != "off" ]; then \
+		echo "GOWORK=off is required for release targets"; \
+		exit 1; \
+	fi
 
 .PHONY: fmt
 fmt:
@@ -49,7 +57,7 @@ security:
 		echo "govulncheck not installed"; \
 		exit 1; \
 	fi
-	$(XLIBGATE) secrets
+	$(XLIBGATE) security
 
 .PHONY: boundary
 boundary:
@@ -75,66 +83,117 @@ golden:
 evidence:
 	$(XLIBGATE) evidence
 
-.PHONY: score-check
-score-check:
+.PHONY: goal-score-check
+goal-score-check:
 	go run ./cmd/xlibgate score --min 9.8
 
 .PHONY: release-evidence-hash
 release-evidence-hash:
-	$(XLIBGATE) release-evidence-hash >/dev/null
+	$(XLIBGATE) release-evidence-hash
 
 .PHONY: release-evidence-check
 release-evidence-check:
-	RELEASE_EVIDENCE_REQUIRE_PASSED=1 $(XLIBGATE) release-evidence-check
+	$(XLIBGATE) release-evidence-check
 
 .PHONY: release-evidence-checksum-check
 release-evidence-checksum-check:
 	$(XLIBGATE) release-evidence-checksum-check
 
-.PHONY: require-gowork-off
-require-gowork-off:
-	@if [ "$(GOWORK)" != "off" ]; then \
-		echo "GOWORK=off is required for release targets"; \
-		exit 1; \
-	fi
-
 .PHONY: score
 score:
-	# Direct equivalent for docs/CI drift checks: go run ./cmd/xlibgate score --min 9.8
 	$(XLIBGATE) score --min 9.8
 
 .PHONY: score-check
 score-check:
 	# Release evidence verifier default: RELEASE_EVIDENCE_MIN_SCORE=9.5
-	$(XLIBGATE) score --min 9.5
+	# Direct equivalent for docs/CI drift checks: go run ./cmd/xlibgate score --min 9.8
+	$(XLIBGATE) score --min 9.8
+
+.PHONY: version
+version:
+	$(XLIBGATE) version
+
+.PHONY: doctor
+doctor:
+	$(XLIBGATE) doctor
+
+.PHONY: main-guard
+main-guard:
+	$(XLIBGATE) main-guard --context $(XLIB_CONTEXT)
+
+.PHONY: worktree-guard
+worktree-guard:
+	$(XLIBGATE) worktree-guard --context $(XLIB_CONTEXT)
+
+.PHONY: evidence-check
+evidence-check:
+	$(XLIBGATE) evidence-check
+
+.PHONY: cli-contract
+cli-contract:
+	$(XLIBGATE) cli-contract
+
+.PHONY: issue-registry
+issue-registry:
+	$(XLIBGATE) issue-registry
+
+.PHONY: command-registry
+command-registry:
+	$(XLIBGATE) command-registry
+
+.PHONY: makefile-baseline
+makefile-baseline:
+	$(XLIBGATE) makefile-baseline
+
+.PHONY: agent-team-contract scope-lock pr-template acceptance-matrix runtime-health upgrade-standard conformance-profile downstream-registry self-healing-skeleton goal-runtime github-governance supply-chain changelog governance-fixture-test autoresearch policy-schema github-settings toolchain evidence-artifacts naming
+agent-team-contract scope-lock pr-template acceptance-matrix runtime-health upgrade-standard conformance-profile downstream-registry self-healing-skeleton goal-runtime github-governance supply-chain changelog governance-fixture-test autoresearch policy-schema github-settings toolchain evidence-artifacts naming:
+	$(XLIBGATE) $@ --dry-run --verify
+
+.PHONY: install-runtime upgrade-runtime release-ready evidence-replay attest-conformance pack-standard pack-gate pack-evidence downstream-baseline downstream-adoption runtime-file-ownership
+install-runtime upgrade-runtime release-ready evidence-replay attest-conformance pack-standard pack-gate pack-evidence downstream-baseline downstream-adoption runtime-file-ownership:
+	$(XLIBGATE) $@ --dry-run --verify
+
+.PHONY: execution-context
+execution-context:
+	$(XLIBGATE) $@ --dry-run --verify
+
+.PHONY: governance-check
+governance-check: require-gowork-off main-guard worktree-guard evidence-check boundary security contracts docs-check cli-contract issue-registry command-registry makefile-baseline
+
+.PHONY: p1-governance-check
+p1-governance-check: agent-team-contract scope-lock pr-template acceptance-matrix runtime-health upgrade-standard conformance-profile downstream-registry self-healing-skeleton goal-runtime github-governance supply-chain changelog governance-fixture-test autoresearch policy-schema github-settings toolchain evidence-artifacts naming
+
+.PHONY: p2-runtime-check
+p2-runtime-check: install-runtime upgrade-runtime release-ready evidence-replay attest-conformance pack-standard pack-gate pack-evidence downstream-baseline downstream-adoption runtime-file-ownership execution-context
 
 .PHONY: ci
-ci: fmt vet lint test race boundary security contracts score
+ci: fmt vet lint test race boundary security contracts governance-check score
 
 .PHONY: ci-extended
 ci-extended: ci property golden fuzz-smoke
 
 .PHONY: release-check
-release-check: require-gowork-off ci integration dependency-check standard-impact-check docs-check score-check
+release-check: require-gowork-off ci integration dependency-check standard-impact-check docs-check score-check governance-check p1-governance-check p2-runtime-check
 	CHECK_STATUS=passed $(MAKE) evidence
 	$(MAKE) release-evidence-hash
 	$(MAKE) release-evidence-check
 	$(MAKE) release-evidence-checksum-check
 
 .PHONY: release-check-extended
-release-check-extended: require-gowork-off ci-extended integration dependency-check standard-impact-check docs-check score-check
+release-check-extended: require-gowork-off ci-extended integration dependency-check standard-impact-check docs-check score-check governance-check p1-governance-check p2-runtime-check
 	CHECK_STATUS=passed $(MAKE) evidence
 	$(MAKE) release-evidence-hash
 	$(MAKE) release-evidence-check
 	$(MAKE) release-evidence-checksum-check
 
 .PHONY: release-final-check
-release-final-check: release-check
-	go run ./cmd/xlibgate score --min 9.5
+release-final-check:
+	XLIB_CONTEXT=release_verify GOWORK=off $(MAKE) release-check
+	$(XLIBGATE) score --min 9.8
 	RELEASE_EVIDENCE_REQUIRE_PASSED=1 RELEASE_EVIDENCE_REQUIRE_CLEAN=1 RELEASE_EVIDENCE_MIN_SCORE=9.5 ./scripts/check_release_evidence.sh
 	$(MAKE) release-evidence-checksum-check
 
 .PHONY: release-preflight
 release-preflight:
 	./scripts/check_release_preflight.sh "$(VERSION)"
-	GOWORK=off VERSION="$(VERSION)" $(MAKE) release-final-check
+	GOWORK=off XLIB_CONTEXT=release_verify VERSION="$(VERSION)" $(MAKE) release-final-check

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -33,7 +35,7 @@ func Compute(threshold float64) Report {
 		fileDimension("scorecard_doc", 1, "docs/scorecard.md", "scorecard rubric is documented"),
 		textDimension("manifest_score_schema", 1, "release/manifest/template.json", []string{"\"score\"", "\"workflow_run_id\"", "\"artifact_url\""}, "manifest records score and workflow evidence"),
 		textDimension("score_cli", 1, "cmd/xlibgate/main.go", []string{"score", "--min"}, "xlibgate score command is runnable"),
-		textDimension("score_gate", 1, "Makefile", []string{"score-check", "score --min 9.5", "release-final-check"}, "release targets enforce score thresholds"),
+		scoreGateDimension("Makefile"),
 		textDimension("manifest_min_score_verify", 1, "scripts/check_release_evidence.sh", []string{"RELEASE_EVIDENCE_MIN_SCORE", "--min-score"}, "release evidence verification passes score threshold"),
 		textDimension("security_gate", 1, "scripts/check_secrets.sh", []string{"github_pat_", "ghp_[A-Za-z0-9_]{36,}", "PRIVATE KEY-----"}, "secret scanner covers provider tokens and private keys"),
 		textDimension("release_docs", 1, "docs/release.md", []string{"go run ./cmd/xlibgate score --min 9.8", "workflow_run_id", "artifact_url"}, "release docs bind score and CI artifact evidence"),
@@ -99,4 +101,40 @@ func textDimension(name string, weight float64, path string, needles []string, d
 		detail = detail + ": missing " + strings.Join(missing, ", ")
 	}
 	return Dimension{Name: name, Weight: weight, Passed: passed, Detail: detail}
+}
+
+func scoreGateDimension(path string) Dimension {
+	const detail = "release targets enforce score thresholds"
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return Dimension{Name: "score_gate", Weight: 1, Passed: false, Detail: detail + ": missing " + path}
+	}
+	text := string(data)
+	var missing []string
+	for _, needle := range []string{"score-check", "release-final-check"} {
+		if !strings.Contains(text, needle) {
+			missing = append(missing, needle)
+		}
+	}
+	if !hasScoreMinimumAtLeast(text, 9.8) {
+		missing = append(missing, "score --min >= 9.8")
+	}
+	passed := len(missing) == 0
+	gateDetail := detail
+	if !passed {
+		gateDetail = gateDetail + ": missing " + strings.Join(missing, ", ")
+	}
+	return Dimension{Name: "score_gate", Weight: 1, Passed: passed, Detail: gateDetail}
+}
+
+var scoreMinPattern = regexp.MustCompile(`\bscore\s+--min\s+([0-9]+(?:\.[0-9]+)?)\b`)
+
+func hasScoreMinimumAtLeast(text string, minimum float64) bool {
+	for _, match := range scoreMinPattern.FindAllStringSubmatch(text, -1) {
+		value, err := strconv.ParseFloat(match[1], 64)
+		if err == nil && value >= minimum {
+			return true
+		}
+	}
+	return false
 }

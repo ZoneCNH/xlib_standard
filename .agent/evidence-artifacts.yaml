@@ -1,0 +1,2 @@
+schema_version: "1.0"
+required_fields: [commit, tree_sha, workflow_run_id, artifact_url, sha256, gates]
