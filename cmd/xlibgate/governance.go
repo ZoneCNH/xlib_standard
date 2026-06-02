@@ -540,6 +540,10 @@ var commandRegistryCommands = []string{
 	"context-profile",
 	"context-profile-check",
 	"context-schema-check",
+	"context-lite",
+	"context-standard",
+	"context-full",
+	"context-release",
 	"context-fast-check",
 	"context-standard-check",
 	"context-full-check",
@@ -614,6 +618,7 @@ func requiredIssueRegistryNeedles() []string {
 		{prefix: "P0", count: 18},
 		{prefix: "P1", count: 21},
 		{prefix: "P2", count: 15},
+		{prefix: "CTX", count: 4},
 	} {
 		for i := 1; i <= prefixAndCount.count; i++ {
 			needles = append(needles, prefixAndCount.prefix+"-"+fmt.Sprintf("%03d", i))
