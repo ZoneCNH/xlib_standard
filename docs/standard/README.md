@@ -11,7 +11,6 @@
 - [完成定义](dod.md)：基础库 DONE with evidence 的最低标准。
 - [Harness gate](harness-gates.md)：required、extended、generator、docs、score 和 final gate。
 - [Evidence 协议](evidence-protocol.md)：release/manifest/template.json、release/manifest/latest.json、artifact_url、workflow_run_id、sha256 和 DONE 声明。
-- [Truth-State 标准](truth-state.md)：区分 registered、baseline scanned、dry-run ready、executed、usable 和 adopted。
 - [Release 标准](release-standard.md)：release/manifest/latest.json.sha256、preflight 和 final check。
 - [安全与密钥](security-and-secret-policy.md)：禁止泄露生产密钥和 `/home/k8s/secrets/env/*` 内容。
 - [模板生成契约](template-generation-contract.md)：module path、package name、README/docs 替换规则。
