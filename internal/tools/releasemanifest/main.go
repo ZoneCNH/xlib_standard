@@ -145,14 +145,19 @@ type StandardImpactEvidence struct {
 }
 
 type GovernanceRuntime struct {
-	Runtime       string   `json:"runtime"`
-	SchemaVersion string   `json:"schema_version"`
-	Status        string   `json:"status"`
-	Profiles      []string `json:"profiles"`
-	ProfileCheck  string   `json:"profile_check"`
-	ReleaseTarget string   `json:"release_target"`
-	LegacyAliases []string `json:"legacy_aliases"`
+	Runtime         string            `json:"runtime"`
+	SchemaVersion   string            `json:"schema_version"`
+	RuntimeVersion  string            `json:"runtime_version"`
+	Status          string            `json:"status"`
+	Profiles        []string          `json:"profiles"`
+	ProfileCheck    string            `json:"profile_check"`
+	ReleaseTarget   string            `json:"release_target"`
+	LegacyAliases   []string          `json:"legacy_aliases"`
+	GateStatuses    map[string]string `json:"gate_statuses"`
+	ProfileStatuses map[string]string `json:"profile_statuses"`
 }
+
+type GovernanceRuntimeEvidence = GovernanceRuntime
 
 type GeneratorEvidence struct {
 	Command  string            `json:"command"`
@@ -366,6 +371,10 @@ func verifyManifest(path string, requirePassed bool, requireClean bool, expectVe
 	if !reflect.DeepEqual(got.GovernanceRuntime, current.GovernanceRuntime) {
 		failures = append(failures, "governance_runtime does not match current context runtime evidence")
 	}
+	if governanceFailures := validateGovernanceRuntimeEvidence(got.GovernanceRuntime); len(governanceFailures) > 0 {
+		failures = append(failures, "governance_runtime does not match current governance runtime evidence")
+		failures = append(failures, governanceFailures...)
+	}
 	if got.DownstreamSyncRequired != current.DownstreamSyncRequired {
 		failures = append(failures, fmt.Sprintf("downstream_sync_required mismatch: got %t, want %t", got.DownstreamSyncRequired, current.DownstreamSyncRequired))
 	}
@@ -483,24 +492,40 @@ func buildStandardImpactEvidence() (StandardImpactEvidence, error) {
 }
 
 func buildGovernanceRuntime() GovernanceRuntime {
-	return GovernanceRuntime{
-		Runtime:       "context-runtime-v4.0",
-		SchemaVersion: "4.0",
-		Status:        "present",
-		Profiles: []string{
-			"context-lite",
-			"context-standard",
-			"context-full",
-			"context-release",
-		},
-		ProfileCheck:  "context-profile-check",
-		ReleaseTarget: "context-release",
-		LegacyAliases: []string{
-			"context-fast-check",
-			"context-standard-check",
-			"context-full-check",
-		},
+	evidence := buildGovernanceRuntimeEvidence()
+	evidence.Runtime = "context-runtime-v4.0"
+	evidence.Status = "present"
+	evidence.Profiles = []string{
+		"context-lite",
+		"context-standard",
+		"context-full",
+		"context-release",
 	}
+	evidence.ProfileCheck = "context-profile-check"
+	evidence.ReleaseTarget = "context-release"
+	evidence.LegacyAliases = []string{
+		"context-fast-check",
+		"context-standard-check",
+		"context-full-check",
+	}
+	return evidence
+}
+
+func buildGovernanceRuntimeEvidence() GovernanceRuntimeEvidence {
+	return GovernanceRuntimeEvidence{
+		SchemaVersion:   governanceRuntimeVersion,
+		RuntimeVersion:  governanceRuntimeVersion,
+		GateStatuses:    copyStatusMap(governanceRuntimeGateStatuses),
+		ProfileStatuses: copyStatusMap(governanceRuntimeProfileStatuses),
+	}
+}
+
+func copyStatusMap(statuses map[string]string) map[string]string {
+	copied := make(map[string]string, len(statuses))
+	for name, status := range statuses {
+		copied[name] = status
+	}
+	return copied
 }
 
 func parseReportValue(report string, key string) string {

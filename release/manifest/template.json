@@ -77,8 +77,23 @@
     "primary_downstream": "{{PRIMARY_DOWNSTREAM}}"
   },
   "governance_runtime": {
+    "runtime": "context-runtime-v4.0",
     "schema_version": "v2.9.3",
     "runtime_version": "v2.9.3",
+    "status": "present",
+    "profiles": [
+      "context-lite",
+      "context-standard",
+      "context-full",
+      "context-release"
+    ],
+    "profile_check": "context-profile-check",
+    "release_target": "context-release",
+    "legacy_aliases": [
+      "context-fast-check",
+      "context-standard-check",
+      "context-full-check"
+    ],
     "gate_statuses": {
       "governance": "passed"
     },

@@ -191,10 +191,10 @@ func runMakefileBaseline(args []string, stdout io.Writer, stderr io.Writer) int 
 }
 
 var contextProfileGates = map[string][]string{
-	"lite":     {"main-guard", "worktree-guard", "evidence-check", "cli-contract", "command-registry", "issue-registry", "makefile-baseline", "context-profile-check"},
-	"standard": {"context-lite", "p1-governance-check", "docs-check"},
-	"full":     {"context-standard", "p2-runtime-check"},
-	"release":  {"context-standard", "standard-impact-check", "score-check", "evidence", "release-evidence-hash", "release-evidence-check", "release-evidence-checksum-check"},
+	"lite":     {"governance-check"},
+	"standard": {"governance-check", "p1-governance-check", "docs-check"},
+	"full":     {"governance-check", "p1-governance-check", "p2-runtime-check"},
+	"release":  {"context-full", "integration", "dependency-check", "standard-impact-check", "score-check", "evidence", "release-evidence-hash", "release-evidence-check", "release-evidence-checksum-check"},
 }
 
 func runContextProfile(args []string, stdout io.Writer, stderr io.Writer) int {
@@ -234,14 +234,14 @@ func runContextProfileCheck(command string, args []string, stdout io.Writer, std
 	if err := validateInternalCommandArgs(command, args, internalCommandFlagSpec{boolFlags: []string{"json", "strict"}, stringFlags: []string{"profile"}}); err != nil {
 		return invalidInternalArgsExit(command, err, stderr)
 	}
-	contextTargets := []string{"context-profile", "context-profile-check", "context-schema-check", "context-lite", "context-standard", "context-full", "context-release", "context-fast-check", "context-standard-check", "context-full-check"}
+	contextTargets := contextRuntimeTargets()
 	required := map[string][]string{
-		".agent/command-registry.yaml":        requiredCommandRegistryNeedles(),
-		".agent/issue-registry.yaml":          requiredIssueRegistryNeedles(),
-		".agent/makefile-target-registry.yaml": contextTargets,
-		".agent/makefile-baseline.yaml":       contextTargets,
+		".agent/command-registry.yaml":           requiredCommandRegistryNeedles(),
+		".agent/issue-registry.yaml":             requiredIssueRegistryNeedles(),
+		".agent/makefile-target-registry.yaml":   contextTargets,
+		".agent/makefile-baseline.yaml":          contextTargets,
 		"docs/standard/xlibgate-cli-contract.md": commandRegistryRequiredCommands(),
-		"Makefile": {"release-final-check:", "$(MAKE) context-release"},
+		"Makefile":                               {"release-final-check:", "$(MAKE) context-release"},
 	}
 	for _, target := range contextTargets {
 		required["Makefile"] = append(required["Makefile"], ".PHONY: "+target, target+":")
@@ -264,11 +264,13 @@ func runContextProfileCheck(command string, args []string, stdout io.Writer, std
 		gaps = append(gaps, ".agent/issue-registry.yaml must not claim CTX-051")
 	}
 	if makefile, err := os.ReadFile("Makefile"); err == nil {
-		contextReleaseBlock := makefileTargetBlock(string(makefile), "context-release")
-		if strings.Contains(contextReleaseBlock, "release-check") || strings.Contains(contextReleaseBlock, "release-final-check") {
-			gaps = append(gaps, "context-release must not call release-check or release-final-check")
-		}
-		releaseFinalBlock := makefileTargetBlock(string(makefile), "release-final-check")
+		makefileText := string(makefile)
+		appendMakefileDuplicateGaps(makefileText, contextTargets, &gaps)
+		appendMakefileTargetDependencyGaps(makefileText, "context-lite", []string{"require-gowork-off", "governance-check"}, []string{"context-profile-check", "main-guard", "worktree-guard", "release-check", "release-final-check"}, &gaps)
+		appendMakefileTargetDependencyGaps(makefileText, "context-standard", []string{"require-gowork-off", "governance-check", "p1-governance-check", "docs-check"}, []string{"context-lite", "context-profile-check", "release-check", "release-final-check"}, &gaps)
+		appendMakefileTargetDependencyGaps(makefileText, "context-full", []string{"require-gowork-off", "governance-check", "p1-governance-check", "p2-runtime-check"}, []string{"context-standard", "docs-check", "context-profile-check", "release-check", "release-final-check"}, &gaps)
+		appendMakefileTargetDependencyGaps(makefileText, "context-release", []string{"require-gowork-off", "context-full", "integration", "dependency-check", "standard-impact-check", "score-check"}, []string{"context-standard", "release-check", "release-final-check"}, &gaps)
+		releaseFinalBlock := makefileTargetBlock(makefileText, "release-final-check")
 		if !strings.Contains(releaseFinalBlock, "$(MAKE) context-release") {
 			gaps = append(gaps, "release-final-check must call context-release")
 		}
@@ -277,7 +279,22 @@ func runContextProfileCheck(command string, args []string, stdout io.Writer, std
 		write(stderr, "ERROR: %s found %d gap(s)\n", command, len(gaps))
 		return emitReport(stdout, command, "failed", nil, gaps)
 	}
-	return emitReport(stdout, command, "passed", []string{"context runtime v4.0 registry contract satisfied", ".agent/context not required or claimed", "context-release excludes release-check and release-final-check"}, nil)
+	return emitReport(stdout, command, "passed", []string{"context runtime v4.0 profile DAG and registry contract satisfied", ".agent/context not required or claimed", "context-release excludes release-check and release-final-check", "release-final-check delegates to context-release"}, nil)
+}
+
+func contextRuntimeTargets() []string {
+	return []string{
+		"context-profile",
+		"context-profile-check",
+		"context-schema-check",
+		"context-lite",
+		"context-standard",
+		"context-full",
+		"context-release",
+		"context-fast-check",
+		"context-standard-check",
+		"context-full-check",
+	}
 }
 
 func contextProfileDetails(profile string, gates []string) []string {
@@ -330,6 +347,52 @@ func makefileTargetBlock(content, target string) string {
 		}
 	}
 	return strings.Join(block, "\n")
+}
+
+func appendMakefileDuplicateGaps(content string, targets []string, gaps *[]string) {
+	for _, target := range targets {
+		if count := makefileTargetDefinitionCount(content, target); count != 1 {
+			*gaps = append(*gaps, fmt.Sprintf("Makefile target %s must be defined exactly once, found %d", target, count))
+		}
+	}
+}
+
+func makefileTargetDefinitionCount(content, target string) int {
+	count := 0
+	for _, line := range strings.Split(content, "\n") {
+		if strings.HasPrefix(line, target+":") {
+			count++
+		}
+	}
+	return count
+}
+
+func appendMakefileTargetDependencyGaps(content, target string, required []string, forbidden []string, gaps *[]string) {
+	block := makefileTargetBlock(content, target)
+	if block == "" {
+		*gaps = append(*gaps, "Makefile missing target block "+target)
+		return
+	}
+	header := strings.SplitN(block, "\n", 2)[0]
+	for _, token := range required {
+		if !makefileHeaderHasToken(header, token) {
+			*gaps = append(*gaps, "Makefile "+target+" missing dependency "+token)
+		}
+	}
+	for _, token := range forbidden {
+		if makefileHeaderHasToken(header, token) {
+			*gaps = append(*gaps, "Makefile "+target+" must not depend on "+token)
+		}
+	}
+}
+
+func makefileHeaderHasToken(header, token string) bool {
+	for _, field := range strings.Fields(strings.ReplaceAll(header, ":", " ")) {
+		if field == token {
+			return true
+		}
+	}
+	return false
 }
 
 var plannedCommandFiles = map[string][]string{
