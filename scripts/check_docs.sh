@@ -71,7 +71,7 @@ require_text "docs/downstream-sync-policy.md" "kernel"
 require_text "docs/downstream-sync-policy.md" "corekit"
 require_text "docs/downstream-sync-policy.md" "L1 基础库"
 require_text "docs/downstream-sync-policy.md" "x.go 仅作为基础库消费方"
-require_text "docs/downstream-sync-policy.md" "downstream-sync-required"
+require_text "docs/downstream-sync-policy.md" "downstream_release_decision"
 require_text "docs/downstream-sync-policy.md" "release/standard-impact/latest.md"
 require_text "docs/downstream-sync-policy.md" "downstream_sync_required"
 require_text "docs/supply-chain.md" "kernel"
@@ -232,7 +232,7 @@ requirements = {
         "x.go 仅作为基础库消费方",
         "kernel",
         "corekit",
-        "downstream-sync-required",
+        "downstream_release_decision",
     ],
 }
 

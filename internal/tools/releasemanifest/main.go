@@ -483,8 +483,10 @@ func buildWorkflowEvidence() WorkflowEvidence {
 
 func buildStandardImpactEvidence() (StandardImpactEvidence, error) {
 	evidence := StandardImpactEvidence{
-		ReportPath: standardImpactReportPath,
-		Status:     "missing",
+		ReportPath:                     standardImpactReportPath,
+		Status:                         "missing",
+		DownstreamReleaseDecision:      "not_required",
+		RepositoryRulesReleaseDecision: "not_required",
 	}
 
 	data, err := os.ReadFile(standardImpactReportPath)
@@ -502,13 +504,9 @@ func buildStandardImpactEvidence() (StandardImpactEvidence, error) {
 	evidence.DownstreamSyncRequired = strings.EqualFold(parseReportValue(report, "downstream_sync_required"), "true")
 	evidence.ContextRuntimeChange = strings.EqualFold(parseReportValue(report, "context_runtime_change"), "true")
 	evidence.GovernanceRegistryChange = strings.EqualFold(parseReportValue(report, "governance_registry_change"), "true")
-	evidence.DownstreamReleaseDecision = parseReportValue(report, "downstream_release_decision")
-	evidence.RepositoryRulesReleaseDecision = parseReportValue(report, "repository_rules_release_decision")
 	evidence.PrimaryDownstream = parseReportValue(report, "primary_downstream")
-	evidence.ContextRuntimeChange = parseReportValue(report, "context_runtime_change")
-	evidence.GovernanceRegistryChange = parseReportValue(report, "governance_registry_change")
-	evidence.DownstreamReleaseDecision = parseReportValue(report, "downstream_release_decision")
-	evidence.RepositoryRulesReleaseDecision = parseReportValue(report, "repository_rules_release_decision")
+	evidence.DownstreamReleaseDecision = reportValueDefault(report, "downstream_release_decision", "not_required")
+	evidence.RepositoryRulesReleaseDecision = reportValueDefault(report, "repository_rules_release_decision", "not_required")
 	return evidence, nil
 }
 
@@ -561,6 +559,14 @@ func parseReportValue(report string, key string) string {
 		}
 	}
 	return ""
+}
+
+func reportValueDefault(report string, key string, fallback string) string {
+	value := parseReportValue(report, key)
+	if value == "" {
+		return fallback
+	}
+	return value
 }
 
 func buildGeneratorEvidence() GeneratorEvidence {

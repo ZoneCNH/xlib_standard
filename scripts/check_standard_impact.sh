@@ -148,7 +148,7 @@ classify_file() {
     templates/context-consumer/*)
       add_category_file "downstream_context" "$file"
       ;;
-    AGENTS.md|Makefile|.github/workflows/*|.github/CODEOWNERS|.github/rulesets/*|infra/github-rules/*|.agent/gates.md)
+    AGENTS.md|Makefile|.github/workflows/*|.github/CODEOWNERS|.github/dependabot.yml|.github/rulesets/*|infra/github-rules/*|.agent/gates.md)
       add_category_file "repository_rules" "$file"
       ;;
     cmd/xlibgate/*|.agent/context/*|docs/standard/xlibgate-cli-contract.md|docs/standard/release-standard.md|docs/standard/harness-gates.md|docs/standard/evidence-protocol.md)
@@ -191,13 +191,13 @@ governance_registry_change="false"
 if (( ${#governance_registry_files[@]} > 0 )); then
   governance_registry_change="true"
 fi
-downstream_release_decision="downstream-sync-not-required"
+downstream_release_decision="not_required"
 if [[ "$downstream_sync_required" == "true" ]]; then
-  downstream_release_decision="downstream-sync-required"
+  downstream_release_decision="required"
 fi
-repository_rules_release_decision="repository-rules-review-not-required"
+repository_rules_release_decision="not_required"
 if (( ${#repository_rules_files[@]} > 0 )); then
-  repository_rules_release_decision="repository-rules-review-required"
+  repository_rules_release_decision="audit_required"
 fi
 
 mkdir -p "$(dirname "$report_path")"
@@ -229,10 +229,6 @@ write_file_list() {
   printf -- '- downstream_release_decision: `%s`\n' "$downstream_release_decision"
   printf -- '- repository_rules_release_decision: `%s`\n' "$repository_rules_release_decision"
   printf -- '- primary_downstream: `%s`\n' "github.com/ZoneCNH/kernel"
-  printf -- '- context_runtime_change: `%s`\n' "$context_runtime_change"
-  printf -- '- governance_registry_change: `%s`\n' "$governance_registry_change"
-  printf -- '- downstream_release_decision: `%s`\n' "$downstream_release_decision"
-  printf -- '- repository_rules_release_decision: `%s`\n' "$repository_rules_release_decision"
   printf -- '- changed_file_count: `%s`\n\n' "${#changed_files[@]}"
 
   printf '## Downstream\n\n'
@@ -260,7 +256,13 @@ write_file_list() {
     printf -- '- `%s`\n' "$downstream_release_decision"
     printf -- '- 原因：未发现 contracts、context_runtime、governance_registry、harness、repository_rules、generator、downstream_context 或 evidence 影响面变化。\n'
   fi
-  printf -- '- `%s`\n' "$repository_rules_release_decision"
+  if (( ${#repository_rules_files[@]} > 0 )); then
+    printf -- '- repository_rules: `%s`\n' "$repository_rules_release_decision"
+    printf -- '- 原因：repository_rules 影响面发生变化，需要审计 GitHub/CI/保护规则配置。\n'
+  else
+    printf -- '- repository_rules: `%s`\n' "$repository_rules_release_decision"
+    printf -- '- 原因：未发现 repository_rules 影响面变化。\n'
+  fi
 } > "$report_path"
 
 echo "standard impact report generated: $report_path"

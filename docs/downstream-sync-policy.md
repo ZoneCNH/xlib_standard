@@ -21,7 +21,7 @@
 | `xlib-standard` 变更类型 | 必需同步动作 | Evidence |
 | --- | --- | --- |
 | `docs/standard/**` 标准文本、仓库角色、分层或模块边界变更 | 更新下游 README、标准引用、DoD 和边界说明；检查旧名是否只在迁移上下文出现 | `GOWORK=off make docs-check`，必要时附 `release/standard-impact/latest.md` |
-| `contracts/**`、metrics、health JSON 或 config schema 变更 | 通知所有受影响基础库更新 contract、测试和示例；breaking change 必须进入 release notes | contracts gate、下游 contract 测试、`downstream-sync-required` 结论 |
+| `contracts/**`、metrics、health JSON 或 config schema 变更 | 通知所有受影响基础库更新 contract、测试和示例；breaking change 必须进入 release notes | contracts gate、下游 contract 测试、`downstream_release_decision: required` 结论 |
 | `scripts/render_template.sh`、generator 占位符或包目录规则变更 | 重新渲染 `kernel`，并运行 `corekit` 中性路径 smoke；确认 module path、package name、README、docs 和 contracts 无旧模板残留，必要时扩展到 L1/L2 采用目标 | `GOWORK=off make integration` |
 | Harness gate、Makefile、CI 或 `.agent/harness.yaml` 变更 | 同步下游 gate 文档和 CI 入口；强制 gate 不得在下游降级为可选 | `GOWORK=off make release-check` 或对应下游 gate 输出 |
 | Evidence protocol、release manifest 字段或 artifact 规则变更 | 更新下游 Evidence 生成、校验和发布模板；manifest 字段变化必须标记同步需求 | manifest 校验、checksum、CI artifact |
@@ -38,7 +38,7 @@
 - 模板渲染输出、package 目录、module path 或 README/docs 占位符发生变化。
 - Standard、DoD、module boundary、Harness gate 或 Evidence 要求发生变化。
 - public API、config、error、health、metrics、contracts 或 release manifest schema 发生变化。
-- `release/standard-impact/latest.md` 或同类报告标记 `downstream-sync-required=true`，且 release manifest 字段 `downstream_sync_required` 为 `true`。
+- `release/standard-impact/latest.md` 或同类报告标记 `downstream_sync_required=true` 且 `downstream_release_decision=required`，release manifest 对应字段也必须一致。
 
 同步完成前，变更说明必须记录 `kernel` 的状态：已同步、无需同步并说明原因，或 blocked 并列出阻塞条件。
 
@@ -68,7 +68,7 @@ x.go 仅作为基础库消费方和应用组合层。它可以根据自身需要
 
 ## PR 与发布要求
 
-- 触达标准、模板、generator、Harness、Evidence、contracts、命名或下游矩阵的 PR，必须说明是否触发 `downstream-sync-required`，并记录 release manifest 的 `downstream_sync_required` 结论。
+- 触达标准、模板、generator、Harness、Evidence、contracts、命名或下游矩阵的 PR，必须说明是否触发 `downstream_release_decision: required`，并记录 release manifest 的 `downstream_sync_required` / `downstream_release_decision` 结论。
 - 触发同步时，PR 或 release Evidence 必须列出 `kernel`、L1、L2 和 `x.go` 的影响结论。
 - 未完成同步时，不得在完成声明中写 “无需下游动作”；必须写明 blocked 原因和后续 owner。
 - `GOWORK=off make docs-check` 必须校验本文件存在、关键角色命名和旧名限制。
