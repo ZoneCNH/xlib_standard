@@ -111,8 +111,12 @@ sort_changed_files
 
 docs_files=()
 contracts_files=()
+context_runtime_files=()
+governance_registry_files=()
 harness_files=()
+repository_rules_files=()
 generator_files=()
+context_consumer_template_files=()
 evidence_files=()
 other_files=()
 
@@ -123,8 +127,12 @@ add_category_file() {
   case "$category" in
     docs) docs_files+=("$file") ;;
     contracts) contracts_files+=("$file") ;;
+    context_runtime) context_runtime_files+=("$file") ;;
+    governance_registry) governance_registry_files+=("$file") ;;
     harness) harness_files+=("$file") ;;
+    repository_rules) repository_rules_files+=("$file") ;;
     generator) generator_files+=("$file") ;;
+    context_consumer_template) context_consumer_template_files+=("$file") ;;
     evidence) evidence_files+=("$file") ;;
     other) other_files+=("$file") ;;
   esac
@@ -134,6 +142,18 @@ classify_file() {
   local file="$1"
 
   case "$file" in
+    .agent/command-registry.yaml|.agent/issue-registry.yaml|.agent/makefile-baseline.yaml|.agent/makefile-target-registry.yaml)
+      add_category_file "governance_registry" "$file"
+      ;;
+    templates/context-consumer/*)
+      add_category_file "context_consumer_template" "$file"
+      ;;
+    AGENTS.md|Makefile|.github/workflows/*|.agent/gates.md)
+      add_category_file "repository_rules" "$file"
+      ;;
+    cmd/xlibgate/*|docs/standard/xlibgate-cli-contract.md|docs/standard/release-standard.md|docs/standard/harness-gates.md|docs/standard/evidence-protocol.md)
+      add_category_file "context_runtime" "$file"
+      ;;
     contracts/*)
       add_category_file "contracts" "$file"
       ;;
@@ -143,7 +163,7 @@ classify_file() {
     scripts/render_template.sh|scripts/check_rendered_template.sh|examples/*|testkit/*)
       add_category_file "generator" "$file"
       ;;
-    Makefile|cmd/xlibgate/*|scripts/check_*.sh|scripts/run_*.sh|.github/workflows/*|.agent/harness*|.agent/gates.md)
+    scripts/check_*.sh|scripts/run_*.sh|.agent/harness*)
       add_category_file "harness" "$file"
       ;;
     docs/*|README.md|.agent/*)
@@ -160,7 +180,7 @@ for file in "${changed_files[@]}"; do
 done
 
 downstream_sync_required="false"
-if (( ${#contracts_files[@]} > 0 || ${#harness_files[@]} > 0 || ${#generator_files[@]} > 0 || ${#evidence_files[@]} > 0 )); then
+if (( ${#contracts_files[@]} > 0 || ${#context_runtime_files[@]} > 0 || ${#governance_registry_files[@]} > 0 || ${#harness_files[@]} > 0 || ${#repository_rules_files[@]} > 0 || ${#generator_files[@]} > 0 || ${#context_consumer_template_files[@]} > 0 || ${#evidence_files[@]} > 0 )); then
   downstream_sync_required="true"
 fi
 
@@ -199,18 +219,22 @@ write_file_list() {
 
   write_file_list "docs" "${docs_files[@]}"
   write_file_list "contracts" "${contracts_files[@]}"
+  write_file_list "context_runtime" "${context_runtime_files[@]}"
+  write_file_list "governance_registry" "${governance_registry_files[@]}"
   write_file_list "harness" "${harness_files[@]}"
+  write_file_list "repository_rules" "${repository_rules_files[@]}"
   write_file_list "generator" "${generator_files[@]}"
+  write_file_list "context_consumer_template" "${context_consumer_template_files[@]}"
   write_file_list "evidence" "${evidence_files[@]}"
   write_file_list "other" "${other_files[@]}"
 
   printf '## Sync Decision\n\n'
   if [[ "$downstream_sync_required" == "true" ]]; then
     printf -- '- `downstream-sync-required`\n'
-    printf -- '- 原因：contracts、harness、generator 或 evidence 影响面发生变化。\n'
+    printf -- '- 原因：contracts、context_runtime、governance_registry、harness、repository_rules、generator、context_consumer_template 或 evidence 影响面发生变化。\n'
   else
     printf -- '- `downstream-sync-not-required`\n'
-    printf -- '- 原因：未发现 contracts、harness、generator 或 evidence 影响面变化。\n'
+    printf -- '- 原因：未发现 contracts、context_runtime、governance_registry、harness、repository_rules、generator、context_consumer_template 或 evidence 影响面变化。\n'
   fi
 } > "$report_path"
 
