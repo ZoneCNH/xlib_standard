@@ -528,8 +528,8 @@ func TestBuildManifestRecordsFixtureRepositoryFacts(t *testing.T) {
 	if manifest.GovernanceRuntime.Runtime != "context-runtime-v4.0" {
 		t.Fatalf("governance_runtime.runtime = %q, want context-runtime-v4.0", manifest.GovernanceRuntime.Runtime)
 	}
-	if manifest.GovernanceRuntime.SchemaVersion != "4.0" || manifest.GovernanceRuntime.Status != "present" {
-		t.Fatalf("governance_runtime = %+v, want schema 4.0 and present", manifest.GovernanceRuntime)
+	if manifest.GovernanceRuntime.SchemaVersion != governanceRuntimeVersion || manifest.GovernanceRuntime.Status != "present" {
+		t.Fatalf("governance_runtime = %+v, want schema %s and present", manifest.GovernanceRuntime, governanceRuntimeVersion)
 	}
 	for _, profile := range []string{"context-lite", "context-standard", "context-full", "context-release"} {
 		if !contains(manifest.GovernanceRuntime.Profiles, profile) {
