@@ -4,6 +4,22 @@
 
 暂无。
 
+## v0.4.3 - 2026-06-03
+
+### 修复
+
+- 将 `downstream-debt` alias 收敛为 downstream 专用检查，避免误触发 architecture debt。
+- 补齐 downstream integration 对 debt Evidence 与 checksum gate 的要求，并锁定渲染后债务证据产物不得进入下游源码。
+- 将 downstream release/integration 覆盖目标同步为 `kernel`、`configx` 和 `redisx`。
+
+### 治理
+
+- 将项目发布版本、release manifest 默认版本、xlibgate 治理版本和 release preflight 示例同步到 `v0.4.3`。
+
+### 兼容性
+
+- 本版本不改变 `pkg/templatex` 公共 API，仅收紧 downstream debt 和 release Evidence 治理。
+
 ## v0.4.2 - 2026-06-03
 
 ### 修复

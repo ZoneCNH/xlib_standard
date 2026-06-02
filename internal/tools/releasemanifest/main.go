@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ZoneCNH/xlib-standard/internal/debtcheck"
 	"github.com/ZoneCNH/xlib-standard/internal/releasequality"
 )
 
@@ -38,25 +39,43 @@ var checkNames = []string{
 	"property",
 	"golden",
 	"fuzz_smoke",
+	"debt",
+	"architecture",
+	"domain",
+	"docs_drift",
+	"dependency_debt",
+	"security_debt",
+	"testing_debt",
+	"implementation_debt",
+	"downstream_debt",
 }
 
 var checkEnvNames = map[string]string{
-	"fmt":              "FMT_STATUS",
-	"vet":              "VET_STATUS",
-	"lint":             "LINT_STATUS",
-	"unit_test":        "UNIT_TEST_STATUS",
-	"race_test":        "RACE_TEST_STATUS",
-	"boundary":         "BOUNDARY_STATUS",
-	"secret_scan":      "SECRET_SCAN_STATUS",
-	"security":         "SECURITY_STATUS",
-	"contract":         "CONTRACT_STATUS",
-	"integration":      "INTEGRATION_STATUS",
-	"dependency_check": "DEPENDENCY_CHECK_STATUS",
-	"standard_impact":  "STANDARD_IMPACT_STATUS",
-	"docs_check":       "DOCS_CHECK_STATUS",
-	"property":         "PROPERTY_STATUS",
-	"golden":           "GOLDEN_STATUS",
-	"fuzz_smoke":       "FUZZ_SMOKE_STATUS",
+	"fmt":                 "FMT_STATUS",
+	"vet":                 "VET_STATUS",
+	"lint":                "LINT_STATUS",
+	"unit_test":           "UNIT_TEST_STATUS",
+	"race_test":           "RACE_TEST_STATUS",
+	"boundary":            "BOUNDARY_STATUS",
+	"secret_scan":         "SECRET_SCAN_STATUS",
+	"security":            "SECURITY_STATUS",
+	"contract":            "CONTRACT_STATUS",
+	"integration":         "INTEGRATION_STATUS",
+	"dependency_check":    "DEPENDENCY_CHECK_STATUS",
+	"standard_impact":     "STANDARD_IMPACT_STATUS",
+	"docs_check":          "DOCS_CHECK_STATUS",
+	"property":            "PROPERTY_STATUS",
+	"golden":              "GOLDEN_STATUS",
+	"fuzz_smoke":          "FUZZ_SMOKE_STATUS",
+	"debt":                "DEBT_STATUS",
+	"architecture":        "ARCHITECTURE_STATUS",
+	"domain":              "DOMAIN_STATUS",
+	"docs_drift":          "DOCS_DRIFT_STATUS",
+	"dependency_debt":     "DEPENDENCY_DEBT_STATUS",
+	"security_debt":       "SECURITY_DEBT_STATUS",
+	"testing_debt":        "TESTING_DEBT_STATUS",
+	"implementation_debt": "IMPLEMENTATION_DEBT_STATUS",
+	"downstream_debt":     "DOWNSTREAM_DEBT_STATUS",
 }
 
 var contractFiles = []string{
@@ -69,9 +88,15 @@ var contractFiles = []string{
 var requiredArtifacts = []string{
 	"release/manifest/latest.json",
 	"release/manifest/latest.json.sha256",
+	"release/debt/latest.json",
+	"release/debt/latest.md",
+	"release/debt/latest.json.sha256",
 }
 
 const standardImpactReportPath = "release/standard-impact/latest.md"
+const debtReportPath = "release/debt/latest.json"
+const debtMarkdownPath = "release/debt/latest.md"
+const debtChecksumPath = "release/debt/latest.json.sha256"
 const governanceRuntimeVersion = "v2.9.3"
 
 var downstreamReleaseDecisionValues = []string{
@@ -86,7 +111,8 @@ var repositoryRulesReleaseDecisionValues = []string{
 
 var generatorEvidenceTargets = []GeneratorTarget{
 	{Name: "kernel", ModulePath: "github.com/ZoneCNH/kernel", PackageName: "kernel"},
-	{Name: "corekit", ModulePath: "example.com/acme/corekit", PackageName: "corekit"},
+	{Name: "configx", ModulePath: "github.com/ZoneCNH/configx", PackageName: "configx"},
+	{Name: "redisx", ModulePath: "github.com/ZoneCNH/redisx", PackageName: "redisx"},
 }
 
 var governanceRuntimeGateStatuses = map[string]string{
@@ -115,6 +141,7 @@ type Manifest struct {
 	Contracts              []FileDigest           `json:"contracts"`
 	Dependencies           []ModuleDigest         `json:"dependencies"`
 	StandardImpact         StandardImpactEvidence `json:"standard_impact"`
+	Debt                   DebtEvidence           `json:"debt"`
 	GovernanceRuntime      GovernanceRuntime      `json:"governance_runtime"`
 	DownstreamSyncRequired bool                   `json:"downstream_sync_required"`
 	GeneratorEvidence      GeneratorEvidence      `json:"generator_evidence"`
@@ -156,6 +183,17 @@ type StandardImpactEvidence struct {
 	DownstreamReleaseDecision      string `json:"downstream_release_decision"`
 	RepositoryRulesReleaseDecision string `json:"repository_rules_release_decision"`
 	PrimaryDownstream              string `json:"primary_downstream"`
+}
+
+type DebtEvidence struct {
+	ReportPath   string  `json:"report_path"`
+	MarkdownPath string  `json:"markdown_path"`
+	ChecksumPath string  `json:"checksum_path"`
+	ReportSHA256 string  `json:"report_sha256"`
+	Status       string  `json:"status"`
+	Score        float64 `json:"score"`
+	MinScore     float64 `json:"min_score"`
+	CheckCount   int     `json:"check_count"`
 }
 
 type GovernanceRuntime struct {
@@ -267,10 +305,14 @@ func buildManifest() (Manifest, error) {
 	if err != nil {
 		return Manifest{}, err
 	}
+	debtEvidence, err := buildDebtEvidence()
+	if err != nil {
+		return Manifest{}, err
+	}
 
 	return Manifest{
 		Module:                 module,
-		Version:                envDefault("VERSION", "v0.4.2"),
+		Version:                envDefault("VERSION", "v0.4.3"),
 		Commit:                 runTrimmedDefault("unknown", "git", "rev-parse", "HEAD"),
 		TreeSHA:                runTrimmedDefault("unknown", "git", "rev-parse", "HEAD^{tree}"),
 		SourceDigest:           sourceDigest,
@@ -285,6 +327,7 @@ func buildManifest() (Manifest, error) {
 		Contracts:              contracts,
 		Dependencies:           dependencies,
 		StandardImpact:         standardImpact,
+		Debt:                   debtEvidence,
 		GovernanceRuntime:      buildGovernanceRuntime(),
 		DownstreamSyncRequired: standardImpact.DownstreamSyncRequired,
 		GeneratorEvidence:      buildGeneratorEvidence(),
@@ -382,6 +425,9 @@ func verifyManifest(path string, requirePassed bool, requireClean bool, expectVe
 	if !reflect.DeepEqual(got.StandardImpact, current.StandardImpact) {
 		failures = append(failures, "standard_impact does not match current standard impact evidence")
 	}
+	if !reflect.DeepEqual(got.Debt, current.Debt) {
+		failures = append(failures, "debt does not match current debt evidence")
+	}
 	if !reflect.DeepEqual(got.GovernanceRuntime, current.GovernanceRuntime) {
 		failures = append(failures, "governance_runtime does not match current context runtime evidence")
 	}
@@ -405,6 +451,22 @@ func verifyManifest(path string, requirePassed bool, requireClean bool, expectVe
 		}
 		requireNonEmpty(&failures, "standard_impact.report_sha256", got.StandardImpact.ReportSHA256)
 		requireNonEmpty(&failures, "standard_impact.primary_downstream", got.StandardImpact.PrimaryDownstream)
+	}
+	requireNonEmpty(&failures, "debt.report_path", got.Debt.ReportPath)
+	requireNonEmpty(&failures, "debt.markdown_path", got.Debt.MarkdownPath)
+	requireNonEmpty(&failures, "debt.checksum_path", got.Debt.ChecksumPath)
+	requireNonEmpty(&failures, "debt.status", got.Debt.Status)
+	if requirePassed {
+		if got.Debt.Status != "passed" {
+			failures = append(failures, fmt.Sprintf("debt.status must be passed, got %q", got.Debt.Status))
+		}
+		requireNonEmpty(&failures, "debt.report_sha256", got.Debt.ReportSHA256)
+		if got.Debt.Score < got.Debt.MinScore {
+			failures = append(failures, fmt.Sprintf("debt.score %.1f is below minimum %.1f", got.Debt.Score, got.Debt.MinScore))
+		}
+		if got.Debt.CheckCount == 0 {
+			failures = append(failures, "debt.check_count must be greater than zero")
+		}
 	}
 	requireNonEmpty(&failures, "governance_runtime.runtime", got.GovernanceRuntime.Runtime)
 	requireNonEmpty(&failures, "governance_runtime.schema_version", got.GovernanceRuntime.SchemaVersion)
@@ -517,6 +579,49 @@ func buildStandardImpactEvidence() (StandardImpactEvidence, error) {
 	evidence.PrimaryDownstream = parseReportValue(report, "primary_downstream")
 	evidence.DownstreamReleaseDecision = reportValueDefault(report, "downstream_release_decision", "not_required")
 	evidence.RepositoryRulesReleaseDecision = reportValueDefault(report, "repository_rules_release_decision", "not_required")
+	return evidence, nil
+}
+
+func buildDebtEvidence() (DebtEvidence, error) {
+	evidence := DebtEvidence{
+		ReportPath:   debtReportPath,
+		MarkdownPath: debtMarkdownPath,
+		ChecksumPath: debtChecksumPath,
+		Status:       "missing",
+		MinScore:     debtcheck.DefaultMinScore,
+	}
+
+	data, err := os.ReadFile(debtReportPath)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return evidence, nil
+		}
+		return DebtEvidence{}, err
+	}
+
+	sum := sha256.Sum256(data)
+	evidence.ReportSHA256 = "sha256:" + hex.EncodeToString(sum[:])
+
+	var report struct {
+		Status   string            `json:"status"`
+		Score    float64           `json:"score"`
+		MinScore float64           `json:"min_score"`
+		Checks   []json.RawMessage `json:"checks"`
+		Sections []json.RawMessage `json:"sections"`
+	}
+	if err := json.Unmarshal(data, &report); err != nil {
+		return DebtEvidence{}, err
+	}
+
+	evidence.Status = report.Status
+	evidence.Score = report.Score
+	if report.MinScore != 0 {
+		evidence.MinScore = report.MinScore
+	}
+	evidence.CheckCount = len(report.Checks)
+	if evidence.CheckCount == 0 {
+		evidence.CheckCount = len(report.Sections)
+	}
 	return evidence, nil
 }
 

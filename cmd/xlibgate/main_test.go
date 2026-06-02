@@ -82,6 +82,22 @@ func TestUsageDocumentsCommandRegistryRequiredCommands(t *testing.T) {
 	}
 }
 
+func TestUsageDocumentsDebtEvidenceCommandsAndHelpers(t *testing.T) {
+	for _, needle := range []string{
+		"\n  debt-evidence",
+		"\n  debt-evidence-checksum-check",
+		"\n  debt-evidence-hash",
+		"\n  debt register-update",
+		"\n  debt trend",
+		"\n  debt patch-suggest",
+		"\n  debt lifecycle-check",
+	} {
+		if !strings.Contains(usage, needle) {
+			t.Errorf("usage missing %q", needle)
+		}
+	}
+}
+
 func TestMainUsesRunExitCode(t *testing.T) {
 	originalArgs := os.Args
 	originalExit := exit
@@ -170,6 +186,8 @@ func TestRunDispatchesExternalCommands(t *testing.T) {
 		{name: "manifest", args: []string{"manifest"}, wantStdout: "go run ./internal/tools/releasemanifest --out release/manifest/latest.json"},
 		{name: "integration", args: []string{"integration"}, wantStdout: "run_integration.sh"},
 		{name: "manifest", args: []string{"manifest"}, wantStdout: "go run ./internal/tools/releasemanifest --out release/manifest/latest.json"},
+		{name: "debt-evidence-checksum-check", args: []string{"debt-evidence-checksum-check"}, wantStdout: "hash_release_evidence.sh --check release/debt/latest.json release/debt/latest.json.sha256"},
+		{name: "debt-evidence-hash", args: []string{"debt-evidence-hash"}, wantStdout: "hash_release_evidence.sh release/debt/latest.json release/debt/latest.json.sha256"},
 		{name: "release-evidence-check", args: []string{"release-evidence-check"}, wantStdout: "check_release_evidence.sh"},
 		{name: "release-evidence-checksum-check", args: []string{"release-evidence-checksum-check"}, wantStdout: "hash_release_evidence.sh --check"},
 		{name: "release-evidence-hash", args: []string{"release-evidence-hash"}, wantStdout: "hash_release_evidence.sh"},
@@ -193,6 +211,63 @@ func TestRunDispatchesExternalCommands(t *testing.T) {
 				t.Fatalf("stdout = %q; want containing %q", stdout.String(), tt.wantStdout)
 			}
 		})
+	}
+}
+
+func TestDebtHelpersWriteArtifacts(t *testing.T) {
+	chdir(t, repoRoot(t))
+
+	for _, helper := range []string{"register-update", "trend", "patch-suggest", "lifecycle-check"} {
+		t.Run(helper, func(t *testing.T) {
+			outPath := filepath.Join(t.TempDir(), helper+".json")
+			var stdout, stderr bytes.Buffer
+
+			got := run([]string{"debt", helper, "--output", outPath}, strings.NewReader(""), &stdout, &stderr)
+
+			if got != 0 {
+				t.Fatalf("run(debt %s) = %d, stderr %q, stdout %q; want 0", helper, got, stderr.String(), stdout.String())
+			}
+			if !strings.Contains(stdout.String(), filepath.ToSlash(outPath)) {
+				t.Fatalf("stdout = %q; want output path %q", stdout.String(), filepath.ToSlash(outPath))
+			}
+
+			data, err := os.ReadFile(outPath)
+			if err != nil {
+				t.Fatalf("read helper artifact: %v", err)
+			}
+			var artifact struct {
+				SchemaVersion string   `json:"schema_version"`
+				Command       string   `json:"command"`
+				Status        string   `json:"status"`
+				Details       []string `json:"details"`
+			}
+			if err := json.Unmarshal(data, &artifact); err != nil {
+				t.Fatalf("helper artifact is not JSON: %v; data %q", err, string(data))
+			}
+			if artifact.SchemaVersion != "debt-helper/v1" || artifact.Command != helper || artifact.Status != "passed" || len(artifact.Details) == 0 {
+				t.Fatalf("artifact = %#v; want helper command, passed status, and details", artifact)
+			}
+		})
+	}
+}
+
+func TestDownstreamDebtAliasUsesSupportedDebtSurface(t *testing.T) {
+	chdir(t, repoRoot(t))
+	var stdout, stderr bytes.Buffer
+
+	got := run([]string{"downstream-debt", "--mode", "enforce"}, strings.NewReader(""), &stdout, &stderr)
+
+	if got != 0 {
+		t.Fatalf("downstream-debt exit = %d, stderr %q, stdout %q; want 0", got, stderr.String(), stdout.String())
+	}
+	if strings.Contains(stderr.String(), "unsupported debt section") {
+		t.Fatalf("stderr = %q; downstream-debt must not use unsupported debt section", stderr.String())
+	}
+	if !strings.Contains(stdout.String(), `"name": "downstream"`) {
+		t.Fatalf("stdout = %q; want downstream debt report", stdout.String())
+	}
+	if strings.Contains(stdout.String(), `"name": "architecture"`) {
+		t.Fatalf("stdout = %q; downstream-debt must only report downstream section", stdout.String())
 	}
 }
 
@@ -526,7 +601,7 @@ func TestRunGovernanceCommands(t *testing.T) {
 		}
 		if report.Command != "version" ||
 			report.Status != "passed" ||
-			!slicesContain(report.Details, "xlib-standard release v0.4.2") ||
+			!slicesContain(report.Details, "xlib-standard release v0.4.3") ||
 			!slicesContain(report.Details, "xlibgate governance runtime v2.9.3") {
 			t.Fatalf("report = %#v; want version gate report", report)
 		}
@@ -1213,6 +1288,7 @@ func TestMakefileReleaseGuardsUseContextVariable(t *testing.T) {
 		"$(XLIBGATE) main-guard --context $(XLIB_CONTEXT)",
 		"$(XLIBGATE) worktree-guard --context $(XLIB_CONTEXT)",
 		"XLIB_CONTEXT=release_verify GOWORK=off $(MAKE) context-release",
+		"$(MAKE) debt-evidence-checksum-check",
 		"GOWORK=off XLIB_CONTEXT=release_verify VERSION=\"$(VERSION)\" $(MAKE) release-final-check",
 	} {
 		if !strings.Contains(text, want) {

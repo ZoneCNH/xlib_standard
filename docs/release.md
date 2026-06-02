@@ -40,7 +40,7 @@ XLIB_CONTEXT=release_verify GOWORK=off make release-final-check
 打 tag 前推荐使用 release preflight：
 
 ```bash
-XLIB_CONTEXT=release_verify GOWORK=off make release-preflight VERSION=v0.4.2
+XLIB_CONTEXT=release_verify GOWORK=off make release-preflight VERSION=v0.4.3
 ```
 
 `release-preflight` 会先检查版本号、当前分支、工作区洁净状态、`main` 与 `origin/main` 是否一致、目标 tag 是否已存在、`CHANGELOG.md` 是否包含目标版本，以及 `golangci-lint` / `govulncheck` 是否已安装；随后以 `GOWORK=off` 和 `XLIB_CONTEXT=release_verify` 运行 `release-final-check`。tag 应在该入口通过后再创建和推送。
@@ -158,3 +158,7 @@ go run ./cmd/xlibgate score --min 9.8
 ```
 
 `release/manifest/latest.json` 必须记录 `score` 与 `workflow` 字段。`workflow_run_id`、`artifact_name`、`artifact_url` 用来把本地 manifest 与 GitHub Actions 上传的 `release-manifest-<workflow-run-id>` artifact 对齐；本地运行时允许使用 `local:*` artifact URL。`release-final-check` 会在 clean tree 要求之外校验 manifest 内的 score threshold。
+
+## Debt evidence
+
+Release checks generate debt evidence with `make debt-evidence` before manifest generation. `release-final-check` enforces `xlibgate debt --mode enforce --min-score 9.8` and release evidence verification validates the manifest `debt` block. Generated `release/debt/*` artifacts are not committed.
