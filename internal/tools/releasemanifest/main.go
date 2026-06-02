@@ -142,8 +142,8 @@ type StandardImpactEvidence struct {
 	Status                         string `json:"status"`
 	DownstreamSyncRequired         bool   `json:"downstream_sync_required"`
 	PrimaryDownstream              string `json:"primary_downstream"`
-	ContextRuntimeChange           string `json:"context_runtime_change"`
-	GovernanceRegistryChange       string `json:"governance_registry_change"`
+	ContextRuntimeChange           bool   `json:"context_runtime_change"`
+	GovernanceRegistryChange       bool   `json:"governance_registry_change"`
 	DownstreamReleaseDecision      string `json:"downstream_release_decision"`
 	RepositoryRulesReleaseDecision string `json:"repository_rules_release_decision"`
 }
