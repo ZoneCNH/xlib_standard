@@ -233,7 +233,9 @@ func TestRunCLIVerifiesManifestWithRequirePassed(t *testing.T) {
 	t.Setenv("GOWORK", "off")
 	t.Setenv("VERSION", "v1.2.3")
 	t.Setenv("CHECK_STATUS", "passed")
-	chdir(t, releaseManifestFixtureRepo(t))
+	repo := releaseManifestFixtureRepo(t)
+	writeStandardImpactReportFixture(t, repo)
+	chdir(t, repo)
 
 	outPath := filepath.Join(t.TempDir(), "latest.json")
 	var generateStdout bytes.Buffer
@@ -876,11 +878,11 @@ func TestBuildStandardImpactEvidenceReadsReport(t *testing.T) {
 		"# Standard Impact",
 		"",
 		"- downstream_sync_required: `true`",
+		"- context_runtime_change: `true`",
+		"- governance_registry_change: `true`",
+		"- downstream_release_decision: `downstream-sync-required`",
+		"- repository_rules_release_decision: `repository-rules-review-required`",
 		"- primary_downstream: `github.com/ZoneCNH/kernel`",
-		"- context_runtime_change: `changed`",
-		"- governance_registry_change: `changed`",
-		"- downstream_release_decision: `sync-required`",
-		"- repository_rules_release_decision: `release-review-required`",
 		"",
 	}, "\n")
 	if err := os.WriteFile(reportPath, []byte(content), 0o644); err != nil {
