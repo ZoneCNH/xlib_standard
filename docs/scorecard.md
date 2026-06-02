@@ -8,6 +8,8 @@
 
 因此，`score >= 9.8` 只能作为 release governance 信号使用。发布结论必须同时读取 `make ci`、`make security`、`make release-final-check`、测试覆盖证据和必要的人工审查结果。
 
+Context Runtime v4.0 迁移期间，score 也不能替代 `context-standard`、`context-full` 或 `context-release` profile 结果。若 `governance_runtime` manifest 字段、profile wrapper、registry bridge 或 `.agent/context/*` 物理文件尚未落地，scorecard 只能说明治理文件和 gate wiring 的完整性，不能宣称上下文运行时已通过。
+
 ## 评分规则
 
 当前满分为 10.0，默认发布阈值为 9.8。每个维度权重为 1.0，全部通过时得到 10.0；缺失任一维度会按权重扣分。评分维度如下：
@@ -30,6 +32,7 @@
 - `GOWORK=off make release-check` 会运行 `score-check`，默认要求 `score >= 9.8`。
 - `GOWORK=off make release-final-check` 会再次运行 `go run ./cmd/xlibgate score --min 9.8`，并要求 release manifest 内记录的 `score.value` 满足 `RELEASE_EVIDENCE_MIN_SCORE=9.5`。
 - `release/manifest/latest.json` 会记录 `score` 和 `workflow`，其中 `workflow_run_id`、`artifact_name`、`artifact_url` 用于连接 CI artifact；本地运行时使用 `local:*` evidence URL。
+- Standard Impact v4.0 需要能区分 `context_runtime`、`governance_registry`、repo rule 和 `templates/context-consumer/*` 影响面；在分类脚本扩展前，下游同步结论必须把该缺口写入 Evidence，而不能由 score 自动推断为无需同步。
 
 ## JSON 形状
 

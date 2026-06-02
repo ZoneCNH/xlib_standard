@@ -180,6 +180,12 @@ require_text "docs/standard/xlib-standard.md" "$xlib_standard_url"
 require_text "docs/standard/repository-roles.md" "$xlib_standard_url"
 require_text "docs/standard/harness-gates.md" "GOWORK=off make dependency-check"
 require_text "docs/standard/harness-gates.md" "GOWORK=off make standard-impact-check"
+require_text "docs/standard/harness-gates.md" "Context Runtime v4.0 Profile Baseline"
+require_text "docs/standard/harness-gates.md" ".agent/context/*"
+require_text "docs/standard/harness-gates.md" "release-final-check"
+require_text "docs/standard/evidence-protocol.md" "governance_runtime"
+require_text "docs/scorecard.md" "context_runtime"
+require_text "docs/downstream-sync-policy.md" "templates/context-consumer/*"
 require_text "renovate.json" '"gomod"'
 require_text "renovate.json" '"github-actions"'
 require_text ".github/dependabot.yml" 'package-ecosystem: "gomod"'
