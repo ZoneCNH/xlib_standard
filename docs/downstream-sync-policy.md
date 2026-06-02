@@ -62,6 +62,8 @@
 - public API、config、error、health、metrics、contracts 或 release manifest schema 发生变化。
 - `release/standard-impact/latest.md` 或同类报告标记 `downstream_sync_required=true` 且 `downstream_release_decision=required`，release manifest 对应字段也必须一致。
 
+`downstream_release_decision` 的 allowed values 只能是 `required` 或 `not_required`：需要同步默认下游时使用 `required`，确认无需同步或影响已被排除时使用 `not_required`。
+
 同步完成前，变更说明必须记录 `kernel` 的状态：已同步、无需同步并说明原因，或 blocked 并列出阻塞条件。
 
 ## L1 基础库同步规则

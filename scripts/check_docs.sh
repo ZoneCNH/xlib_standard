@@ -83,6 +83,8 @@ require_text "docs/standard/evidence-protocol.md" "sha256"
 require_text "docs/standard/evidence-protocol.md" "workflow_run_id"
 require_text "docs/standard/evidence-protocol.md" "standard_impact"
 require_text "docs/standard/evidence-protocol.md" "downstream_sync_required"
+require_text "docs/standard/evidence-protocol.md" 'downstream_release_decision` 的 allowed values 只能是 `required` 或 `not_required`'
+require_text "docs/standard/evidence-protocol.md" 'repository_rules_release_decision` 的 allowed values 只能是 `audit_required` 或 `not_required`'
 require_text "docs/standard/evidence-protocol.md" "generator_evidence"
 require_text "docs/standard/evidence-protocol.md" "dependency_check"
 require_text "docs/standard/evidence-protocol.md" "GOWORK=off make dependency-check"
