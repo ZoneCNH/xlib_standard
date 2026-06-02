@@ -31,6 +31,7 @@ func TestStandardImpactRequiresDownstreamSyncForHarnessGeneratorEvidence(t *test
 func TestStandardImpactRequiresDownstreamSyncForContextRuntimeV4Categories(t *testing.T) {
 	report := runStandardImpact(t, []string{
 		"cmd/xlibgate/main.go",
+		".agent/context/runtime.md",
 		".agent/command-registry.yaml",
 		"AGENTS.md",
 		"templates/context-consumer/README.md",
@@ -38,8 +39,9 @@ func TestStandardImpactRequiresDownstreamSyncForContextRuntimeV4Categories(t *te
 
 	assertReportContains(t, report,
 		"- downstream_sync_required: `true`",
-		"- changed_file_count: `4`",
+		"- changed_file_count: `5`",
 		"## context_runtime",
+		"- `.agent/context/runtime.md`",
 		"- `cmd/xlibgate/main.go`",
 		"## governance_registry",
 		"- `.agent/command-registry.yaml`",
