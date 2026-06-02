@@ -4,6 +4,18 @@
 
 暂无。
 
+## v0.3.7 - 2026-06-02
+
+### 治理
+
+- 建立 `docs/goal.md` 治理目标基线，并新增 `docs/project-analysis-20260602.md` 记录深度检查结论。
+- 对齐 `.agent` traceability matrix、Harness、`docs/spec.md` 与 downstream sync policy 的 P1/P2 gate 口径。
+- 更新 `AGENTS.md` 并新增 `CLAUDE.md`，保持 Codex/Claude 协作入口一致。
+
+### 兼容性
+
+- 本版本仅包含治理和文档更新，不改变 `pkg/templatex` 公共 API。
+
 ## v0.3.6 - 2026-06-02
 
 ### 修复
