@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"go/parser"
 	"go/token"
-	"io/fs"
 	"math"
 	"os"
 	"path/filepath"
@@ -509,16 +508,7 @@ func hasYAMLScalarLine(text, key, value string) bool {
 
 func scanGoImports(root string) []Finding {
 	var findings []Finding
-	_ = filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if d.IsDir() {
-			if skipDir(d.Name()) {
-				return filepath.SkipDir
-			}
-			return nil
-		}
+	_ = walkFiles(root, func(path string) error {
 		if skipPath(root, path) || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
 			return nil
 		}
@@ -581,16 +571,7 @@ func scanTextMarker(root, marker, id, message string) []Finding {
 
 func scanTrackedText(root string, inspect func(path, text string) []Finding) []Finding {
 	var findings []Finding
-	_ = filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if d.IsDir() {
-			if skipDir(d.Name()) {
-				return filepath.SkipDir
-			}
-			return nil
-		}
+	_ = walkFiles(root, func(path string) error {
 		if skipPath(root, path) || skipFile(path) {
 			return nil
 		}
@@ -611,6 +592,53 @@ func scanTrackedText(root string, inspect func(path, text string) []Finding) []F
 		return findings[i].Path < findings[j].Path
 	})
 	return findings
+}
+
+func walkFiles(root string, visit func(path string) error) error {
+	info, err := os.Lstat(root)
+	if err != nil {
+		return err
+	}
+	if !info.IsDir() {
+		return visit(root)
+	}
+	return walkDir(root, visit)
+}
+
+func walkDir(dir string, visit func(path string) error) error {
+	file, err := os.Open(dir)
+	if err != nil {
+		return err
+	}
+	names, readErr := file.Readdirnames(-1)
+	closeErr := file.Close()
+	if readErr != nil {
+		return readErr
+	}
+	if closeErr != nil {
+		return closeErr
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		path := filepath.Join(dir, name)
+		info, err := os.Lstat(path)
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			if skipDir(name) {
+				continue
+			}
+			if err := walkDir(path, visit); err != nil {
+				return err
+			}
+			continue
+		}
+		if err := visit(path); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func buildSection(name string, findings []Finding) SectionReport {
