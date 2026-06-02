@@ -672,10 +672,6 @@ func makefileDependencyHasToken(dependencies []string, token string) bool {
 	return false
 }
 
-func makefileHeaderHasToken(header, token string) bool {
-	return makefileDependencyHasToken(strings.Fields(strings.ReplaceAll(header, ":", " ")), token)
-}
-
 var plannedCommandFiles = map[string][]string{
 	"minimal-kernel":          {".agent/minimal-kernel.yaml"},
 	"done-assertion":          {".agent/done-assertion.yaml"},
