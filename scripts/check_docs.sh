@@ -193,15 +193,67 @@ require_text "docs/standard/repository-roles.md" "$xlib_standard_url"
 require_text "docs/standard/harness-gates.md" "GOWORK=off make dependency-check"
 require_text "docs/standard/harness-gates.md" "GOWORK=off make standard-impact-check"
 require_text "docs/standard/harness-gates.md" "Context Runtime v4.0 Profile Baseline"
+require_text "docs/standard/harness-gates.md" "REQ-014"
 require_text "docs/standard/harness-gates.md" ".agent/context/*"
 require_text "docs/standard/harness-gates.md" "release-final-check"
 require_text "docs/standard/evidence-protocol.md" "governance_runtime"
+require_text "docs/standard/evidence-protocol.md" "REQ-014"
 require_text "docs/scorecard.md" "context_runtime"
 require_text "docs/downstream-sync-policy.md" "templates/context-consumer/*"
+require_text ".gitignore" ".agent/context/packs/*.md"
+require_text ".gitignore" "!.agent/context/packs/example.md"
+require_text ".gitignore" ".agent/context/**/schema-snapshots/*.json"
+require_text ".gitignore" "!.agent/context/**/schema-snapshots/example.json"
+require_text ".gitignore" "*.schema.snapshot.json"
+require_text ".gitignore" "github-rules-observed.json"
+require_text ".gitignore" ".agent/github/rules/observed/"
+require_text ".gitignore" ".github/observed-rules/"
+require_text ".gitignore" ".github/rules/observed/"
+require_text ".gitignore" ".terraform/"
+require_text ".gitignore" "*.tfstate"
+require_text ".gitignore" "*.tfplan"
+require_text ".gitignore" "*.tfvars"
+require_text ".gitignore" "!*.tfvars.example"
+require_text ".gitignore" "!examples/context-packs/**"
+require_text ".gitignore" "!examples/schema-snapshots/**"
 require_text "renovate.json" '"gomod"'
 require_text "renovate.json" '"github-actions"'
 require_text ".github/dependabot.yml" 'package-ecosystem: "gomod"'
 require_text ".github/dependabot.yml" 'package-ecosystem: "github-actions"'
+
+
+check_ignored() {
+  local path="$1"
+  if ! git check-ignore -q -- "$path"; then
+    echo "ERROR: .gitignore must ignore: $path" >&2
+    exit 1
+  fi
+}
+
+check_not_ignored() {
+  local path="$1"
+  if git check-ignore -q -- "$path"; then
+    echo "ERROR: .gitignore must keep example path unignored: $path" >&2
+    exit 1
+  fi
+}
+
+check_ignored ".agent/context/packs/generated.md"
+check_ignored ".agent/context/schema-snapshots/runtime.schema.snapshot.json"
+check_not_ignored ".agent/context/packs/example.md"
+check_not_ignored ".agent/context/packs/runtime.example.md"
+check_not_ignored ".agent/context/schema-snapshots/example.json"
+check_not_ignored ".agent/context/runtime/schema-snapshots/example.json"
+check_ignored "github-rules-observed.json"
+check_ignored ".github/observed-rules/rules.json"
+check_ignored ".github/rules/observed/rules.json"
+check_ignored ".terraform/terraform.tfstate"
+check_ignored "terraform.tfstate"
+check_ignored "release.tfplan"
+check_ignored "local.auto.tfvars"
+check_not_ignored "terraform.tfvars.example"
+check_not_ignored "examples/context-packs/README.md"
+check_not_ignored "examples/schema-snapshots/runtime.schema.json"
 
 python3 - "$PWD" <<'PY'
 import sys
@@ -260,6 +312,8 @@ if errors:
         print(f"ERROR: {error}", file=sys.stderr)
     sys.exit(1)
 PY
+
+
 
 python3 - "$PWD" <<'PY'
 import re

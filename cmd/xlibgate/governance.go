@@ -241,8 +241,16 @@ func runContextProfileAlias(command string, args []string, stdout io.Writer, std
 }
 
 func runContextProfileCheck(command string, args []string, stdout io.Writer, stderr io.Writer) int {
-	if err := validateInternalCommandArgs(command, args, internalCommandFlagSpec{boolFlags: []string{"json", "strict"}, stringFlags: []string{"profile"}}); err != nil {
+	profile, err := parseContextProfileCheckProfile(command, args)
+	if err != nil {
 		return invalidInternalArgsExit(command, err, stderr)
+	}
+	if profile != "" {
+		normalized := normalizeContextProfile(profile)
+		if _, ok := contextProfileGates[normalized]; !ok {
+			write(stderr, "ERROR: invalid context profile %q\n", profile)
+			return 2
+		}
 	}
 	contextTargets := contextRuntimeTargets()
 	required := map[string][]string{
@@ -273,20 +281,35 @@ func runContextProfileCheck(command string, args []string, stdout io.Writer, std
 	if makefile, err := os.ReadFile("Makefile"); err == nil {
 		makefileText := string(makefile)
 		appendMakefileDuplicateGaps(makefileText, contextTargets, &gaps)
+		appendContextProfileContractGaps(makefileText, &gaps)
 		appendMakefileTargetDependencyGaps(makefileText, "context-lite", []string{"require-gowork-off", "governance-check"}, []string{"context-profile-check", "main-guard", "worktree-guard", "release-check", "release-final-check"}, &gaps)
 		appendMakefileTargetDependencyGaps(makefileText, "context-standard", []string{"require-gowork-off", "governance-check", "p1-governance-check", "docs-check"}, []string{"context-lite", "context-profile-check", "release-check", "release-final-check"}, &gaps)
 		appendMakefileTargetDependencyGaps(makefileText, "context-full", []string{"require-gowork-off", "governance-check", "p1-governance-check", "p2-runtime-check"}, []string{"context-standard", "docs-check", "context-profile-check", "release-check", "release-final-check"}, &gaps)
 		appendMakefileTargetDependencyGaps(makefileText, "context-release", []string{"require-gowork-off", "context-full", "integration", "dependency-check", "standard-impact-check", "score-check"}, []string{"context-standard", "release-check", "release-final-check"}, &gaps)
-		releaseFinalBlock := makefileTargetBlock(makefileText, "release-final-check")
-		if !strings.Contains(releaseFinalBlock, "$(MAKE) context-release") {
-			gaps = append(gaps, "release-final-check must call context-release")
-		}
+		appendMakefileTargetForbiddenReferenceGaps(makefileText, "context-release", []string{"release-check", "release-final-check"}, &gaps)
+		appendContextProfileDAGGaps(makefileText, &gaps)
+		appendReleaseFinalDelegationGaps(makefileText, &gaps)
 	}
 	if len(gaps) > 0 {
 		write(stderr, "ERROR: %s found %d gap(s)\n", command, len(gaps))
 		return emitReport(stdout, command, "failed", nil, gaps)
 	}
-	return emitReport(stdout, command, "passed", []string{"context runtime v4.0 profile DAG and registry contract satisfied", ".agent/context not required or claimed", "context-release excludes release-check and release-final-check", "release-final-check delegates to context-release"}, nil)
+	return emitReport(stdout, command, "passed", []string{"context runtime v4.0 profile DAG and registry contract satisfied", ".agent/context not required or claimed", "context profiles reject unknown gates", "context profile Makefile dependencies parse continuations", "context-release excludes release-check and release-final-check", "release-final-check delegates to context-release without self-recursion"}, nil)
+}
+
+func parseContextProfileCheckProfile(command string, args []string) (string, error) {
+	flags := flag.NewFlagSet("xlibgate "+command, flag.ContinueOnError)
+	flags.SetOutput(io.Discard)
+	flags.Bool("json", false, "")
+	flags.Bool("strict", false, "")
+	profile := flags.String("profile", "", "")
+	if err := flags.Parse(args); err != nil {
+		return "", err
+	}
+	if flags.NArg() > 0 {
+		return "", fmt.Errorf("unexpected positional argument %q", flags.Arg(0))
+	}
+	return *profile, nil
 }
 
 func contextRuntimeTargets() []string {
@@ -374,32 +397,283 @@ func makefileTargetDefinitionCount(content, target string) int {
 	return count
 }
 
+func makefileTargetNames(content string) map[string]bool {
+	targets := map[string]bool{}
+	for _, line := range strings.Split(content, "\n") {
+		if line == "" || strings.HasPrefix(line, "\t") || strings.HasPrefix(line, " ") || strings.HasPrefix(line, "#") || strings.Contains(line, ":=") {
+			continue
+		}
+		header := strings.SplitN(line, ":", 2)[0]
+		for _, target := range strings.Fields(header) {
+			if target != ".PHONY" {
+				targets[target] = true
+			}
+		}
+	}
+	return targets
+}
+
+func appendContextProfileContractGaps(makefileText string, gaps *[]string) {
+	makefileTargets := makefileTargetNames(makefileText)
+	for profile, gates := range contextProfileGates {
+		if profile == "" {
+			*gaps = append(*gaps, "context profile name must not be empty")
+		}
+		if !validContextProfileName(profile) {
+			*gaps = append(*gaps, "unknown context profile "+profile)
+		}
+		for _, gate := range gates {
+			if gate == "release-check" || gate == "release-final-check" {
+				*gaps = append(*gaps, "context profile "+profile+" must not include "+gate)
+			}
+			if !makefileTargets[gate] {
+				*gaps = append(*gaps, "context profile "+profile+" references unknown Makefile gate "+gate)
+			}
+		}
+	}
+	appendContextProfileCycleGaps(gaps)
+}
+
+func validContextProfileName(profile string) bool {
+	switch profile {
+	case "lite", "standard", "full", "release":
+		return true
+	default:
+		return false
+	}
+}
+
+func appendContextProfileCycleGaps(gaps *[]string) {
+	visiting := map[string]bool{}
+	visited := map[string]bool{}
+	var visit func(profile string, path []string)
+	visit = func(profile string, path []string) {
+		if visiting[profile] {
+			*gaps = append(*gaps, "context profile DAG cycle: "+strings.Join(append(path, profile), " -> "))
+			return
+		}
+		if visited[profile] {
+			return
+		}
+		visiting[profile] = true
+		for _, gate := range contextProfileGates[profile] {
+			if next, ok := contextGateProfile(gate); ok {
+				visit(next, append(path, profile))
+			}
+		}
+		visiting[profile] = false
+		visited[profile] = true
+	}
+	for profile := range contextProfileGates {
+		visit(profile, nil)
+	}
+}
+
+func appendContextProfileDAGGaps(content string, gaps *[]string) {
+	profileTargets := []string{"context-lite", "context-standard", "context-full", "context-release"}
+	profileTargetSet := map[string]bool{}
+	for _, target := range profileTargets {
+		profileTargetSet[target] = true
+	}
+	allowedLeaf := map[string]bool{
+		"require-gowork-off":              true,
+		"governance-check":                true,
+		"p1-governance-check":             true,
+		"docs-check":                      true,
+		"p2-runtime-check":                true,
+		"integration":                     true,
+		"dependency-check":                true,
+		"standard-impact-check":           true,
+		"score-check":                     true,
+		"evidence":                        true,
+		"release-evidence-hash":           true,
+		"release-evidence-check":          true,
+		"release-evidence-checksum-check": true,
+		"context-profile-check":           true,
+		"context-schema-check":            true,
+		"context-profile":                 true,
+		"context-fast-check":              true,
+		"context-standard-check":          true,
+		"context-full-check":              true,
+	}
+	graph := map[string][]string{}
+	for _, target := range profileTargets {
+		for _, dep := range makefileTargetDependencies(content, target) {
+			switch {
+			case profileTargetSet[dep] || dep == "release-final-check":
+				graph[target] = append(graph[target], dep)
+			case allowedLeaf[dep]:
+				continue
+			default:
+				*gaps = append(*gaps, "Makefile "+target+" references unknown context gate "+dep)
+			}
+		}
+	}
+	appendMakefileProfileCycleGaps(graph, profileTargets, gaps)
+	if makefileGraphReaches(graph, "context-release", "release-final-check", map[string]bool{}) {
+		*gaps = append(*gaps, "Makefile context-release must not reach release-final-check")
+	}
+}
+
+func makefileTargetDependencies(content, target string) []string {
+	block := makefileTargetBlock(content, target)
+	if block == "" {
+		return nil
+	}
+	lines := strings.Split(block, "\n")
+	if len(lines) == 0 {
+		return nil
+	}
+	var dependencyLines []string
+	for i, line := range lines {
+		if i == 0 {
+			parts := strings.SplitN(line, ":", 2)
+			if len(parts) != 2 {
+				return nil
+			}
+			line = parts[1]
+		} else {
+			if strings.HasPrefix(line, "\t") {
+				break
+			}
+			line = strings.TrimSpace(line)
+			if line == "" {
+				continue
+			}
+		}
+		trimmed := strings.TrimSpace(line)
+		continued := strings.HasSuffix(trimmed, "\\")
+		trimmed = strings.TrimSpace(strings.TrimSuffix(trimmed, "\\"))
+		if trimmed != "" {
+			dependencyLines = append(dependencyLines, trimmed)
+		}
+		if !continued {
+			break
+		}
+	}
+	return strings.Fields(strings.Join(dependencyLines, " "))
+}
+
+func appendMakefileProfileCycleGaps(graph map[string][]string, roots []string, gaps *[]string) {
+	visiting := map[string]bool{}
+	visited := map[string]bool{}
+	reported := map[string]bool{}
+	var visit func(target string, path []string)
+	visit = func(target string, path []string) {
+		if visiting[target] {
+			cycle := append(path, target)
+			key := strings.Join(cycle, " -> ")
+			if !reported[key] {
+				*gaps = append(*gaps, "Makefile context profile DAG cycle: "+key)
+				reported[key] = true
+			}
+			return
+		}
+		if visited[target] {
+			return
+		}
+		visiting[target] = true
+		for _, dep := range graph[target] {
+			if strings.HasPrefix(dep, "context-") {
+				visit(dep, append(path, target))
+			}
+		}
+		visiting[target] = false
+		visited[target] = true
+	}
+	for _, root := range roots {
+		visit(root, nil)
+	}
+}
+
+func makefileGraphReaches(graph map[string][]string, start, target string, seen map[string]bool) bool {
+	if start == target {
+		return true
+	}
+	if seen[start] {
+		return false
+	}
+	seen[start] = true
+	for _, dep := range graph[start] {
+		if makefileGraphReaches(graph, dep, target, seen) {
+			return true
+		}
+	}
+	return false
+}
+
+func contextGateProfile(gate string) (string, bool) {
+	switch gate {
+	case "context-lite", "context-fast-check":
+		return "lite", true
+	case "context-standard", "context-standard-check":
+		return "standard", true
+	case "context-full", "context-full-check":
+		return "full", true
+	case "context-release":
+		return "release", true
+	default:
+		return "", false
+	}
+}
+
 func appendMakefileTargetDependencyGaps(content, target string, required []string, forbidden []string, gaps *[]string) {
 	block := makefileTargetBlock(content, target)
 	if block == "" {
 		*gaps = append(*gaps, "Makefile missing target block "+target)
 		return
 	}
-	header := strings.SplitN(block, "\n", 2)[0]
+	dependencies := makefileTargetDependencies(content, target)
 	for _, token := range required {
-		if !makefileHeaderHasToken(header, token) {
+		if !makefileDependencyHasToken(dependencies, token) {
 			*gaps = append(*gaps, "Makefile "+target+" missing dependency "+token)
 		}
 	}
 	for _, token := range forbidden {
-		if makefileHeaderHasToken(header, token) {
+		if makefileDependencyHasToken(dependencies, token) {
 			*gaps = append(*gaps, "Makefile "+target+" must not depend on "+token)
 		}
 	}
 }
 
-func makefileHeaderHasToken(header, token string) bool {
-	for _, field := range strings.Fields(strings.ReplaceAll(header, ":", " ")) {
+func appendMakefileTargetForbiddenReferenceGaps(content, target string, forbidden []string, gaps *[]string) {
+	block := makefileTargetBlock(content, target)
+	if block == "" {
+		*gaps = append(*gaps, "Makefile missing target block "+target)
+		return
+	}
+	for _, token := range forbidden {
+		if strings.Contains(block, token) {
+			*gaps = append(*gaps, "Makefile "+target+" must not reference "+token)
+		}
+	}
+}
+
+func appendReleaseFinalDelegationGaps(content string, gaps *[]string) {
+	block := makefileTargetBlock(content, "release-final-check")
+	if block == "" {
+		*gaps = append(*gaps, "Makefile missing target block release-final-check")
+		return
+	}
+	if makefileDependencyHasToken(makefileTargetDependencies(content, "release-final-check"), "release-final-check") || strings.Contains(block, "$(MAKE) release-final-check") || strings.Contains(block, "make release-final-check") || strings.Contains(block, "$(XLIBGATE) release-final-check") {
+		*gaps = append(*gaps, "release-final-check must not call itself")
+	}
+	if !strings.Contains(block, "$(MAKE) context-release") {
+		*gaps = append(*gaps, "release-final-check must call context-release")
+	}
+}
+
+func makefileDependencyHasToken(dependencies []string, token string) bool {
+	for _, field := range dependencies {
 		if field == token {
 			return true
 		}
 	}
 	return false
+}
+
+func makefileHeaderHasToken(header, token string) bool {
+	return makefileDependencyHasToken(strings.Fields(strings.ReplaceAll(header, ":", " ")), token)
 }
 
 var plannedCommandFiles = map[string][]string{

@@ -890,6 +890,108 @@ func TestRunInternalGovernanceCommandsRejectInvalidArgs(t *testing.T) {
 	}
 }
 
+func TestContextProfileRejectsUnknownProfileFlag(t *testing.T) {
+	chdir(t, filepath.Join("..", ".."))
+
+	var stdout, stderr bytes.Buffer
+	got := run([]string{"context-profile", "--profile", "missing"}, strings.NewReader(""), &stdout, &stderr)
+
+	if got != 2 {
+		t.Fatalf("context-profile unknown profile exit = %d, stderr %q; want 2", got, stderr.String())
+	}
+	if stdout.Len() != 0 {
+		t.Fatalf("stdout = %q; want empty output for invalid profile", stdout.String())
+	}
+	if !strings.Contains(stderr.String(), `invalid context profile "missing"`) {
+		t.Fatalf("stderr = %q; want invalid profile message", stderr.String())
+	}
+}
+
+func TestContextProfileCheckAcceptsCurrentMakefileDAG(t *testing.T) {
+	chdir(t, filepath.Join("..", ".."))
+
+	makefile := readText(t, "Makefile")
+	var gaps []string
+	appendContextProfileDAGGaps(makefile, &gaps)
+	appendReleaseFinalDelegationGaps(makefile, &gaps)
+
+	if len(gaps) > 0 {
+		t.Fatalf("current context profile DAG gaps = %#v; want none", gaps)
+	}
+}
+
+func TestContextProfileCheckAcceptsContinuedMakefileDependencies(t *testing.T) {
+	makefile := contextProfileMakefileFixture(map[string]string{
+		"context-standard": "require-gowork-off governance-check \\\n  p1-governance-check docs-check",
+	}, "$(MAKE) context-release")
+	var gaps []string
+
+	appendMakefileTargetDependencyGaps(
+		makefile,
+		"context-standard",
+		[]string{"require-gowork-off", "governance-check", "p1-governance-check", "docs-check"},
+		[]string{"context-lite", "context-profile-check", "release-check", "release-final-check"},
+		&gaps,
+	)
+	appendContextProfileDAGGaps(makefile, &gaps)
+
+	if len(gaps) > 0 {
+		t.Fatalf("continued context-standard dependency gaps = %#v; want none", gaps)
+	}
+}
+
+func TestContextProfileCheckRejectsUnknownProfileGate(t *testing.T) {
+	makefile := contextProfileMakefileFixture(map[string]string{}, "$(MAKE) context-release")
+	var gaps []string
+
+	appendContextProfileDAGGaps(strings.Replace(makefile, "docs-check", "missing-gate", 1), &gaps)
+
+	if !gapsContainSubstring(gaps, "context-standard references unknown context gate missing-gate") {
+		t.Fatalf("gaps = %#v; want unknown gate gap", gaps)
+	}
+}
+
+func TestContextProfileCheckRejectsCyclicProfileDAG(t *testing.T) {
+	makefile := contextProfileMakefileFixture(map[string]string{
+		"context-full":    "require-gowork-off governance-check p1-governance-check p2-runtime-check context-release",
+		"context-release": "require-gowork-off context-full integration dependency-check standard-impact-check score-check",
+	}, "$(MAKE) context-release")
+	var gaps []string
+
+	appendContextProfileDAGGaps(makefile, &gaps)
+
+	if !gapsContainSubstring(gaps, "Makefile context profile DAG cycle:") {
+		t.Fatalf("gaps = %#v; want profile DAG cycle gap", gaps)
+	}
+}
+
+func TestContextProfileCheckRejectsReleaseFinalSelfRecursion(t *testing.T) {
+	makefile := contextProfileMakefileFixture(map[string]string{}, "$(MAKE) release-final-check")
+	var gaps []string
+
+	appendReleaseFinalDelegationGaps(makefile, &gaps)
+
+	if !gapsContainSubstring(gaps, "release-final-check must not call itself") {
+		t.Fatalf("gaps = %#v; want self-recursion gap", gaps)
+	}
+	if !gapsContainSubstring(gaps, "release-final-check must call context-release") {
+		t.Fatalf("gaps = %#v; want context-release delegation gap", gaps)
+	}
+}
+
+func TestContextProfileCheckRejectsTransitiveReleaseFinalRecursion(t *testing.T) {
+	makefile := contextProfileMakefileFixture(map[string]string{
+		"context-full": "require-gowork-off governance-check p1-governance-check p2-runtime-check release-final-check",
+	}, "$(MAKE) context-release")
+	var gaps []string
+
+	appendContextProfileDAGGaps(makefile, &gaps)
+
+	if !gapsContainSubstring(gaps, "Makefile context-release must not reach release-final-check") {
+		t.Fatalf("gaps = %#v; want transitive release-final gap", gaps)
+	}
+}
+
 func TestPlannedCommandVerifyPassesWithManifestCoverage(t *testing.T) {
 	chdir(t, filepath.Join("..", ".."))
 
@@ -1119,6 +1221,65 @@ func TestMakefileReleaseGuardsUseContextVariable(t *testing.T) {
 	}
 }
 
+func TestContextProfileCheckRejectsUnknownProfile(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	got := run([]string{"context-profile-check", "--profile", "missing"}, strings.NewReader(""), &stdout, &stderr)
+	if got != 2 {
+		t.Fatalf("unknown context-profile-check profile exit = %d, stderr %q, stdout %q; want 2", got, stderr.String(), stdout.String())
+	}
+	if stdout.Len() != 0 {
+		t.Fatalf("stdout = %q; want empty output for invalid profile", stdout.String())
+	}
+	if !strings.Contains(stderr.String(), `invalid context profile "missing"`) {
+		t.Fatalf("stderr = %q; want invalid profile message", stderr.String())
+	}
+}
+
+func TestContextProfileContractRejectsUnknownGateAndCycles(t *testing.T) {
+	original := contextProfileGates
+	t.Cleanup(func() {
+		contextProfileGates = original
+	})
+
+	contextProfileGates = map[string][]string{
+		"lite":     {"governance-check"},
+		"standard": {"context-lite", "missing-gate"},
+	}
+	var gaps []string
+	appendContextProfileContractGaps("governance-check:\ncontext-lite:\n", &gaps)
+	if !slicesContain(gaps, "context profile standard references unknown Makefile gate missing-gate") {
+		t.Fatalf("gaps = %#v; want unknown gate gap", gaps)
+	}
+
+	contextProfileGates = map[string][]string{
+		"lite":     {"context-standard"},
+		"standard": {"context-lite"},
+	}
+	gaps = nil
+	appendContextProfileContractGaps("context-lite:\ncontext-standard:\n", &gaps)
+	if !gapsContainSubstring(gaps, "context profile DAG cycle:") {
+		t.Fatalf("gaps = %#v; want context profile DAG cycle gap", gaps)
+	}
+}
+
+func TestReleaseFinalDelegationRejectsSelfRecursion(t *testing.T) {
+	makefile := "release-final-check: context-release release-final-check\n\t$(MAKE) release-final-check\n"
+	var gaps []string
+	appendReleaseFinalDelegationGaps(makefile, &gaps)
+	if !slicesContain(gaps, "release-final-check must not call itself") {
+		t.Fatalf("gaps = %#v; want self-recursion gap", gaps)
+	}
+}
+
+func TestContextReleaseRejectsForbiddenReleaseReferences(t *testing.T) {
+	makefile := "context-release:\n\t$(MAKE) release-final-check\n"
+	var gaps []string
+	appendMakefileTargetForbiddenReferenceGaps(makefile, "context-release", []string{"release-check", "release-final-check"}, &gaps)
+	if !slicesContain(gaps, "Makefile context-release must not reference release-final-check") {
+		t.Fatalf("gaps = %#v; want forbidden release-final-check gap", gaps)
+	}
+}
+
 func TestCIWorkflowGoalGovernanceUsesExplicitContext(t *testing.T) {
 	content, err := os.ReadFile(filepath.Join(repoRoot(t), ".github", "workflows", "ci.yml"))
 	if err != nil {
@@ -1265,6 +1426,30 @@ func gapsContainSubstring(gaps []string, want string) bool {
 		}
 	}
 	return false
+}
+
+func contextProfileMakefileFixture(overrides map[string]string, releaseFinalBody string) string {
+	dependencies := map[string]string{
+		"context-lite":     "require-gowork-off governance-check",
+		"context-standard": "require-gowork-off governance-check p1-governance-check docs-check",
+		"context-full":     "require-gowork-off governance-check p1-governance-check p2-runtime-check",
+		"context-release":  "require-gowork-off context-full integration dependency-check standard-impact-check score-check",
+	}
+	for target, deps := range overrides {
+		dependencies[target] = deps
+	}
+	targets := []string{"context-lite", "context-standard", "context-full", "context-release"}
+	var b strings.Builder
+	for _, target := range targets {
+		b.WriteString(target)
+		b.WriteString(": ")
+		b.WriteString(dependencies[target])
+		b.WriteString("\n\t@true\n")
+	}
+	b.WriteString("release-final-check:\n\t")
+	b.WriteString(releaseFinalBody)
+	b.WriteString("\n")
+	return b.String()
 }
 
 func chdir(t *testing.T, dir string) {

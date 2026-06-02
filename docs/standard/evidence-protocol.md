@@ -48,11 +48,12 @@ make release-check
   -> make release-evidence-check
   -> make release-evidence-checksum-check
 make release-final-check
-  -> release-check
+  -> XLIB_CONTEXT=release_verify GOWORK=off make context-release
+  -> score --min 9.8
   -> 要求工作区 clean 后再次校验 release Evidence
 ```
 
-Context Runtime v4.0 的目标链路必须保持单向：`context-release` 不得依赖 `release-check` 或 `release-final-check`；迁移完成后 `release-final-check` 可以调用 `context-release`。在 wrapper、Makefile target、`cmd/xlibgate` 命令和 registry bridge 物理落地前，完成声明只能把该链路记录为目标态或 known gap，不能写成已执行。release manifest 和 release evidence proof artifacts 必须用实际 gate 输出支撑，不能用目标态文字替代。
+Context Runtime v4.0 / `REQ-014` 的链路必须保持单向：`context-release` 不得依赖或调用 `release-check` / `release-final-check`；`release-final-check` 必须调用 `context-release`，并且不得自递归。profile wrapper、Makefile target、`cmd/xlibgate` 命令和 registry bridge 已经落地；完成声明必须用实际 gate 输出支撑，不能用目标态文字替代。物理 `.agent/context/*` packs/templates 只有在文件真实存在且被 registry/evidence 覆盖时才能宣称已交付。
 
 本地 release gate 必须运行 `GOWORK=off make dependency-check`、`GOWORK=off make standard-impact-check` 和 `GOWORK=off make docs-check`。
 
@@ -78,7 +79,7 @@ manifest 必须记录：
 - `generator_evidence`：`kernel` 和 `corekit` 的生成验证摘要。
 - `workflow`：CI 或本地 Evidence artifact 元数据，至少包含 `workflow_run_id`、`artifact_name`、`artifact_url`。
 - `score`：release governance 评分结果、阈值、状态和维度明细。
-- `governance_runtime`：Context Runtime v4.0 目标证据字段；落地后必须记录 runtime/schema version、profile 状态、`context-standard`/`context-full`/`context-release` gate 结果、registry source 和 profile wrapper 命令。当前 `internal/tools/releasemanifest/main.go` 尚未发出该字段时，release Evidence 必须把它列入 known gaps，而不是写成 passed。
+- `governance_runtime`：Context Runtime v4.0 / `REQ-014` 的必需证据字段，由 `internal/tools/releasemanifest/main.go` 生成；必须记录 runtime/schema version、profile 状态、`context-profile-check` / `context-release` / legacy alias 结果、registry source 和 profile wrapper 命令。若生成器、校验器或 manifest 缺失该字段，release Evidence 必须失败或列入 blocked/known gaps，不得写成 passed。
 - `artifacts`：必须包含 `release/manifest/latest.json` 和 `release/manifest/latest.json.sha256`。
 
 `standard_impact.downstream_release_decision` 的 allowed values 只能是 `required` 或 `not_required`。`required` 表示本次标准影响必须同步到默认下游或在 release Evidence 中记录 blocked/owner；`not_required` 表示本次无需触发下游 release action。

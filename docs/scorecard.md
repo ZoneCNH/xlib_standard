@@ -8,7 +8,7 @@
 
 因此，`score >= 9.8` 只能作为 release governance 信号使用。发布结论必须同时读取 `make ci`、`make security`、`make release-final-check`、测试覆盖证据和必要的人工审查结果。
 
-Context Runtime v4.0 迁移期间，score 也不能替代 `context-standard`、`context-full` 或 `context-release` profile 结果。若 `governance_runtime` manifest 字段、profile wrapper、registry bridge 或 `.agent/context/*` 物理文件尚未落地，scorecard 只能说明治理文件和 gate wiring 的完整性，不能宣称上下文运行时已通过。
+Context Runtime v4.0 迁移期间，score 也不能替代 `context-standard`、`context-full` 或 `context-release` profile 结果。发布结论必须同时读取 `governance_runtime` manifest 字段、profile wrapper 和 registry bridge 的实际 gate 输出；物理 `.agent/context/*` packs/templates 未落地时，只能说明这些 packs/templates 尚未交付，不能用 scorecard 宣称它们已存在。
 
 ## 评分规则
 
