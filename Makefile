@@ -50,8 +50,6 @@ docs-check:
 	$(XLIBGATE) docs-check
 
 .PHONY: debt architecture domain docs-drift dependency-debt security-debt testing-debt implementation-debt downstream-debt
-debt architecture domain docs-drift dependency-debt security-debt testing-debt implementation-debt downstream-debt:
-	$(XLIBGATE) $@
 
 .PHONY: debt-evidence
 debt-evidence:
@@ -88,15 +86,13 @@ implementation-debt:
 security-debt:
 	$(XLIBGATE) debt --section security --mode warn
 
+downstream-debt:
+	$(XLIBGATE) downstream-debt
+
 debt:
 	$(XLIBGATE) debt --config .agent/debt/rules.yaml --exceptions .agent/debt/exceptions.yaml --dependency-purpose .agent/debt/dependency-purpose.yaml --mode enforce --min-score 9.8
 
-debt-evidence:
-	mkdir -p release/debt
-	$(XLIBGATE) debt --config .agent/debt/rules.yaml --exceptions .agent/debt/exceptions.yaml --dependency-purpose .agent/debt/dependency-purpose.yaml --mode enforce --min-score 9.8 --output json > release/debt/latest.json
-	$(XLIBGATE) debt --config .agent/debt/rules.yaml --exceptions .agent/debt/exceptions.yaml --dependency-purpose .agent/debt/dependency-purpose.yaml --mode enforce --min-score 9.8 --output markdown > release/debt/latest.md
-	if command -v sha256sum >/dev/null 2>&1; then sha256sum release/debt/latest.json > release/debt/latest.json.sha256; else shasum -a 256 release/debt/latest.json > release/debt/latest.json.sha256; fi
-
+.PHONY: debt-register-update debt-trend debt-patch-suggest debt-lifecycle-check
 debt-register-update:
 	$(XLIBGATE) debt register-update
 
@@ -285,6 +281,7 @@ release-check-extended: require-gowork-off ci-extended integration dependency-ch
 .PHONY: release-final-check
 release-final-check:
 	XLIB_CONTEXT=release_verify GOWORK=off $(MAKE) context-release
+	$(MAKE) debt-evidence-checksum-check
 	$(XLIBGATE) score --min 9.8
 	RELEASE_EVIDENCE_REQUIRE_PASSED=1 RELEASE_EVIDENCE_REQUIRE_CLEAN=1 RELEASE_EVIDENCE_MIN_SCORE=9.8 ./scripts/check_release_evidence.sh
 	$(MAKE) release-evidence-checksum-check

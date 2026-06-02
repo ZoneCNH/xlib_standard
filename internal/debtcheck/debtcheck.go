@@ -274,7 +274,7 @@ func validateSection(section string) error {
 }
 
 func allSections() []string {
-	return []string{"architecture", "domain", "docs", "dependency", "testing", "implementation", "security"}
+	return []string{"architecture", "domain", "docs", "dependency", "testing", "implementation", "security", "downstream"}
 }
 
 func selectedSections(section string) []string {
@@ -316,9 +316,195 @@ func scanSection(root, section string) []Finding {
 		return scanTextMarker(root, "xlib-implementation-debt", "debt.implementation.marker", "implementation debt marker is present")
 	case "security":
 		return scanSecurityDebt(root)
+	case "downstream":
+		return scanDownstreamDebt(root)
 	default:
 		return nil
 	}
+}
+
+var downstreamRequiredFiles = []string{
+	".agent/downstream-registry.yaml",
+	".agent/downstream-baseline-scan.yaml",
+	".agent/downstream-adoption-modes.yaml",
+	".agent/downstream-adoption-status.yaml",
+	"docs/downstream-matrix.md",
+	"docs/standard/downstream-compatibility.md",
+	"scripts/run_integration.sh",
+	"scripts/render_template.sh",
+}
+
+var downstreamRepresentativeRepos = []string{
+	"kernel/configx",
+	"kernel/redisx",
+	"corekit",
+}
+
+var downstreamTargetLibraries = []string{
+	"kernel",
+	"configx",
+	"observex",
+	"testkitx",
+	"postgresx",
+	"redisx",
+	"kafkax",
+	"taosx",
+	"ossx",
+	"clickhousex",
+}
+
+var downstreamIntegrationTokens = []string{
+	"kernel|github.com/ZoneCNH/kernel|kernel",
+	"configx|github.com/ZoneCNH/configx|configx",
+	"redisx|github.com/ZoneCNH/redisx|redisx",
+	"GOWORK=off make debt",
+	"GOWORK=off make debt-evidence",
+	"GOWORK=off make debt-evidence-checksum-check",
+}
+
+var downstreamRenderTemplateExclusions = []string{
+	"release/debt/latest.json",
+	"release/debt/latest.md",
+	"release/debt/latest.json.sha256",
+}
+
+func scanDownstreamDebt(root string) []Finding {
+	files := make(map[string]string, len(downstreamRequiredFiles))
+	var findings []Finding
+
+	for _, relPath := range downstreamRequiredFiles {
+		content, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(relPath)))
+		if err != nil {
+			findings = append(findings, Finding{
+				ID:       "debt.downstream.file-missing",
+				Severity: "P0",
+				Path:     relPath,
+				Message:  "required downstream governance file is missing",
+			})
+			continue
+		}
+
+		text := string(content)
+		files[relPath] = text
+		if strings.HasSuffix(relPath, ".yaml") && !strings.Contains(text, "schema_version:") {
+			findings = append(findings, Finding{
+				ID:       "debt.downstream.schema-missing",
+				Severity: "P0",
+				Path:     relPath,
+				Message:  "downstream governance YAML must declare schema_version",
+			})
+		}
+		if containsDownstreamPlaceholder(text) {
+			findings = append(findings, Finding{
+				ID:       "debt.downstream.placeholder",
+				Severity: "P1",
+				Path:     relPath,
+				Message:  "downstream governance file still contains placeholder text",
+			})
+		}
+	}
+
+	registry := files[".agent/downstream-registry.yaml"]
+	for _, repo := range downstreamRepresentativeRepos {
+		requireDownstreamToken(&findings, registry, ".agent/downstream-registry.yaml", "repo: "+repo, "debt.downstream.registry-missing-repo", "downstream registry is missing required representative repo")
+	}
+
+	baseline := files[".agent/downstream-baseline-scan.yaml"]
+	requireDownstreamToken(&findings, baseline, ".agent/downstream-baseline-scan.yaml", "repo: kernel/configx", "debt.downstream.baseline-missing-repo", "downstream baseline must name the reference repo")
+	requireDownstreamToken(&findings, baseline, ".agent/downstream-baseline-scan.yaml", "mode: patch-only", "debt.downstream.baseline-missing-mode", "downstream baseline must preserve patch-only mode")
+	if baseline != "" && !strings.Contains(baseline, "gap") {
+		findings = append(findings, Finding{
+			ID:       "debt.downstream.baseline-missing-gap-status",
+			Severity: "P0",
+			Path:     ".agent/downstream-baseline-scan.yaml",
+			Message:  "downstream baseline must explicitly record the repo-missing gap status",
+		})
+	}
+
+	modes := files[".agent/downstream-adoption-modes.yaml"]
+	requireDownstreamToken(&findings, modes, ".agent/downstream-adoption-modes.yaml", "patch-only", "debt.downstream.mode-missing-patch-only", "downstream adoption modes must include patch-only")
+	requireDownstreamToken(&findings, modes, ".agent/downstream-adoption-modes.yaml", "direct_downstream_write_without_repo", "debt.downstream.mode-missing-write-guard", "downstream adoption modes must forbid direct downstream writes without a repo")
+
+	status := files[".agent/downstream-adoption-status.yaml"]
+	for _, name := range downstreamTargetLibraries {
+		requireDownstreamToken(&findings, status, ".agent/downstream-adoption-status.yaml", "name: "+name, "debt.downstream.status-missing-target", "downstream adoption status must include every standard target library")
+	}
+	if hasYAMLScalarLine(status, "adoption_status", "adopted") {
+		findings = append(findings, Finding{
+			ID:       "debt.downstream.false-adoption-claim",
+			Severity: "P0",
+			Path:     ".agent/downstream-adoption-status.yaml",
+			Message:  "downstream adoption status claims adopted without proof-based adoption evidence",
+		})
+	}
+	if hasYAMLScalarLine(status, "proof_based_adoption", "true") {
+		findings = append(findings, Finding{
+			ID:       "debt.downstream.false-proof-claim",
+			Severity: "P0",
+			Path:     ".agent/downstream-adoption-status.yaml",
+			Message:  "downstream adoption status claims proof-based adoption without downstream proof gate evidence",
+		})
+	}
+
+	matrix := files["docs/downstream-matrix.md"]
+	for _, name := range downstreamTargetLibraries {
+		requireDownstreamToken(&findings, matrix, "docs/downstream-matrix.md", "`"+name+"`", "debt.downstream.matrix-missing-target", "downstream matrix must cover every standard target library")
+	}
+
+	compatibility := files["docs/standard/downstream-compatibility.md"]
+	for _, token := range []string{"`kernel`", "`corekit`", "GOWORK=off make integration"} {
+		requireDownstreamToken(&findings, compatibility, "docs/standard/downstream-compatibility.md", token, "debt.downstream.compatibility-missing-contract", "downstream compatibility standard must preserve default downstream and verification contract")
+	}
+
+	integration := files["scripts/run_integration.sh"]
+	for _, token := range downstreamIntegrationTokens {
+		requireDownstreamToken(&findings, integration, "scripts/run_integration.sh", token, "debt.downstream.integration-missing-contract", "downstream integration script must render required targets and preserve debt evidence gates")
+	}
+
+	renderTemplate := files["scripts/render_template.sh"]
+	for _, token := range downstreamRenderTemplateExclusions {
+		requireDownstreamToken(&findings, renderTemplate, "scripts/render_template.sh", token, "debt.downstream.render-template-missing-exclusion", "rendered template must exclude generated debt evidence artifacts")
+	}
+
+	sort.SliceStable(findings, func(i, j int) bool {
+		if findings[i].Path == findings[j].Path {
+			return findings[i].ID < findings[j].ID
+		}
+		return findings[i].Path < findings[j].Path
+	})
+	return findings
+}
+
+func requireDownstreamToken(findings *[]Finding, text, path, token, id, message string) {
+	if text == "" || strings.Contains(text, token) {
+		return
+	}
+	*findings = append(*findings, Finding{
+		ID:       id,
+		Severity: "P0",
+		Path:     path,
+		Message:  message,
+	})
+}
+
+func containsDownstreamPlaceholder(text string) bool {
+	upper := strings.ToUpper(text)
+	return strings.Contains(upper, "TODO") ||
+		strings.Contains(upper, "TBD") ||
+		strings.Contains(upper, "PLACEHOLDER")
+}
+
+func hasYAMLScalarLine(text, key, value string) bool {
+	for _, line := range strings.Split(text, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "#") || !strings.HasPrefix(trimmed, key+":") {
+			continue
+		}
+		if strings.TrimSpace(strings.TrimPrefix(trimmed, key+":")) == value {
+			return true
+		}
+	}
+	return false
 }
 
 func scanGoImports(root string) []Finding {
@@ -386,7 +572,8 @@ func scanSecurityDebt(root string) []Finding {
 func scanTextMarker(root, marker, id, message string) []Finding {
 	return scanTrackedText(root, func(path, text string) []Finding {
 		if strings.Contains(text, marker) {
-			return []Finding{{ID: id, Severity: "P1", Path: rel(root, path), Message: message}}
+			finding := Finding{ID: id, Severity: "P1", Path: rel(root, path), Message: message}
+			return []Finding{finding}
 		}
 		return nil
 	})

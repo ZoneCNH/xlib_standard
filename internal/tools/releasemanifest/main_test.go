@@ -178,8 +178,11 @@ func TestRunCLIGeneratesManifestToOut(t *testing.T) {
 	if !hasGeneratorTarget(manifest.GeneratorEvidence.Targets, "kernel", "github.com/ZoneCNH/kernel", "kernel") {
 		t.Fatalf("generator targets = %+v, want kernel target", manifest.GeneratorEvidence.Targets)
 	}
-	if !hasGeneratorTarget(manifest.GeneratorEvidence.Targets, "corekit", "example.com/acme/corekit", "corekit") {
-		t.Fatalf("generator targets = %+v, want corekit target", manifest.GeneratorEvidence.Targets)
+	if !hasGeneratorTarget(manifest.GeneratorEvidence.Targets, "configx", "github.com/ZoneCNH/configx", "configx") {
+		t.Fatalf("generator targets = %+v, want configx target", manifest.GeneratorEvidence.Targets)
+	}
+	if !hasGeneratorTarget(manifest.GeneratorEvidence.Targets, "redisx", "github.com/ZoneCNH/redisx", "redisx") {
+		t.Fatalf("generator targets = %+v, want redisx target", manifest.GeneratorEvidence.Targets)
 	}
 	for _, name := range checkNames {
 		if manifest.Checks[name] != "passed" {
@@ -577,8 +580,11 @@ func TestBuildManifestRecordsFixtureRepositoryFacts(t *testing.T) {
 	if !hasGeneratorTarget(manifest.GeneratorEvidence.Targets, "kernel", "github.com/ZoneCNH/kernel", "kernel") {
 		t.Fatalf("generator targets = %+v, want kernel target", manifest.GeneratorEvidence.Targets)
 	}
-	if !hasGeneratorTarget(manifest.GeneratorEvidence.Targets, "corekit", "example.com/acme/corekit", "corekit") {
-		t.Fatalf("generator targets = %+v, want corekit target", manifest.GeneratorEvidence.Targets)
+	if !hasGeneratorTarget(manifest.GeneratorEvidence.Targets, "configx", "github.com/ZoneCNH/configx", "configx") {
+		t.Fatalf("generator targets = %+v, want configx target", manifest.GeneratorEvidence.Targets)
+	}
+	if !hasGeneratorTarget(manifest.GeneratorEvidence.Targets, "redisx", "github.com/ZoneCNH/redisx", "redisx") {
+		t.Fatalf("generator targets = %+v, want redisx target", manifest.GeneratorEvidence.Targets)
 	}
 	for _, artifact := range requiredArtifacts {
 		if !contains(manifest.Artifacts, artifact) {
@@ -1094,8 +1100,11 @@ func TestBuildGeneratorEvidenceRecordsRepresentativeDownstreams(t *testing.T) {
 	if !hasGeneratorTarget(got.Targets, "kernel", "github.com/ZoneCNH/kernel", "kernel") {
 		t.Fatalf("targets = %+v, want kernel target", got.Targets)
 	}
-	if !hasGeneratorTarget(got.Targets, "corekit", "example.com/acme/corekit", "corekit") {
-		t.Fatalf("targets = %+v, want corekit target", got.Targets)
+	if !hasGeneratorTarget(got.Targets, "configx", "github.com/ZoneCNH/configx", "configx") {
+		t.Fatalf("targets = %+v, want configx target", got.Targets)
+	}
+	if !hasGeneratorTarget(got.Targets, "redisx", "github.com/ZoneCNH/redisx", "redisx") {
+		t.Fatalf("targets = %+v, want redisx target", got.Targets)
 	}
 }
 

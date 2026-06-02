@@ -6,7 +6,8 @@ trap 'rm -rf "$tmpdir"' EXIT
 
 cases=(
   "kernel|github.com/ZoneCNH/kernel|kernel"
-  "corekit|example.com/acme/corekit|corekit"
+  "configx|github.com/ZoneCNH/configx|configx"
+  "redisx|github.com/ZoneCNH/redisx|redisx"
 )
 
 for spec in "${cases[@]}"; do
@@ -35,6 +36,9 @@ for spec in "${cases[@]}"; do
     GOWORK=off make contracts
     GOWORK=off make boundary
     GOWORK=off make standard-impact-check
+    GOWORK=off make debt
+    GOWORK=off make debt-evidence
+    GOWORK=off make debt-evidence-checksum-check
     CHECK_STATUS=passed GOWORK=off make evidence
     RELEASE_EVIDENCE_REQUIRE_PASSED=1 GOWORK=off make release-evidence-check
   )

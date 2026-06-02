@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	projectReleaseVersion    = "v0.4.2"
+	projectReleaseVersion    = "v0.4.3"
 	governanceRuntimeVersion = "v2.9.3"
 )
 
@@ -611,7 +611,7 @@ func contextGateProfile(gate string) (string, bool) {
 		return "standard", true
 	case "context-full", "context-full-check":
 		return "full", true
-	case "context-release", "debt-evidence":
+	case "context-release":
 		return "release", true
 	default:
 		return "", false

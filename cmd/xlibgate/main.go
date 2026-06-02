@@ -65,14 +65,16 @@ func run(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) int
 		return runDebtAlias("implementation", "observe", args[1:], stdout, stderr)
 	case "security-debt":
 		return runDebtAlias("security", "warn", args[1:], stdout, stderr)
+	case "downstream-debt":
+		return runDebtAlias("downstream", "warn", args[1:], stdout, stderr)
 	case "minimal-kernel", "done-assertion", "agent-team-contract", "scope-lock", "pr-template", "acceptance-matrix", "runtime-health", "goal-runtime", "naming", "upgrade-standard", "conformance-profile", "downstream-registry", "self-healing-skeleton", "policy-schema", "github-settings", "toolchain", "evidence-artifacts", "install-runtime", "upgrade-runtime", "release-ready", "evidence-replay", "attest-conformance", "pack-standard", "pack-gate", "pack-evidence", "runtime-file-ownership", "downstream-baseline", "downstream-adoption", "autoresearch", "changelog", "github-governance", "governance-fixture-test", "supply-chain", "execution-context":
 		return runPlannedCommand(args[0], args[1:], stdout, stderr)
 	case "boundary":
 		return runExternal(stdin, stdout, stderr, "./scripts/check_boundary.sh")
 	case "contracts":
 		return runExternal(stdin, stdout, stderr, "./scripts/check_contracts.sh")
-	case "debt", "architecture", "domain", "docs-drift", "dependency-debt", "security-debt", "testing-debt", "implementation-debt", "downstream-debt", "debt-evidence":
-		return runDebtCommand(args[0], args[1:], stdout, stderr)
+	case "debt-evidence":
+		return runDebtEvidence(args[1:], stdout, stderr)
 	case "debt-evidence-checksum-check":
 		return runExternal(stdin, stdout, stderr, "./scripts/hash_release_evidence.sh", "--check", "release/debt/latest.json", "release/debt/latest.json.sha256")
 	case "debt-evidence-hash":
@@ -177,7 +179,7 @@ commands:
   context-full
   context-full-check
   context-lite
-  context-profile [--json]
+  context-profile [--profile <name>] [--json]
   context-profile-check [--json]
   context-release
   context-schema-check [--json]
@@ -185,22 +187,26 @@ commands:
   context-standard-check
   contracts
   debt [--config <path>] [--section <name>] [--mode <enforce|warn|observe>] [--min-score <score>] [--output json|markdown]
+  debt lifecycle-check [--output <path>]
+  debt patch-suggest [--output <path>]
+  debt register-update [--output <path>]
+  debt trend [--output <path>]
+  debt-evidence
+  debt-evidence-checksum-check
+  debt-evidence-hash
   dependency-debt [debt args]
   dependency-check
   docs-drift [debt args]
   domain [debt args]
   doctor [--json]
-  docs-drift
   docs-check
   downstream-adoption
   downstream-baseline
   downstream-registry
-  downstream-debt
+  downstream-debt [debt args]
   evidence
   evidence-artifacts
   evidence-check
-  architecture
-  domain
   evidence-replay
   execution-context
   github-governance
@@ -211,7 +217,6 @@ commands:
   integration
   implementation-debt [debt args]
   issue-registry
-  implementation-debt
   main-guard [--context local_write|local_readonly|ci_pull_request|ci_main_verify|release_verify]
   makefile-baseline
   manifest
@@ -237,9 +242,7 @@ commands:
   security
   security-debt [debt args]
   self-healing-skeleton
-  security-debt
   standard-impact-check
-  testing-debt
   supply-chain
   toolchain
   testing-debt [debt args]

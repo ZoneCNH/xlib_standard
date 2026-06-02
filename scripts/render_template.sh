@@ -101,6 +101,9 @@ out_dir="$out_abs"
     --exclude='./profile.cov' \
     --exclude='./release/manifest/latest.json' \
     --exclude='./release/manifest/latest.json.sha256' \
+    --exclude='./release/debt/latest.json' \
+    --exclude='./release/debt/latest.md' \
+    --exclude='./release/debt/latest.json.sha256' \
     -cf - .
 ) | (
   cd "$out_dir"

@@ -111,7 +111,8 @@ var repositoryRulesReleaseDecisionValues = []string{
 
 var generatorEvidenceTargets = []GeneratorTarget{
 	{Name: "kernel", ModulePath: "github.com/ZoneCNH/kernel", PackageName: "kernel"},
-	{Name: "corekit", ModulePath: "example.com/acme/corekit", PackageName: "corekit"},
+	{Name: "configx", ModulePath: "github.com/ZoneCNH/configx", PackageName: "configx"},
+	{Name: "redisx", ModulePath: "github.com/ZoneCNH/redisx", PackageName: "redisx"},
 }
 
 var governanceRuntimeGateStatuses = map[string]string{
@@ -140,7 +141,7 @@ type Manifest struct {
 	Contracts              []FileDigest           `json:"contracts"`
 	Dependencies           []ModuleDigest         `json:"dependencies"`
 	StandardImpact         StandardImpactEvidence `json:"standard_impact"`
-	Debt                   debtcheck.Evidence     `json:"debt"`
+	Debt                   DebtEvidence           `json:"debt"`
 	GovernanceRuntime      GovernanceRuntime      `json:"governance_runtime"`
 	DownstreamSyncRequired bool                   `json:"downstream_sync_required"`
 	GeneratorEvidence      GeneratorEvidence      `json:"generator_evidence"`
@@ -304,14 +305,14 @@ func buildManifest() (Manifest, error) {
 	if err != nil {
 		return Manifest{}, err
 	}
-	debtReport, err := debtcheck.Run(debtcheck.Options{Mode: "enforce", MinScore: debtcheck.DefaultMinScore})
+	debtEvidence, err := buildDebtEvidence()
 	if err != nil {
 		return Manifest{}, err
 	}
 
 	return Manifest{
 		Module:                 module,
-		Version:                envDefault("VERSION", "v0.4.2"),
+		Version:                envDefault("VERSION", "v0.4.3"),
 		Commit:                 runTrimmedDefault("unknown", "git", "rev-parse", "HEAD"),
 		TreeSHA:                runTrimmedDefault("unknown", "git", "rev-parse", "HEAD^{tree}"),
 		SourceDigest:           sourceDigest,
@@ -326,7 +327,7 @@ func buildManifest() (Manifest, error) {
 		Contracts:              contracts,
 		Dependencies:           dependencies,
 		StandardImpact:         standardImpact,
-		Debt:                   debtcheck.EvidenceFromReport(debtReport),
+		Debt:                   debtEvidence,
 		GovernanceRuntime:      buildGovernanceRuntime(),
 		DownstreamSyncRequired: standardImpact.DownstreamSyncRequired,
 		GeneratorEvidence:      buildGeneratorEvidence(),
@@ -425,10 +426,7 @@ func verifyManifest(path string, requirePassed bool, requireClean bool, expectVe
 		failures = append(failures, "standard_impact does not match current standard impact evidence")
 	}
 	if !reflect.DeepEqual(got.Debt, current.Debt) {
-		failures = append(failures, "debt does not match current debt governance evidence")
-	}
-	if debtFailures := debtcheck.ValidateEvidence(got.Debt, debtcheck.DefaultMinScore); len(debtFailures) > 0 {
-		failures = append(failures, debtFailures...)
+		failures = append(failures, "debt does not match current debt evidence")
 	}
 	if !reflect.DeepEqual(got.GovernanceRuntime, current.GovernanceRuntime) {
 		failures = append(failures, "governance_runtime does not match current context runtime evidence")
@@ -609,6 +607,7 @@ func buildDebtEvidence() (DebtEvidence, error) {
 		Score    float64           `json:"score"`
 		MinScore float64           `json:"min_score"`
 		Checks   []json.RawMessage `json:"checks"`
+		Sections []json.RawMessage `json:"sections"`
 	}
 	if err := json.Unmarshal(data, &report); err != nil {
 		return DebtEvidence{}, err
@@ -620,6 +619,9 @@ func buildDebtEvidence() (DebtEvidence, error) {
 		evidence.MinScore = report.MinScore
 	}
 	evidence.CheckCount = len(report.Checks)
+	if evidence.CheckCount == 0 {
+		evidence.CheckCount = len(report.Sections)
+	}
 	return evidence, nil
 }
 
