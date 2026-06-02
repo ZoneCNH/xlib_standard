@@ -4,6 +4,16 @@
 
 暂无。
 
+## v0.4.1 - 2026-06-03
+
+### 治理
+
+- 对齐 release 版本口径到 `v0.4.1`，同步 `templatex.Version`、release manifest 默认版本、preflight 命令示例和 Harness 记录。
+
+### 兼容性
+
+- 本版本仅更新发布治理与版本元数据，不改变 `pkg/templatex` 公共 API 行为。
+
 ## v0.4.0 - 2026-06-03
 
 ### 修复
