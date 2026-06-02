@@ -1,1852 +1,1088 @@
-# xlib-standard 10分标准升级 Goal 方案 v1.0
+# xlib-standard 完整 Goal 可执行方案 v2.9.3 Complete
 
-> 文件类型：完整 Goal Runtime 可执行方案  
+> 版本：v2.9.3 Complete
 > 目标仓库：`https://github.com/ZoneCNH/xlib-standard`  
-> 关联基础库：`https://github.com/ZoneCNH/kernel`、`https://github.com/ZoneCNH/xlib-standard`  
-> 关联应用：`x.go`  
-> 当前评分基线：7.1 / 10  
-> 目标评分：10 / 10  
-> 执行标准：Goal Runtime Prompt v3.1  
-> 默认执行模式：Full  
-> 当前日期：2026-06-02  
-> 时区：Asia/Tokyo  
-> 完成声明格式：`DONE with evidence:`
+> 首批下游验证：`github.com/ZoneCNH/kernel`、`github.com/ZoneCNH/configx`
+> 执行标准：Goal Runtime v3.1 + First-Principles + Harness Engineering + Karpathy 四原则 + Self-improving + AutoResearch + Compound Engineering
+> 生成日期：2026-06-02
+> 替代版本：v2.9、v2.9.1、v2.9.2
 
 ---
 
-## 0. 执行总提示
+## 0. 第三轮审计结论
 
-你是负责 `x.go` 基础库体系标准化、工程化和复利资产化的架构执行 Agent。
+本版是一个**主文档重编译版本**，不再把 v2.9.1 / v2.9.2 的补丁作为附录，而是把它们合并进主执行流。
 
-你的任务不是写一份普通方案，而是把当前 `xlib-standard` 从“可用的 Go 基础库模板仓库”升级为“10 分标准的基础库标准源 + 模板工厂 + Harness/Evidence 运行时”。
+第三轮审计发现，v2.9.2 已补齐大量落地缺口，但仍有 3 类风险需要集成进完整版：
 
-你必须按照 Goal Runtime Prompt v3.1 执行完整闭环：
+1. **补丁附录化风险**：v2.9.2 的新增 Issue、命令、Makefile、验收标准散落在后文，Agent 实施时可能只读取前文 P0/P1/P2 Pack 而漏掉补丁。
+2. **命名与自符合风险**：旧名 `baselib-template` / `foundationx` 缺少明确 guard；且下游 adoption 前应先完成 `xlib-standard` 自身 standard-source profile attestation。
+3. **执行入口漂移风险**：Issue Registry、Command Registry、Makefile Target Registry、Policy Schema、Toolchain、Evidence Path、GitHub Settings、Runtime File Ownership 必须统一进入 SSOT，否则后续多 Agent 实施会漂移。
+
+因此 v2.9.3 的裁决是：
 
 ```text
-Goal
-  → Context Recovery
-  → Spec
-  → Design
-  → Plan
-  → Tasks
-  → Execution
-  → Verification
-  → Evidence
-  → Review
-  → Release
-  → Retrospective
-  → Self-improving
+v2.9.3 Complete = v2.9 主方案
+  + v2.9.1 治理对象与上下文补丁
+  + v2.9.2 执行一致性补丁
+  + v2.9.3 命名一致性、自符合证明、主文档重编译
 ```
 
-不允许只输出计划。  
-不允许只修改 README。  
-不允许没有 Evidence 就声称完成。  
-不允许继续保留 `baselib-template` / `foundationx` 旧命名作为主口径。  
-不允许让 `xlib-standard`、`kernel`、`x.go` 三者边界继续模糊。
+实际执行应以 **v2.9.3 Complete** 为准。
 
 ---
 
-## 1. 问题的底层本质
+## 1. 最终目标
 
-当前 `xlib-standard` 的核心问题不是“缺少文件”，而是 **身份、边界、执行证据和下游继承关系没有完全一致**。
-
-现状可以概括为：
+`xlib-standard` 的目标不是做一个普通 Go 模板，而是升级为：
 
 ```text
-仓库名：xlib-standard
-go.mod：github.com/ZoneCNH/baselib-template
-README 主标题：baselib-template
-生成示例：foundationx
-最新目标命名：xlib-standard + kernel
-实际能力：标准文档 + Go 模板 + generator + Harness + Evidence
-边界文档：又说 xlib-standard 不应包含 generator/runtime 实现
+Standard Source
+  + Go Reference Template
+  + Generator
+  + Harness
+  + Evidence Runtime
+  + Constitution Runtime
+  + Downstream Conformance Runtime
 ```
 
-这导致系统存在结构性矛盾：
+v2.9.3 完成后必须具备：
 
-```text
-xlib-standard 到底是标准源？
-还是模板实现仓库？
-baselib-template 是否废弃？
-foundationx 是否已被 kernel 替代？
-下游库到底继承哪个标准？
-Agent 执行时以哪个仓库、哪个 module path、哪个命名为事实？
-```
-
-因此，10 分升级的第一性目标不是“补几个脚本”，而是：
-
-> 建立一个唯一、稳定、可执行、可验证、可继承、可复利演进的基础库标准工厂。
+1. P0 Minimal Kernel：防止 main 开发、无 worktree、无 Evidence DONE、x.go 反向依赖、production secret default、Makefile/CI/manifest 缺失。
+2. P1 Governance Hardening：Agent Team、Scope Lock、PR Contract、Acceptance Matrix、Runtime Health、GitHub Governance、Toolchain、Policy Schema、Evidence Artifact、Self-Healing Skeleton。
+3. P2 Runtime & Conformance Automation：Runtime install/upgrade、release readiness、evidence replay、conformance attestation、Standard/Gate/Evidence Pack、kernel/configx adoption dry-run proof。
+4. Self-improving：失败必须进入 Failure Taxonomy、Root Cause、Regression Memory、Patch Candidate。
+5. Progressive adoption：P3/P4 高级治理在 P0/P1/P2 完成前冻结。
 
 ---
 
-## 2. 不可再拆解的基本真理
+## 2. 第一性原理裁决
 
-### 2.1 标准必须有唯一事实源
+### 2.1 问题本质
 
-基础库体系中，所有下游库必须能回答：
+`xlib-standard` 的本质问题不是“模板怎么写”，而是：
 
-```text
-我的标准从哪里继承？
-我的模板从哪里生成？
-我的 gate 从哪里来？
-我的 Evidence 如何证明？
-我和 x.go 的边界在哪里？
-我是否允许依赖 kernel？
-```
+> 如何让所有基础库在多 Agent、多 worktree、多仓库、多 release 阶段中，持续遵守同一套可验证工程文明。
 
-如果标准源不唯一，下游库会分叉。
-
-### 2.2 模板必须可运行，不只是可阅读
-
-10 分标准不是 README 写得完整，而是：
+### 2.2 不可再拆解的基本真理
 
 ```text
-make ci 能跑
-make release-check 能跑
-生成库能跑
-contracts 能校验
-boundary 能阻断错误依赖
-Evidence 能证明完成状态
+TRUTH-001  规则不进入 Gate，就不是规则。
+TRUTH-002  Gate 不产生 Evidence，就不能证明完成。
+TRUTH-003  Evidence 不进入 Release Manifest，就不能审计。
+TRUTH-004  Agent 不使用 worktree，就不能安全并发。
+TRUTH-005  Agent 不受 Scope Lock 约束，就会污染无关文件。
+TRUTH-006  标准不能安装到下游，就不是运行时。
+TRUTH-007  下游不能生成 Attestation，就不能声称符合标准。
+TRUTH-008  失败不产生 Patch，就没有 Self-improving。
+TRUTH-009  方法论没有触发条件、输出物、Gate 和退出机制，就是仪式。
+TRUTH-010  标准必须被采用，才有价值。
 ```
 
-### 2.3 Evidence 是完成声明的一部分
+### 2.3 可打破限制
 
-没有 Evidence，不能声明 DONE。
+```text
+LIMIT-001  不必一开始实现完整 v2.9.3；先 P0，再 P1，再 P2。
+LIMIT-002  不必一开始做 Fleet Dashboard；P2 完成后再做。
+LIMIT-003  不必一开始做 Formal Model Checking；Release Readiness Formula 先足够。
+LIMIT-004  不必所有 Article 都变成 Gate；ACTIVE + BLOCKING 才必须 Gate。
+LIMIT-005  不必所有任务 Full Runtime；按 C0-C5 复杂度分级。
+LIMIT-006  不必所有下游同时迁移；先 xlib-standard self，再 kernel，再 configx。
+```
 
-必须使用：
+---
+
+## 3. 最高执行约束
+
+### 3.1 禁止 main 主线开发
+
+`main` 是发布主线、审计主线、Evidence 汇聚点，不是开发工作区。
+
+阻断对象：
+
+```text
+local_write on main -> BLOCK
+local_readonly on clean main -> ALLOW
+ci_main_verify on clean main -> ALLOW
+release_verify on clean main/tag -> ALLOW
+```
+
+### 3.2 强制 git worktree
+
+写入型任务必须使用：
+
+```bash
+git fetch origin
+git checkout main
+git pull --ff-only origin main
+
+git worktree add ../.worktrees/xlib-standard/<issue-id>   -b <branch-name> main
+```
+
+### 3.3 强制 Agent Teams
+
+C3+ 任务必须使用 Agent Team Contract。最小角色：
+
+```text
+Lead / Implementation / Test / Harness / Evidence / Review
+```
+
+### 3.4 统一完成声明
 
 ```text
 DONE with evidence:
 - scope:
+- issues:
+- worktree:
+- branch:
+- changed_files:
 - gates:
-- artifacts:
-- known gaps:
-```
-
-### 2.4 基础库不得反向依赖业务层
-
-`xlib-standard`、`kernel`、`postgresx`、`redisx`、`kafkax`、`taosx`、`ossx`、`clickhousex` 都不得依赖：
-
-```text
-github.com/bytechainx/x.go
-github.com/ZoneCNH/x.go
-x.go/internal/*
-MacroRegime
-MarketRegime
-TradingSignal
-Kline
-OrderBook
-Position
-RiskGate
-BTCUSDT
-ETHUSDT
-```
-
-### 2.5 kernel 是 L0 基础能力，不是业务框架
-
-`kernel` 的职责是提供：
-
-```text
-context
-error
-config interface
-logging interface
-metrics interface
-lifecycle
-clock
-retry
-backoff
-health
-trace
-version
-```
-
-它不应该包含：
-
-```text
-PostgreSQL runtime
-Redis runtime
-Kafka runtime
-TDengine runtime
-OSS runtime
-x.go 业务模型
-交易模型
-宏观状态模型
-```
-
-### 2.6 Gate 必须可机器验证
-
-人审可以提高质量，但不能代替机器 gate。
-
-10 分标准必须有：
-
-```text
-Semantic Gate
-Executable Gate
-Hybrid Gate
-Evidence Gate
-Release Gate
-Retrospective Gate
+- evidence:
+- review:
+- release_impact:
+- known_gaps:
+- follow_up:
 ```
 
 ---
 
-## 3. 被误认为真理的常见假设
+## 4. 冻结规则
 
-| 假设 | 为什么是错的 | 正确裁决 |
-|---|---|---|
-| 仓库名改成 `xlib-standard` 就已经完成标准化 | module path、文档、脚本、CI、生成示例仍可能保留旧名 | 必须全链路命名统一 |
-| README 说明标准即可 | 下游生成、CI、contracts、Evidence 才是真正标准 | 文档必须被 gate 约束 |
-| `baselib-template` 可以长期并存 | 会形成双标准、双入口、双继承关系 | 要么迁移，要么废弃并写入 ADR |
-| `foundationx` 只是旧名，不影响执行 | integration、docs、生成示例会继续污染下游 | 必须统一为 `kernel` |
-| Shell/Python gate 足够 | 可用，但不利于 x.go Go 化治理和长期维护 | 核心 gate 应 Go 化 |
-| Evidence manifest 有了就足够 | 还需要 workflow artifact、tag、commit、tree、source digest、contract fingerprint 的强绑定 | Evidence 需要可复验 |
-| xlib-standard 可以同时什么都做 | 可以，但必须在边界文档中明确裁决 | 需要 ADR 锁定角色 |
-
----
-
-## 4. 可以被打破的限制
-
-### 4.1 可以打破“标准仓库不能包含模板实现”的限制
-
-如果当前仓库已经包含 Go 模板、generator、Harness、Evidence，那么可以正式裁决：
+P0/P1/P2 完成前冻结：
 
 ```text
-xlib-standard = Standard Source + Go Reference Template + Harness/Evidence Runtime
+Fleet Dashboard
+Plugin Sandbox
+Third-party Policy
+Ecosystem Certification
+Formal Model Checking
+Advanced Method Effectiveness
+Full Release Train Automation
+Multi-repo Auto Migration
+Governance Query DSL
 ```
 
-这是推荐路径。
-
-### 4.2 可以打破“每个基础库手工复制模板”的限制
-
-通过 generator 统一渲染：
+允许范围：
 
 ```text
-xlib-standard
-  → kernel
-  → configx
-  → observex
-  → postgresx
-  → redisx
-  → kafkax
-  → taosx
-  → ossx
-  → clickhousex
-```
-
-### 4.3 可以打破“gate 散落在 shell/python”的限制
-
-升级为统一 Go CLI：
-
-```text
-cmd/xlibgate
-  docs-check
-  boundary
-  secrets
-  contracts
-  render
-  render-check
-  evidence
-  release-check
-  score
-```
-
-### 4.4 可以打破“标准不可度量”的限制
-
-引入 10 分评分器：
-
-```text
-xlibgate score
-```
-
-输出：
-
-```json
-{
-  "score": 9.6,
-  "failed_dimensions": [],
-  "warnings": [],
-  "evidence": "release/manifest/latest.json"
-}
+P0: Minimal Kernel
+P1: Governance Hardening
+P2: Runtime & Conformance Automation
 ```
 
 ---
 
-## 5. 从零设计的新方案
+## 5. Master Goal Runtime v3.1
 
-### 5.1 目标架构
-
-```text
-                    ┌──────────────────────────────┐
-                    │        xlib-standard          │
-                    │ Standard + Template + Gates   │
-                    │ Evidence + Goal Runtime       │
-                    └──────────────┬───────────────┘
-                                   │
-             ┌─────────────────────┼─────────────────────┐
-             │                     │                     │
-             ▼                     ▼                     ▼
-        ┌─────────┐          ┌──────────┐          ┌──────────┐
-        │ kernel  │          │ configx  │          │ observex │
-        │   L0    │          │   L0/L1  │          │   L0/L1  │
-        └────┬────┘          └────┬─────┘          └────┬─────┘
-             │                    │                     │
-             ├────────────┬───────┴───────────┬─────────┘
-             ▼            ▼                   ▼
-       ┌──────────┐  ┌──────────┐       ┌──────────┐
-       │ postgresx│  │  redisx  │       │  kafkax  │
-       └────┬─────┘  └────┬─────┘       └────┬─────┘
-            │             │                  │
-            ├─────────────┼──────────────────┤
-            ▼             ▼                  ▼
-       ┌──────────┐  ┌──────────┐       ┌────────────┐
-       │  taosx   │  │  ossx    │       │clickhousex │
-       └────┬─────┘  └────┬─────┘       └────┬───────┘
-            │             │                  │
-            └─────────────┴──────────┬───────┘
-                                      ▼
-                                   ┌──────┐
-                                   │ x.go │
-                                   └──────┘
+```yaml
+goal_id: GOAL-20260602-001
+title: xlib-standard v2.9.3 Constitution Runtime & Conformance Automation
+mode: full
+owner: lead
+repository: github.com/ZoneCNH/xlib-standard
+state_machine:
+  - INIT
+  - CONTEXT_READY
+  - GOAL_READY
+  - SPEC_READY
+  - DESIGN_READY
+  - PLAN_READY
+  - TASKS_READY
+  - EXECUTING
+  - VERIFYING
+  - REVIEWING
+  - RELEASING
+  - RETROSPECTING
+  - DONE
+exception_states:
+  - BLOCKED
+  - FAILED
+  - NEEDS_RESEARCH
+  - NEEDS_DECISION
+  - NEEDS_REPLAN
+  - NEEDS_ROLLBACK
+  - NEEDS_HUMAN_APPROVAL
+  - INCONSISTENT_STATE
+success_criteria:
+  - P0 Issues P0-001..P0-016 completed with evidence.
+  - P1 Issues P1-001..P1-021 completed with evidence.
+  - P2 Issues P2-001..P2-015 completed with evidence.
+  - xlibgate commands in command registry are implemented or explicitly planned.
+  - Makefile targets in baseline registry exist and fail non-zero on failure.
+  - CI invokes Makefile and does not duplicate Gate logic.
+  - Release Manifest Skeleton can be generated and checksummed.
+  - xlib-standard self-conformance attestation is generated before downstream adoption.
+  - kernel/configx adoption can run in patch-only/dry-run mode.
 ```
 
-### 5.2 推荐角色裁决
+---
 
-本方案采用方案 B：
-
-```text
-xlib-standard 不是纯文档仓库。
-xlib-standard 是基础库标准源 + Go 标准模板实现 + Harness/Evidence runtime。
-```
-
-因此需要修改边界文档：
+## 6. 标准目录结构目标
 
 ```text
-旧口径：
-xlib-standard 禁止 generator、模板脚本和 runtime 实现。
-
-新口径：
-xlib-standard 允许包含 Go Reference Template、generator、xlibgate、contracts、Harness、Evidence runtime；
-但禁止包含 profile runtime、业务模型、真实生产连接、x.go 依赖。
+CONSTITUTION.md
+CHANGELOG.md
+.tool-versions
+.agent/
+  minimal-kernel.yaml
+  enforcement-levels.yaml
+  execution-context.yaml
+  issue-registry.yaml
+  command-registry.yaml
+  makefile-target-registry.yaml
+  makefile-baseline.yaml
+  boundary.yaml
+  security.yaml
+  done-assertion.yaml
+  evidence-artifact-policy.yaml
+  runtime-health.yaml
+  conformance-profiles.yaml
+  downstream-registry.yaml
+  runtime-install.yaml
+  runtime-upgrade.yaml
+  runtime-file-ownership.yaml
+  downstream-adoption-modes.yaml
+  downstream-baseline-scan.yaml
+  failure-taxonomy.yaml
+  root-cause.yaml
+  regression-memory.yaml
+  harness-patches.yaml
+  rule-patches.yaml
+  prompt-patches.yaml
+.github/
+  CODEOWNERS
+  ISSUE_TEMPLATE/
+  pull_request_template.md
+  workflows/ci.yml
+cmd/xlibgate/main.go
+internal/xlibgate/
+  cli/
+  context/
+  report/
+  registry/
+  guards/
+  evidence/
+  boundary/
+  security/
+  manifest/
+  runtime/
+  conformance/
+  pack/
+  downstream/
+  schema/
+  testfixture/
+contracts/
+  xlibgate-report.schema.json
+  release-manifest.schema.json
+  conformance-attestation.schema.json
+  agent-policy.schema.json
+  issue-registry.schema.json
+  command-registry.schema.json
+  execution-context.schema.json
+docs/
+  quickstart.md
+  troubleshooting.md
+  standard/
+release/
+  manifest/.gitkeep
+  evidence/.gitkeep
+testkit/governance/fixtures/
 ```
 
-### 5.3 标准分层
+---
 
-```text
-Standard Layer:
-  xlib-standard
+## 7. P0 Minimal Kernel Issue Pack
 
-L0 Kernel Layer:
-  kernel
+| Issue  | Title                                   | Type               | Complexity | Files                                                                                                                           | Gate                                                                     | Acceptance Summary                                                                                                               |
+| ------ | --------------------------------------- | ------------------ | ---------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| P0-001 | Minimal Constitution                    | constitution       | C2         | CONSTITUTION.md; docs/standard/constitution.md                                                                                  | docs-check                                                               | 最小宪法、Minimal Kernel、禁止 main 开发、worktree、DONE with evidence、no x.go reverse dependency、no production secret default |
+| P0-002 | Minimal Kernel Policy                   | policy             | C2         | .agent/minimal-kernel.yaml; .agent/enforcement-levels.yaml                                                                      | xlibgate minimal-kernel                                                  | P0 invariants 注册；P0 不允许 local override；enforcement level 完整                                                             |
+| P0-003 | xlibgate CLI Skeleton                   | runtime            | C2         | cmd/xlibgate/main.go; internal/xlibgate/cli/\*\*                                                                                | xlibgate version; xlibgate doctor; go test ./...                         | version/help/doctor 可运行；exit code 稳定；预留 --json/--output/--explain                                                       |
+| P0-004 | main-guard                              | guard              | C2         | internal/xlibgate/guards/main_guard.go; testkit/governance/fixtures/main-guard/\*\*                                             | xlibgate main-guard                                                      | local_write + main 阻断；release_verify clean main 允许；失败信息提示 worktree                                                   |
+| P0-005 | worktree-guard                          | guard              | C2         | internal/xlibgate/guards/worktree_guard.go; testkit/governance/fixtures/worktree-guard/\*\*                                     | xlibgate worktree-guard                                                  | local_write 必须 worktree；CI / release verify 不误阻断                                                                          |
+| P0-006 | evidence-check                          | evidence           | C2         | internal/xlibgate/evidence/**; .agent/done-assertion.yaml; fixtures/evidence/**                                                 | xlibgate evidence-check                                                  | DONE without evidence 失败；必需 command/commit/worktree/known_gaps                                                              |
+| P0-007 | boundary no-xgo-import check            | boundary           | C2         | internal/xlibgate/boundary/**; .agent/boundary.yaml; fixtures/boundary/**                                                       | xlibgate boundary                                                        | 禁止 github.com/bytechainx/x.go 与 github.com/ZoneCNH/x.go 反向依赖                                                              |
+| P0-008 | no-secret-default check                 | security           | C2         | internal/xlibgate/security/**; .agent/security.yaml; fixtures/security/**                                                       | xlibgate security                                                        | 禁止默认读取 /home/k8s/secrets/env/\*；允许作为调用方部署路径说明                                                                |
+| P0-009 | Makefile governance-check               | harness            | C2         | Makefile                                                                                                                        | .make governance-check; make release-check                               | main/worktree/evidence/boundary/security 进入 governance-check；target 失败返回非 0                                              |
+| P0-010 | CI Required Checks Skeleton             | ci                 | C2         | .github/workflows/ci.yml                                                                                                        | xlibgate ci-job-matrix                                                   | CI 调用 Makefile；不 continue-on-error；最小权限；上传 evidence artifact                                                         |
+| P0-011 | Release Manifest Skeleton               | release            | C2         | contracts/release-manifest.schema.json; internal/xlibgate/manifest/\*\*; release/manifest/.gitkeep; .gitignore                  | xlibgate manifest                                                        | manifest 字段完整；checksum 可生成；generated manifest 不提交源码历史                                                            |
+| P0-012 | DONE with evidence Protocol             | evidence           | C1         | docs/standard/evidence-protocol.md; .github/pull_request_template.md; .agent/done-assertion.yaml                                | xlibgate done-assertion; docs-check                                      | PR 模板和文档包含 DONE with evidence 字段                                                                                        |
+| P0-013 | Execution Context Policy                | guard              | C2         | .agent/execution-context.yaml; internal/xlibgate/context/**; fixtures/execution-context/**                                      | xlibgate main-guard --context ...; xlibgate worktree-guard --context ... | local_write/local_readonly/ci_pull_request/ci_main_verify/release_verify 语义完整                                                |
+| P0-014 | xlibgate CLI Contract and Report Schema | runtime            | C2         | docs/standard/xlibgate-cli-contract.md; contracts/xlibgate-report.schema.json; internal/xlibgate/report/\*\*                    | xlibgate cli-contract; xlibgate contracts                                | exit code、JSON report、Finding、remediation、schema 完整                                                                        |
+| P0-015 | Issue Registry and Command Registry     | governance-runtime | C2         | .agent/issue-registry.yaml; .agent/command-registry.yaml; .agent/makefile-target-registry.yaml; internal/xlibgate/registry/\*\* | xlibgate issue-registry; xlibgate command-registry                       | Issue/Command/Makefile target 统一 SSOT，防漂移                                                                                  |
+| P0-016 | Makefile Baseline Target Inventory      | harness            | C2         | .agent/makefile-baseline.yaml; Makefile; internal/xlibgate/makefile/\*\*                                                        | xlibgate makefile-baseline; make governance-check; make release-check    | fmt/vet/lint/test/race/boundary/security/contracts/docs-check/evidence/release targets 完整                                      |
 
-L0/L1 Common Layer:
-  configx
-  observex
-  testkitx
-
-L1 Infrastructure Adapter Layer:
-  postgresx
-  redisx
-  kafkax
-  taosx
-  ossx
-  clickhousex
-
-L2 Technical Composition Layer:
-  storagex
-  cachex
-  eventx
-  datax
-
-Business/Application Layer:
-  x.go
-```
-
-### 5.4 命名统一表
-
-| 旧名 | 新名 | 裁决 |
-|---|---|---|
-| `baselib-template` | `xlib-standard` | 旧名废弃，仅在 migration ADR 中保留 |
-| `github.com/ZoneCNH/baselib-template` | `github.com/ZoneCNH/xlib-standard` | 必须修改 go.mod 与所有 imports |
-| `foundationx` | `kernel` | 旧名废弃 |
-| `github.com/ZoneCNH/foundationx` | `github.com/ZoneCNH/kernel` | integration 示例改为 kernel |
-| `pkg/templatex` | `pkg/templatex` 或 `pkg/xlibtemplate` | 可保留作为 reference template package，但文档必须解释 |
-| `templatex_` metrics prefix | `xlib_template_` 或生成库 prefix | 建议生成库自动替换 |
-
-### 5.5 生成链路
+### 7.1 P0 验收命令
 
 ```bash
-go run ./cmd/xlibgate render \
-  --module-name kernel \
-  --module-path github.com/ZoneCNH/kernel \
-  --package-name kernel \
-  --out ../kernel
+XLIB_CONTEXT=local_write GOWORK=off make governance-check
+XLIB_CONTEXT=release_verify GOWORK=off make release-check
+GOWORK=off go test ./...
+GOWORK=off go run ./cmd/xlibgate doctor
+GOWORK=off go run ./cmd/xlibgate cli-contract
+GOWORK=off go run ./cmd/xlibgate issue-registry
+GOWORK=off go run ./cmd/xlibgate command-registry
+GOWORK=off go run ./cmd/xlibgate makefile-baseline
 ```
 
-下游生成后必须通过：
+## 8. P1 Governance Hardening Issue Pack
+
+| Issue  | Title                                       | Type              | Complexity | Files                                                                                                                                                                                                                                             | Gate                                                                       | Acceptance Summary                                                                             |
+| ------ | ------------------------------------------- | ----------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| P1-001 | Agent Team Contract                         | agent-runtime     | C3         | .agent/team-contract.yaml; docs/standard/agent-team-contract.md; internal/xlibgate/agent/\*\*                                                                                                                                                     | xlibgate agent-team-contract                                               | C3+ 任务声明 team/roles/scope/worktree/gates/evidence；禁止自审                                |
+| P1-002 | Scope Lock Guard                            | governance        | C3         | .agent/scope-locks.yaml; internal/xlibgate/scope/**; fixtures/scope-lock/**                                                                                                                                                                       | xlibgate scope-lock                                                        | owned/read_only/forbidden_paths 生效；scope leak 失败                                          |
+| P1-003 | PR Template Contract                        | pr-governance     | C2         | .github/pull_request_template.md; .agent/pr-template-contract.yaml; internal/xlibgate/pr/\*\*                                                                                                                                                     | xlibgate pr-template                                                       | PR 包含 issue/scope/worktree/gates/evidence/known gaps/rollback/release impact                 |
+| P1-004 | Acceptance Matrix                           | traceability      | C3         | .agent/acceptance-matrix.yaml; docs/standard/acceptance-matrix.md; internal/xlibgate/traceability/\*\*                                                                                                                                            | xlibgate acceptance-matrix                                                 | Requirement → AC → Gate/Test → Evidence → Status 无断链                                        |
+| P1-005 | Runtime HealthCheck                         | runtime           | C2         | .agent/runtime-health.yaml; internal/xlibgate/runtime/health.go; docs/standard/runtime-health.md                                                                                                                                                  | xlibgate runtime-health; make runtime-health                               | 检查 Constitution/.agent/xlibgate/Makefile/CI/contracts/manifest schema/evidence protocol      |
+| P1-006 | Standard Upgrade Skeleton                   | runtime-upgrade   | C3         | .agent/standard-upgrade.yaml; docs/standard/standard-upgrade.md; internal/xlibgate/upgrade/\*\*                                                                                                                                                   | xlibgate upgrade-standard --dry-run                                        | current/target version、diff、rollback note、dry-run report                                    |
+| P1-007 | Conformance Profiles                        | conformance       | C3         | .agent/conformance-profiles.yaml; docs/standard/conformance-profiles.md; internal/xlibgate/conformance/\*\*                                                                                                                                       | xlibgate conformance-profile                                               | standard-source/l0-kernel/l1-shared/l2-infra/experimental profile 完整                         |
+| P1-008 | Downstream Registry                         | downstream        | C2         | .agent/downstream-registry.yaml; docs/standard/downstream-registry.md; internal/xlibgate/downstream/\*\*                                                                                                                                          | xlibgate downstream-registry                                               | 登记 kernel/configx/observex/testkitx/postgresx/redisx/kafkax/taosx/ossx/clickhousex           |
+| P1-009 | Self-Healing Skeleton                       | self-improving    | C3         | .agent/failure-taxonomy.yaml; .agent/root-cause.yaml; .agent/regression-memory.yaml; .agent/harness-patches.yaml; .agent/rule-patches.yaml; .agent/prompt-patches.yaml                                                                            | xlibgate self-healing-skeleton                                             | 失败分类、Root Cause、Regression Memory、Patch logs 最小闭环                                   |
+| P1-010 | Documentation Quickstart                    | docs              | C2         | docs/quickstart.md; docs/standard/worktree-protocol.md; docs/standard/evidence-protocol.md; docs/troubleshooting.md                                                                                                                               | docs-check; docs-command-sync-check                                        | 新开发者可按文档创建 worktree、运行 governance-check、处理 failed gate                         |
+| P1-011 | Goal Runtime v3.1 Governance Objects        | goal-runtime      | C3         | .agent/adr-register.yaml; .agent/decision-log.yaml; .agent/state-machine.yaml; .agent/change-propagation-matrix.yaml; .agent/human-approval-gates.yaml; .agent/failure-budget.yaml; .agent/rollback-protocol.yaml; .agent/definition-of-done.yaml | xlibgate goal-runtime; xlibgate state-machine; xlibgate change-propagation | ADR/Decision/State/Propagation/Human Approval/Failure Budget/Rollback/DoD 完整                 |
+| P1-012 | GitHub Governance Controls                  | github-governance | C2         | .github/CODEOWNERS; .github/ISSUE_TEMPLATE/\*.yml; .github/pull_request_template.md; docs/standard/branch-protection.md; .agent/github-governance.yaml                                                                                            | xlibgate github-governance; xlibgate codeowners                            | CODEOWNERS、Issue/PR 模板、Branch Protection 文档、Admin bypass break-glass                    |
+| P1-013 | Supply Chain Security Baseline              | security          | C3         | .agent/supply-chain-security.yaml; docs/standard/supply-chain-security.md; .github/workflows/ci.yml                                                                                                                                               | xlibgate supply-chain; make security; make lint                            | govulncheck/golangci-lint/action pinning/least privilege/go.mod drift                          |
+| P1-014 | Release Versioning and Changelog Protocol   | release           | C2         | CHANGELOG.md; docs/standard/release-versioning.md; docs/standard/migration-note.md; .agent/release-versioning.yaml; .gitignore                                                                                                                    | xlibgate changelog; xlibgate versioning; xlibgate generated-artifacts      | 行为变更需 changelog；breaking change 需 migration；tag protocol                               |
+| P1-015 | Governance Test Strategy                    | testing           | C3         | docs/standard/governance-test-strategy.md; testkit/governance/README.md; internal/xlibgate/testfixture/\*\*                                                                                                                                       | make governance-fixture-test; go test ./...                                | P0 guard valid/invalid fixture；negative tests 进入 go test                                    |
+| P1-016 | AutoResearch Trigger and Record Protocol    | autoresearch      | C2         | .agent/autoresearch.yaml; docs/standard/autoresearch.md; .agent/research-record-template.md                                                                                                                                                       | xlibgate autoresearch                                                      | 外部链接/工具链/依赖/不确定事实触发 research record 和 decision impact                         |
+| P1-017 | Policy Schema Registry and YAML Validation  | contracts         | C3         | contracts/agent-policy.schema.json; contracts/issue-registry.schema.json; contracts/command-registry.schema.json; contracts/execution-context.schema.json; internal/xlibgate/schema/\*\*                                                          | xlibgate policy-schema; xlibgate contracts                                 | 所有关键 .agent/\*.yaml schema validation；invalid config 不静默通过                           |
+| P1-018 | GitHub Settings Apply and Verify Protocol   | github-governance | C3         | .agent/github-settings.yaml; docs/standard/github-settings.md; scripts/github/verify_settings.sh                                                                                                                                                  | xlibgate github-settings --verify; xlibgate codeowners                     | Required checks/branch protection/rulesets 可验证；apply 不隐式执行                            |
+| P1-019 | Toolchain Pinning Baseline                  | supply-chain      | C2         | .tool-versions; .agent/toolchain.yaml; docs/standard/toolchain.md                                                                                                                                                                                 | xlibgate toolchain; make lint; make security                               | 本地/CI 工具版本 SSOT；禁止 required tools 使用 latest                                         |
+| P1-020 | Evidence Artifact Path and Retention Policy | evidence          | C2         | .agent/evidence-artifact-policy.yaml; docs/standard/evidence-artifacts.md                                                                                                                                                                         | xlibgate evidence-artifacts                                                | release/evidence 与 release/manifest 路径、retention、DONE links 规范                          |
+| P1-021 | Naming Consistency and Legacy Name Guard    | docs/governance   | C2         | .agent/naming-policy.yaml; docs/standard/naming.md; internal/xlibgate/naming/\*\*                                                                                                                                                                 | xlibgate naming; docs-check                                                | 默认名称统一 xlib-standard/kernel；旧名 baselib-template/foundationx 仅允许迁移/ADR/兼容上下文 |
+
+### 8.1 P1 验收命令
 
 ```bash
-cd ../kernel
+GOWORK=off make p1-governance-check
+GOWORK=off make governance-fixture-test
+GOWORK=off make security
+GOWORK=off make lint
+GOWORK=off go run ./cmd/xlibgate policy-schema
+GOWORK=off go run ./cmd/xlibgate github-settings --verify
+GOWORK=off go run ./cmd/xlibgate toolchain
+GOWORK=off go run ./cmd/xlibgate evidence-artifacts
 GOWORK=off make release-check
 ```
 
----
+## 9. P2 Runtime & Conformance Automation Issue Pack
 
-## 6. Goal Runtime v3.1 对象模型
+| Issue  | Title                                      | Type                | Complexity | Files                                                                                                                                 | Gate                                                                                                           | Acceptance Summary                                                                                  |
+| ------ | ------------------------------------------ | ------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| P2-001 | Runtime Install                            | runtime             | C3         | internal/xlibgate/runtime/install.go; .agent/runtime-install.yaml; docs/standard/runtime-install.md                                   | xlibgate install-runtime --dry-run; xlibgate runtime-health                                                    | 可安装 CONSTITUTION/.agent/Makefile/CI/contracts/docs/release skeleton                              |
+| P2-002 | Runtime Upgrade                            | runtime-upgrade     | C3         | internal/xlibgate/runtime/upgrade.go; .agent/runtime-upgrade.yaml; docs/standard/runtime-upgrade.md                                   | xlibgate upgrade-runtime --dry-run                                                                             | dry-run/apply/rollback report；失败不更新 adoption version                                          |
+| P2-003 | Release Readiness Formula                  | release             | C3         | internal/xlibgate/release/readiness.go; .agent/release-readiness-formula.yaml; docs/standard/release-readiness.md                     | xlibgate release-ready                                                                                         | release_ready 公式；failed gate/missing evidence/dirty workspace/P0 blocker 均 not ready            |
+| P2-004 | Evidence Replay                            | evidence            | C3         | internal/xlibgate/evidence/replay.go; .agent/evidence-replay.yaml; docs/standard/evidence-replay.md                                   | xlibgate evidence-replay                                                                                       | gate result/release manifest/runtime-health/conformance/security/boundary replay                    |
+| P2-005 | Conformance Attestation                    | conformance         | C3         | internal/xlibgate/conformance/attestation.go; contracts/conformance-attestation.schema.json; docs/standard/conformance-attestation.md | xlibgate attest-conformance; xlibgate contracts                                                                | 生成 attestation；failed gate 不得 passed attestation                                               |
+| P2-006 | Standard Pack                              | pack                | C3         | internal/xlibgate/pack/standard.go; .agent/standard-pack.yaml; docs/standard/standard-pack.md                                         | xlibgate pack-standard                                                                                         | 打包 Constitution/policies/docs/contracts，生成 manifest/checksum                                   |
+| P2-007 | Gate Pack                                  | pack                | C3         | internal/xlibgate/pack/gate.go; .agent/gate-pack.yaml; docs/standard/gate-pack.md                                                     | xlibgate pack-gate                                                                                             | xlibgate commands/Makefile/CI snippets/fixtures/remediation/profile gates                           |
+| P2-008 | Evidence Pack                              | pack                | C3         | internal/xlibgate/pack/evidence.go; .agent/evidence-pack.yaml; docs/standard/evidence-pack.md                                         | xlibgate pack-evidence                                                                                         | Evidence schema/manifest schema/replay/DONE protocol 打包                                           |
+| P2-009 | kernel Downstream Adoption                 | downstream-adoption | C4         | patch bundle / downstream local path                                                                                                  | xlibgate downstream-adoption --mode patch-only --repo kernel; xlibgate attest-conformance --profile l0-kernel  | kernel 生成 adoption/runtime/profile/manifest/attestation，且不依赖 x.go                            |
+| P2-010 | configx Downstream Adoption                | downstream-adoption | C4         | patch bundle / downstream local path                                                                                                  | xlibgate downstream-adoption --mode patch-only --repo configx; xlibgate attest-conformance --profile l1-shared | configx 生成 adoption/runtime/profile/manifest/attestation，符合显式 Config                         |
+| P2-011 | SBOM and License Check Roadmap             | supply-chain        | C2         | .agent/sbom-roadmap.yaml; docs/standard/sbom-license-roadmap.md                                                                       | xlibgate sbom-roadmap                                                                                          | P2 不必完整实现 SBOM，但必须有 P3/P4 roadmap 和阻断条件                                             |
+| P2-012 | Downstream Adoption Modes                  | downstream-adoption | C4         | .agent/downstream-adoption-modes.yaml; docs/standard/downstream-adoption-modes.md; internal/xlibgate/downstream/adoption_modes.go     | xlibgate downstream-adoption --mode patch-only --repo kernel/configx                                           | 支持 local_path / patch_only / pr_plan；无授权不跨仓写                                              |
+| P2-013 | Runtime File Ownership and Merge Safety    | runtime-upgrade     | C4         | .agent/runtime-file-ownership.yaml; docs/standard/runtime-file-ownership.md; internal/xlibgate/runtime/file_ownership.go              | xlibgate runtime-file-ownership; xlibgate upgrade-runtime --dry-run                                            | XLIB_OWNED/USER_OWNED/MERGE_REQUIRED/GENERATED；不覆盖用户文件                                      |
+| P2-014 | Downstream Baseline Scan Before Adoption   | downstream-adoption | C4         | .agent/downstream-baseline-scan.yaml; docs/standard/downstream-baseline-scan.md; internal/xlibgate/downstream/baseline_scan.go        | xlibgate downstream-baseline --repo kernel/configx --mode patch-only                                           | adoption 前扫描 module/package/Makefile/CI/contracts/docs/x.go/secret/release flow，输出 risk score |
+| P2-015 | xlib-standard Self-Conformance Attestation | conformance         | C3         | release/manifest/conformance-attestation.json; docs/reports/self-conformance.md                                                       | xlibgate attest-conformance --profile standard-source                                                          | 下游 adoption 前先证明 xlib-standard 自身符合 standard-source profile                               |
 
-### 6.1 Goal
-
-```text
-GOAL-20260602-001
-将 ZoneCNH/xlib-standard 升级为 10 分标准基础库工厂，完成仓库角色裁决、命名统一、kernel 对齐、Go 化 gate、Evidence 强化、下游生成兼容、Goal Runtime v3.1 工程化和评分器落地，使其成为 x.go 基础库体系的唯一标准源与模板执行源。
-```
-
-### 6.2 Spec
-
-```text
-SPEC-xlib-standard-v2.0
-```
-
-### 6.3 Design
-
-```text
-DESIGN-xlib-standard-v2.0
-```
-
-### 6.4 Plan
-
-```text
-PLAN-GOAL-20260602-001-v1.0
-```
-
-### 6.5 状态机
-
-```text
-INIT
-  → CONTEXT_READY
-  → GOAL_READY
-  → SPEC_READY
-  → DESIGN_READY
-  → PLAN_READY
-  → TASKS_READY
-  → EXECUTING
-  → VERIFYING
-  → REVIEWING
-  → RELEASING
-  → RETROSPECTING
-  → DONE
-```
-
-异常状态：
-
-```text
-BLOCKED
-FAILED
-NEEDS_RESEARCH
-NEEDS_DECISION
-NEEDS_REPLAN
-NEEDS_ROLLBACK
-NEEDS_HUMAN_APPROVAL
-INCONSISTENT_STATE
-```
-
----
-
-## 7. Requirements
-
-### REQ-001：仓库角色裁决
-
-`xlib-standard` 必须明确自身角色：
-
-```text
-Standard Source + Go Reference Template + Generator + Harness + Evidence Runtime
-```
-
-不得继续出现自相矛盾的边界描述。
-
-验收标准：
-
-```text
-AC-REQ-001-001: docs/adr/ADR-20260602-001-xlib-standard-role.md 存在。
-AC-REQ-001-002: README.md 明确 xlib-standard 的五类职责。
-AC-REQ-001-003: docs/standard/module-boundary.md 不再声明 xlib-standard 禁止自身 generator/Harness/Evidence 实现。
-AC-REQ-001-004: docs/standard/repository-roles.md 不再把 baselib-template 作为主仓库角色。
-```
-
-### REQ-002：命名统一
-
-必须完成以下替换：
-
-```text
-baselib-template → xlib-standard
-github.com/ZoneCNH/baselib-template → github.com/ZoneCNH/xlib-standard
-foundationx → kernel
-github.com/ZoneCNH/foundationx → github.com/ZoneCNH/kernel
-```
-
-保留旧名的唯一允许位置：
-
-```text
-docs/adr/*migration*
-CHANGELOG migration section
-docs/migration/*
-```
-
-验收标准：
-
-```text
-AC-REQ-002-001: go.mod module 为 github.com/ZoneCNH/xlib-standard。
-AC-REQ-002-002: 非 migration 文档中不再出现 baselib-template 主口径。
-AC-REQ-002-003: integration 默认渲染 kernel。
-AC-REQ-002-004: contracts tests import 新 module path。
-AC-REQ-002-005: xlibgate stale-name gate 可阻断旧名回归。
-```
-
-### REQ-003：kernel 下游兼容
-
-`xlib-standard` 必须能生成并校验 `kernel` 形态。
-
-验收标准：
-
-```text
-AC-REQ-003-001: scripts/run_integration.sh 或 cmd/xlibgate integration 包含 kernel case。
-AC-REQ-003-002: kernel case 使用 module path github.com/ZoneCNH/kernel。
-AC-REQ-003-003: 渲染后的 kernel 通过 go test ./...。
-AC-REQ-003-004: 渲染后的 kernel 通过 make contracts。
-AC-REQ-003-005: 渲染后的 kernel 通过 make boundary。
-AC-REQ-003-006: 渲染后的 kernel 能生成 release manifest。
-```
-
-### REQ-004：核心 Gate Go 化
-
-必须新增统一 CLI：
-
-```text
-cmd/xlibgate
-```
-
-子命令：
-
-```text
-docs-check
-boundary
-secrets
-contracts
-render
-render-check
-integration
-evidence
-release-check
-score
-```
-
-验收标准：
-
-```text
-AC-REQ-004-001: cmd/xlibgate/main.go 存在。
-AC-REQ-004-002: Makefile 核心 gate 优先调用 go run ./cmd/xlibgate。
-AC-REQ-004-003: scripts/*.sh 可作为兼容包装，但不能是唯一实现。
-AC-REQ-004-004: CI 运行 go-based gate。
-```
-
-### REQ-005：Goal Runtime v3.1 工程化
-
-`.agent/` 必须从轻量说明升级为 v3.1 可执行运行时。
-
-必须包含：
-
-```text
-.agent/goal-runtime.md
-.agent/object-model.md
-.agent/state-machine.md
-.agent/traceability-matrix.md
-.agent/harness.yaml
-.agent/evidence-protocol.md
-.agent/review-template.md
-.agent/release-template.md
-.agent/retrospective-template.md
-.agent/risk-register.md
-.agent/decision-log.md
-.agent/rollback-protocol.md
-.agent/prompt-patches.md
-.agent/harness-patches.md
-.agent/rule-patches.md
-```
-
-验收标准：
-
-```text
-AC-REQ-005-001: .agent/state-machine.md 包含 v3.1 完整状态机。
-AC-REQ-005-002: .agent/object-model.md 包含 Goal/Spec/Requirement/AC/Design/ADR/Plan/Task/Test/Evidence/Risk/Decision/Review/Release/Retrospective/Patch。
-AC-REQ-005-003: .agent/traceability-matrix.md 至少覆盖本 Goal 的所有 REQ。
-AC-REQ-005-004: docs-check 校验 .agent 关键文件存在。
-```
-
-### REQ-006：Evidence 强化
-
-release manifest 必须记录：
-
-```text
-module
-version
-commit
-tree_sha
-source_digest
-tracked_file_count
-go_version
-generated_at
-generated_by
-tree_state
-checks
-contracts
-dependencies
-tools
-artifacts
-workflow_run_id
-artifact_name
-artifact_url
-score
-known_risks
-breaking_changes
-```
-
-验收标准：
-
-```text
-AC-REQ-006-001: release/manifest/template.json 包含 workflow_run_id、artifact_url、score。
-AC-REQ-006-002: releasemanifest tool 生成并校验新增字段。
-AC-REQ-006-003: CI summary 输出 manifest SHA256、artifact name、workflow URL。
-AC-REQ-006-004: release-final-check 要求 tree_state=clean。
-```
-
-### REQ-007：10 分评分器
-
-必须新增评分器：
+### 9.1 P2 验收命令
 
 ```bash
-go run ./cmd/xlibgate score
+GOWORK=off make p2-runtime-check
+GOWORK=off go run ./cmd/xlibgate runtime-file-ownership
+GOWORK=off go run ./cmd/xlibgate attest-conformance --profile standard-source
+GOWORK=off go run ./cmd/xlibgate downstream-baseline --repo kernel --mode patch-only
+GOWORK=off go run ./cmd/xlibgate downstream-baseline --repo configx --mode patch-only
+GOWORK=off go run ./cmd/xlibgate downstream-adoption --mode patch-only --repo kernel
+GOWORK=off go run ./cmd/xlibgate downstream-adoption --mode patch-only --repo configx
+GOWORK=off go run ./cmd/xlibgate attest-conformance --profile l0-kernel
 ```
 
-评分维度：
+## 10. Execution Context Policy
 
-```text
-repository_identity
-naming_consistency
-standard_boundary
-go_module_integrity
-api_template
-contracts
-tests
-harness
-ci
-release_evidence
-security
-goal_runtime
-kernel_compatibility
-downstream_generation
-documentation
-retrospective
+```yaml
+schema_version: "1.0"
+contexts:
+  local_write:
+    branch_main_allowed: false
+    worktree_required: true
+    dirty_tree_allowed: true
+    allowed_actions: ["edit", "generate", "test", "commit"]
+  local_readonly:
+    branch_main_allowed: true
+    worktree_required: false
+    dirty_tree_allowed: false
+    allowed_actions: ["read", "inspect", "fetch", "pull"]
+  ci_pull_request:
+    branch_main_allowed: false
+    worktree_required: false
+    dirty_tree_allowed: false
+    allowed_actions: ["check", "test", "artifact"]
+  ci_main_verify:
+    branch_main_allowed: true
+    worktree_required: false
+    dirty_tree_allowed: false
+    allowed_actions: ["verify", "test", "artifact"]
+  release_verify:
+    branch_main_allowed: true
+    worktree_required: false
+    dirty_tree_allowed: false
+    allowed_actions: ["verify", "manifest", "attest"]
 ```
 
-验收标准：
+规则：
 
 ```text
-AC-REQ-007-001: score 输出 JSON。
-AC-REQ-007-002: score < 9.5 时 release-final-check 失败。
-AC-REQ-007-003: score 结果写入 release manifest。
-AC-REQ-007-004: docs/scorecard.md 说明评分规则。
+main-guard:
+  BLOCK when branch == main AND context == local_write
+  ALLOW when branch == main AND context in [local_readonly, ci_main_verify, release_verify] AND workspace clean
+
+worktree-guard:
+  BLOCK when context == local_write AND worktree == false
+  ALLOW when context in [ci_pull_request, ci_main_verify, release_verify]
 ```
 
-### REQ-008：安全 Gate 升级
+## 11. xlibgate Command Registry
 
-保留现有 grep gate，同时新增更强扫描模式：
+| Command                | Issue                | Domain            | Context                  | Purpose                                                |
+| ---------------------- | -------------------- | ----------------- | ------------------------ | ------------------------------------------------------ |
+| version                | P0-003               | runtime           | local/ci                 | 输出版本与 runtime component versions                  |
+| doctor                 | P0-003               | runtime           | local/ci                 | 检查基础运行环境                                       |
+| main-guard             | P0-004/P0-013        | guard             | local/ci/release         | 上下文感知 main 写入阻断                               |
+| worktree-guard         | P0-005/P0-013        | guard             | local/ci/release         | 上下文感知 worktree 要求                               |
+| evidence-check         | P0-006               | evidence          | local/ci                 | 验证 DONE with evidence / Evidence Bundle              |
+| boundary               | P0-007               | boundary          | local/ci                 | no-xgo-import                                          |
+| security               | P0-008               | security          | local/ci                 | no-secret-default + secret/supply-chain baseline hooks |
+| manifest               | P0-011               | release           | local/ci/release         | 生成/校验 release manifest skeleton                    |
+| cli-contract           | P0-014               | runtime           | local/ci                 | 校验 exit code / report schema                         |
+| issue-registry         | P0-015               | governance        | local/ci                 | Issue SSOT 校验                                        |
+| command-registry       | P0-015               | governance        | local/ci                 | Command/Makefile/CI mapping 校验                       |
+| makefile-baseline      | P0-016               | harness           | local/ci                 | Makefile required targets 校验                         |
+| agent-team-contract    | P1-001               | agent-runtime     | local/ci                 | Team Contract 校验                                     |
+| scope-lock             | P1-002               | governance        | local/ci                 | Scope Lock 校验                                        |
+| pr-template            | P1-003               | pr-governance     | ci_pr                    | PR body/template 校验                                  |
+| acceptance-matrix      | P1-004               | traceability      | local/ci                 | REQ/AC/Gate/Evidence 矩阵校验                          |
+| runtime-health         | P1-005               | runtime           | local/ci/downstream      | Runtime HealthCheck                                    |
+| goal-runtime           | P1-011               | goal-runtime      | local/ci                 | ADR/Decision/State/DoD 对象校验                        |
+| github-settings        | P1-018               | github-governance | manual/ci with token     | GitHub settings verify，不隐式 apply                   |
+| policy-schema          | P1-017               | contracts         | local/ci                 | `.agent/*.yaml` schema validation                      |
+| toolchain              | P1-019               | supply-chain      | local/ci                 | Toolchain pinning 校验                                 |
+| evidence-artifacts     | P1-020               | evidence          | local/ci                 | Evidence path/retention 校验                           |
+| naming                 | P1-021               | governance        | local/ci                 | 旧名/默认名一致性扫描                                  |
+| install-runtime        | P2-001               | runtime           | local/downstream         | 标准安装 dry-run/apply                                 |
+| upgrade-runtime        | P2-002               | runtime-upgrade   | local/downstream         | 标准升级 dry-run/apply/rollback                        |
+| release-ready          | P2-003               | release           | local/ci/release         | Release readiness formula                              |
+| evidence-replay        | P2-004               | evidence          | local/ci/release         | Evidence replay                                        |
+| attest-conformance     | P2-005/P2-015        | conformance       | local/ci/downstream      | 生成符合性证明                                         |
+| pack-standard          | P2-006               | pack              | release                  | Standard Pack                                          |
+| pack-gate              | P2-007               | pack              | release                  | Gate Pack                                              |
+| pack-evidence          | P2-008               | pack              | release                  | Evidence Pack                                          |
+| downstream-baseline    | P2-014               | downstream        | local/patch-only         | 下游 adoption 前扫描                                   |
+| downstream-adoption    | P2-009/P2-010/P2-012 | downstream        | local/patch-only/pr-plan | 下游 adoption patch/pr plan                            |
+| runtime-file-ownership | P2-013               | runtime-upgrade   | local/downstream         | 文件所有权与覆盖安全                                   |
 
-```text
-gitleaks 或等价 Go 实现扫描
-private key pattern
-AWS key
-GitHub token
-connection string
-.env 泄漏
-/home/k8s/secrets/env/* 内容泄漏
-```
+---
 
-验收标准：
+## 12. Makefile 目标设计
 
-```text
-AC-REQ-008-001: make security 包含 govulncheck。
-AC-REQ-008-002: make security 包含 secret scan。
-AC-REQ-008-003: secret scan 可识别常见 token/private key/connection string。
-AC-REQ-008-004: 文档声明不得把 /home/k8s/secrets/env/* 写入源码、README、测试日志、Release Manifest、PR 描述。
-```
+```makefile
+XLIB_CONTEXT ?= local_write
 
-### REQ-009：下游基础库生成矩阵
+.PHONY: fmt
+fmt:
+	GOWORK=off gofmt -w $$(find . -name '*.go' -not -path './.git/*')
 
-integration 必须至少覆盖：
+.PHONY: vet
+vet:
+	GOWORK=off go vet ./...
 
-```text
-kernel
-configx
-redisx
-postgresx
-kafkax
-taosx
-ossx
-clickhousex
-```
+.PHONY: lint
+lint:
+	GOWORK=off golangci-lint run ./...
 
-MVA 阶段可先覆盖：
+.PHONY: test
+test:
+	GOWORK=off go test ./...
 
-```text
-kernel
-corekit
-```
+.PHONY: race
+race:
+	GOWORK=off go test -race ./...
 
-Full 阶段覆盖全矩阵。
+.PHONY: main-guard
+main-guard:
+	GOWORK=off go run ./cmd/xlibgate main-guard --context $(XLIB_CONTEXT)
 
-验收标准：
+.PHONY: worktree-guard
+worktree-guard:
+	GOWORK=off go run ./cmd/xlibgate worktree-guard --context $(XLIB_CONTEXT)
 
-```text
-AC-REQ-009-001: docs/downstream-matrix.md 存在。
-AC-REQ-009-002: integration 至少覆盖 kernel。
-AC-REQ-009-003: Full mode 覆盖所有目标库。
-AC-REQ-009-004: 每个库都有预期 module path、package name、layer、allowed deps、forbidden deps。
-```
+.PHONY: evidence-check
+evidence-check:
+	GOWORK=off go run ./cmd/xlibgate evidence-check
 
-### REQ-010：x.go 集成边界
+.PHONY: boundary
+boundary:
+	GOWORK=off go run ./cmd/xlibgate boundary
 
-必须明确：
+.PHONY: security
+security:
+	GOWORK=off go run ./cmd/xlibgate security
 
-```text
-x.go 可以消费基础库。
-基础库不得依赖 x.go。
-x.go 的 Market Data / Macro Data / Regime Engine 不下沉到基础库。
-x.go secrets 只能由调用方显式传入。
-```
+.PHONY: contracts
+contracts:
+	GOWORK=off go run ./cmd/xlibgate contracts
 
-验收标准：
+.PHONY: docs-check
+docs-check:
+	GOWORK=off go run ./cmd/xlibgate docs-check
 
-```text
-AC-REQ-010-001: docs/xgo-integration-boundary.md 存在。
-AC-REQ-010-002: boundary gate 禁止 x.go import。
-AC-REQ-010-003: boundary gate 禁止业务词污染。
-AC-REQ-010-004: docs 明确 /home/k8s/secrets/env/* 只作为调用方路径约束，不由基础库默认读取。
+.PHONY: governance-check
+governance-check: main-guard worktree-guard evidence-check boundary security
+
+.PHONY: p1-governance-check
+p1-governance-check:
+	GOWORK=off go run ./cmd/xlibgate agent-team-contract
+	GOWORK=off go run ./cmd/xlibgate scope-lock
+	GOWORK=off go run ./cmd/xlibgate pr-template
+	GOWORK=off go run ./cmd/xlibgate acceptance-matrix
+	GOWORK=off go run ./cmd/xlibgate runtime-health
+	GOWORK=off go run ./cmd/xlibgate conformance-profile
+	GOWORK=off go run ./cmd/xlibgate downstream-registry
+	GOWORK=off go run ./cmd/xlibgate self-healing-skeleton
+
+.PHONY: p2-runtime-check
+p2-runtime-check:
+	GOWORK=off go run ./cmd/xlibgate install-runtime --dry-run
+	GOWORK=off go run ./cmd/xlibgate upgrade-runtime --dry-run
+	GOWORK=off go run ./cmd/xlibgate release-ready
+	GOWORK=off go run ./cmd/xlibgate evidence-replay
+	GOWORK=off go run ./cmd/xlibgate attest-conformance --profile standard-source
+	GOWORK=off go run ./cmd/xlibgate pack-standard
+	GOWORK=off go run ./cmd/xlibgate pack-gate
+	GOWORK=off go run ./cmd/xlibgate pack-evidence
+
+.PHONY: release-check
+release-check: governance-check test contracts docs-check
+
+.PHONY: release-final-check
+release-final-check:
+	XLIB_CONTEXT=release_verify GOWORK=off make governance-check
+	GOWORK=off make p1-governance-check
+	GOWORK=off make p2-runtime-check
+	GOWORK=off make release-check
 ```
 
 ---
 
-## 8. Design
+## 13. CI 设计
 
-### 8.1 目录结构目标
+CI 必须调用 Makefile，不得重复实现 Gate 逻辑。
 
-```text
-xlib-standard/
-  README.md
-  AGENTS.md
-  CHANGELOG.md
-  go.mod
-  Makefile
-  .golangci.yml
+```yaml
+name: ci
+permissions:
+  contents: read
+  pull-requests: read
 
-  .github/
-    workflows/
-      ci.yml
-      release.yml
-      extended.yml
+on:
+  pull_request:
+  push:
+    branches: [main]
 
-  .agent/
-    goal-runtime.md
-    object-model.md
-    state-machine.md
-    traceability-matrix.md
-    harness.yaml
-    evidence-protocol.md
-    review-template.md
-    release-template.md
-    retrospective-template.md
-    risk-register.md
-    decision-log.md
-    rollback-protocol.md
-    prompt-patches.md
-    harness-patches.md
-    rule-patches.md
+jobs:
+  governance:
+    runs-on: ubuntu-latest
+    env:
+      XLIB_CONTEXT: ci_pull_request
+    steps:
+      - uses: actions/checkout@<pinned-version-or-sha>
+      - uses: actions/setup-go@<pinned-version-or-sha>
+      - run: GOWORK=off make governance-check
 
-  cmd/
-    xlibgate/
-      main.go
-      docscheck/
-      boundary/
-      secrets/
-      contracts/
-      render/
-      rendercheck/
-      integration/
-      evidence/
-      score/
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@<pinned-version-or-sha>
+      - uses: actions/setup-go@<pinned-version-or-sha>
+      - run: GOWORK=off make test
 
-  pkg/
-    templatex/
-      config.go
-      client.go
-      errors.go
-      health.go
-      metrics.go
-      options.go
-      version.go
-      doc.go
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@<pinned-version-or-sha>
+      - uses: actions/setup-go@<pinned-version-or-sha>
+      - run: GOWORK=off make contracts
 
-  internal/
-    sanitize/
-    validation/
-    runtime/
-    tools/
-      releasemanifest/
-
-  contracts/
-    config.schema.json
-    error.schema.json
-    health.schema.json
-    metrics.md
-    manifest.schema.json
-
-  examples/
-    basic/
-    config/
-    health/
-
-  testkit/
-
-  docs/
-    standard/
-    adr/
-    migration/
-    scorecard.md
-    downstream-matrix.md
-    xgo-integration-boundary.md
-    generation.md
-    design.md
-    spec.md
-    testing.md
-    release.md
-
-  release/
-    manifest/
-      template.json
-
-  scripts/
-    compatibility wrappers only
+  release-check:
+    runs-on: ubuntu-latest
+    env:
+      XLIB_CONTEXT: release_verify
+    steps:
+      - uses: actions/checkout@<pinned-version-or-sha>
+      - uses: actions/setup-go@<pinned-version-or-sha>
+      - run: GOWORK=off make release-check
 ```
 
-### 8.2 xlibgate 子命令设计
+原则：
 
 ```text
-xlibgate docs-check
-  校验 README/docs/.agent 关键文件、链接、占位符、旧名污染。
-
-xlibgate boundary
-  校验禁止 x.go 依赖、禁止业务词、禁止 internal 反向依赖 public package。
-
-xlibgate secrets
-  校验 token、secret、password、private key、connection string、/home/k8s/secrets/env 泄漏。
-
-xlibgate contracts
-  校验 config/error/health/metrics/manifest contracts 与代码常量一致。
-
-xlibgate render
-  生成下游库。
-
-xlibgate render-check
-  校验生成库无旧名残留、module path 正确、package 正确。
-
-xlibgate integration
-  执行下游渲染 smoke。
-
-xlibgate evidence
-  生成 release manifest 与 checksum。
-
-xlibgate release-check
-  校验 manifest、checksum、clean tree、score threshold。
-
-xlibgate score
-  输出 10 分评分 JSON。
-```
-
-### 8.3 Evidence 设计
-
-Manifest schema：
-
-```json
-{
-  "module": "github.com/ZoneCNH/xlib-standard",
-  "version": "v0.2.0",
-  "commit": "...",
-  "tree_sha": "...",
-  "source_digest": "sha256:...",
-  "tracked_file_count": 0,
-  "go_version": "go1.23.x",
-  "generated_at": "2026-06-02T00:00:00Z",
-  "generated_by": "cmd/xlibgate evidence",
-  "tree_state": "clean",
-  "score": {
-    "value": 10.0,
-    "threshold": 9.5,
-    "dimensions": {}
-  },
-  "checks": {},
-  "contracts": [],
-  "dependencies": [],
-  "tools": {},
-  "artifacts": [
-    "release/manifest/latest.json",
-    "release/manifest/latest.json.sha256"
-  ],
-  "ci": {
-    "workflow_run_id": "",
-    "workflow_url": "",
-    "artifact_name": "",
-    "artifact_url": ""
-  },
-  "notes": {
-    "breaking_changes": "none",
-    "known_risks": []
-  }
-}
-```
-
-### 8.4 Scorecard 设计
-
-总分 10 分：
-
-| 维度 | 权重 |
-|---|---:|
-| repository_identity | 0.8 |
-| naming_consistency | 0.8 |
-| standard_boundary | 0.8 |
-| go_module_integrity | 0.6 |
-| api_template | 0.7 |
-| contracts | 0.7 |
-| tests | 0.7 |
-| harness | 0.8 |
-| ci | 0.6 |
-| release_evidence | 0.8 |
-| security | 0.7 |
-| goal_runtime | 0.8 |
-| kernel_compatibility | 0.7 |
-| downstream_generation | 0.6 |
-| documentation | 0.4 |
-| retrospective | 0.3 |
-
-Release threshold：
-
-```text
-release-check: score >= 9.0
-release-final-check: score >= 9.5
-10分发布目标: score == 10.0 或所有 P0/P1 维度满分且总分 >= 9.8
+1. P0/P1 required checks 禁止 continue-on-error。
+2. Security / Evidence / Governance 必须独立可见。
+3. CI 不读取生产 secret。
+4. GitHub settings apply 不隐式执行；verify 可以执行。
+5. Artifact 上传只允许脱敏 Evidence。
 ```
 
 ---
 
-## 9. ADR
+## 14. Evidence Runtime
 
-### ADR-20260602-001：xlib-standard 仓库角色裁决
+### 14.1 Evidence Bundle 最小 schema
+
+```yaml
+evidence:
+  command:
+  result:
+  commit:
+  branch:
+  worktree:
+  context:
+  timestamp:
+  artifacts:
+  known_gaps:
+  checksum:
+```
+
+### 14.2 Artifact path convention
 
 ```text
-Status: Accepted
-
-Decision:
-  xlib-standard 是基础库标准源 + Go reference template + generator + Harness/Evidence runtime。
-  不再维护 baselib-template 作为独立主口径。
-
-Rejected:
-  1. 拆分为 xlib-standard + xlib-template 两个仓库。
-  2. 继续保留 baselib-template 作为事实模板源。
-
-Consequences:
-  1. 修改 go.mod 到 github.com/ZoneCNH/xlib-standard。
-  2. 所有旧命名迁移到 migration 文档。
-  3. module-boundary 更新为允许 reference implementation。
+release/evidence/<date>/<issue-id>/<artifact>.json
+release/manifest/<version>/manifest.json
+release/manifest/<version>/manifest.json.sha256
+release/manifest/latest.json              # generated, ignored unless release policy explicitly says otherwise
+release/manifest/latest.json.sha256       # generated, ignored unless release policy explicitly says otherwise
 ```
 
-### ADR-20260602-002：foundationx 统一迁移为 kernel
+### 14.3 Retention
 
-```text
-Status: Accepted
-
-Decision:
-  foundationx 改名为 kernel。
-  kernel 是 L0 基础能力库，默认路径 github.com/ZoneCNH/kernel。
-
-Rejected:
-  1. 同时支持 foundationx 和 kernel 作为平级主名。
-  2. 继续在 integration 中使用 foundationx 示例。
-
-Consequences:
-  1. run_integration 默认渲染 kernel。
-  2. docs/repository-roles 使用 kernel。
-  3. generation examples 使用 kernel。
+```yaml
+retention:
+  release_evidence: permanent
+  security_incident: permanent
+  audit_log: 3y
+  ci_artifact: 90d
+  failed_rc: 30d
 ```
 
-### ADR-20260602-003：核心 Gate Go 化
-
-```text
-Status: Accepted
-
-Decision:
-  新增 cmd/xlibgate，核心 gate 使用 Go 实现。
-  scripts/*.sh 仅保留兼容包装。
-
-Rejected:
-  1. 继续让 bash/python 承担主 gate。
-  2. 每个 gate 分散实现。
-
-Consequences:
-  1. Makefile 调用 xlibgate。
-  2. CI 以 xlibgate 为标准入口。
-  3. 更容易被 x.go 复用。
-```
-
----
-
-## 10. Traceability Matrix
-
-| Requirement | Acceptance Criteria | Design Section | Task | Test | Evidence |
-|---|---|---|---|---|---|
-| REQ-001 | AC-REQ-001-001~004 | 8.1, 9 | TASK-001~004 | TEST-001 | EVID-001 |
-| REQ-002 | AC-REQ-002-001~005 | 5.4, 8.1 | TASK-005~010 | TEST-002 | EVID-002 |
-| REQ-003 | AC-REQ-003-001~006 | 5.5, 8.2 | TASK-011~014 | TEST-003 | EVID-003 |
-| REQ-004 | AC-REQ-004-001~004 | 8.2 | TASK-015~022 | TEST-004 | EVID-004 |
-| REQ-005 | AC-REQ-005-001~004 | 6, 8.1 | TASK-023~030 | TEST-005 | EVID-005 |
-| REQ-006 | AC-REQ-006-001~004 | 8.3 | TASK-031~036 | TEST-006 | EVID-006 |
-| REQ-007 | AC-REQ-007-001~004 | 8.4 | TASK-037~041 | TEST-007 | EVID-007 |
-| REQ-008 | AC-REQ-008-001~004 | 8.2 | TASK-042~045 | TEST-008 | EVID-008 |
-| REQ-009 | AC-REQ-009-001~004 | 5.1, 8.2 | TASK-046~050 | TEST-009 | EVID-009 |
-| REQ-010 | AC-REQ-010-001~004 | 5.3, 8.2 | TASK-051~054 | TEST-010 | EVID-010 |
-
----
-
-## 11. Task Breakdown
-
-### Milestone M1：身份裁决与命名统一
-
-```text
-TASK-001: 新增 ADR-20260602-001-xlib-standard-role.md
-TASK-002: 新增 ADR-20260602-002-kernel-rename.md
-TASK-003: 修改 docs/standard/module-boundary.md
-TASK-004: 修改 docs/standard/repository-roles.md
-TASK-005: 修改 go.mod module path
-TASK-006: 替换 imports 中 github.com/ZoneCNH/baselib-template
-TASK-007: 替换 README 主标题与标准说明
-TASK-008: 替换 AGENTS.md 中旧名
-TASK-009: 替换 docs/generation.md 生成示例
-TASK-010: 新增 docs/migration/baselib-template-to-xlib-standard.md
-```
-
-### Milestone M2：kernel 兼容
-
-```text
-TASK-011: 修改 integration 渲染 case 为 kernel
-TASK-012: 修改 generation 示例为 kernel
-TASK-013: 修改 downstream matrix，加入 kernel
-TASK-014: 添加 kernel 渲染后的 stale-name 检查
-```
-
-### Milestone M3：xlibgate Go 化
-
-```text
-TASK-015: 创建 cmd/xlibgate/main.go
-TASK-016: 实现 docs-check 子命令
-TASK-017: 实现 boundary 子命令
-TASK-018: 实现 secrets 子命令
-TASK-019: 实现 contracts 子命令
-TASK-020: 实现 render 子命令
-TASK-021: 实现 render-check 子命令
-TASK-022: 实现 integration 子命令
-```
-
-### Milestone M4：Goal Runtime v3.1 工程化
-
-```text
-TASK-023: 更新 .agent/goal-runtime.md
-TASK-024: 新增 .agent/object-model.md
-TASK-025: 新增 .agent/state-machine.md
-TASK-026: 新增 .agent/traceability-matrix.md
-TASK-027: 新增 .agent/risk-register.md
-TASK-028: 新增 .agent/decision-log.md
-TASK-029: 新增 .agent/rollback-protocol.md
-TASK-030: 新增 patch 模板文件
-```
-
-### Milestone M5：Evidence 与评分器
-
-```text
-TASK-031: 扩展 release manifest schema
-TASK-032: 更新 releasemanifest 生成器
-TASK-033: 更新 checksum 校验
-TASK-034: 更新 CI artifact summary
-TASK-035: 增加 workflow metadata 注入
-TASK-036: release-final-check 强制 clean tree + score
-TASK-037: 实现 xlibgate score
-TASK-038: 新增 docs/scorecard.md
-TASK-039: score 写入 manifest
-TASK-040: score 小于阈值时 gate 失败
-TASK-041: score tests 覆盖维度
-```
-
-### Milestone M6：安全与下游矩阵
-
-```text
-TASK-042: 强化 secret scanner
-TASK-043: 增加 connection string 检测
-TASK-044: 增加 /home/k8s/secrets/env 泄漏检测
-TASK-045: 更新 security docs
-TASK-046: 新增 docs/downstream-matrix.md
-TASK-047: integration 增加 configx/redisx/postgresx/kafkax/taosx/ossx/clickhousex case
-TASK-048: 每个下游 case 执行 go test ./...
-TASK-049: 每个下游 case 执行 make contracts/boundary/evidence
-TASK-050: downstream matrix 写入 release manifest
-```
-
-### Milestone M7：x.go 边界与最终发布
-
-```text
-TASK-051: 新增 docs/xgo-integration-boundary.md
-TASK-052: boundary gate 增强 x.go 业务词禁止项
-TASK-053: docs 明确 secrets 显式传入原则
-TASK-054: 生成最终 release evidence
-TASK-055: 完成 review
-TASK-056: 完成 retrospective
-TASK-057: 输出 DONE with evidence
-```
-
----
-
-## 12. Harness Gates
-
-### Required Gate
-
-```bash
-GOWORK=off make fmt
-GOWORK=off make vet
-GOWORK=off make lint
-GOWORK=off make test
-GOWORK=off make race
-GOWORK=off make boundary
-GOWORK=off make security
-GOWORK=off make contracts
-GOWORK=off make integration
-GOWORK=off make docs-check
-CHECK_STATUS=passed GOWORK=off make evidence
-RELEASE_EVIDENCE_REQUIRE_PASSED=1 GOWORK=off make release-evidence-check
-```
-
-### Extended Gate
-
-```bash
-GOWORK=off make property
-GOWORK=off make golden
-FUZZ_SMOKE_TIME=10s GOWORK=off make fuzz-smoke
-GOWORK=off make ci-extended
-GOWORK=off make release-check-extended
-```
-
-### Final Gate
-
-```bash
-GOWORK=off make release-final-check
-GOWORK=off make release-preflight VERSION=v0.2.0
-go run ./cmd/xlibgate score --min 9.8
-```
-
-### Semantic Gate
-
-```text
-- README 与 docs 角色定义一致。
-- xlib-standard 与 kernel 命名一致。
-- 旧名只存在于 migration ADR。
-- Goal Runtime v3.1 对象完整。
-- x.go 边界明确。
-```
-
-### Executable Gate
-
-```text
-- go test ./...
-- go test -race ./...
-- xlibgate integration
-- xlibgate evidence
-- xlibgate score
-```
-
-### Hybrid Gate
-
-```text
-- docs-check 校验文档结构与占位符。
-- contracts 校验 schema 与代码常量。
-- boundary 校验依赖与业务词。
-- release-check 校验证据与当前源码一致。
-```
-
----
-
-## 13. Evidence Protocol
-
-### 13.1 Task Evidence
-
-每个 Task 完成必须记录：
-
-```text
-EVID-<task-id>-<date>-NNN
-- changed files:
-- commands:
-- result:
-- artifact:
-- known gaps:
-```
-
-### 13.2 Goal Evidence
-
-Goal 完成必须记录：
+### 14.4 DONE with evidence
 
 ```text
 DONE with evidence:
-- scope: GOAL-20260602-001
+- scope:
+- issues:
+- worktree:
+- branch:
+- changed_files:
 - gates:
-  - GOWORK=off make release-final-check: passed
-  - GOWORK=off make release-preflight VERSION=v0.2.0: passed
-  - go run ./cmd/xlibgate score --min 9.8: passed
-- artifacts:
-  - release/manifest/latest.json
-  - release/manifest/latest.json.sha256
-  - docs/scorecard.md
-  - docs/downstream-matrix.md
-  - .agent/traceability-matrix.md
-- known gaps:
-  - none
-```
-
-### 13.3 不允许的 Evidence
-
-```text
-- “我看了，应该没问题”
-- “README 已更新”
-- “CI 应该会过”
-- “未运行但预计通过”
-- “跳过安全检查”
-- “本地环境没有工具，所以视为通过”
+- evidence:
+- review:
+- release_impact:
+- known_gaps:
+- follow_up:
 ```
 
 ---
 
-## 14. Definition of Done
+## 15. Release Manifest Skeleton
 
-### 14.1 Task DoD
-
-```text
-- 对应文件已修改。
-- 对应测试已新增或更新。
-- 相关 gate 已通过。
-- Evidence 已记录。
+```yaml
+module:
+version:
+commit:
+tree_sha:
+source_digest:
+tool_versions:
+workspace_status:
+gate_results:
+evidence_artifacts:
+known_gaps:
+generated_at:
+checksum:
 ```
 
-### 14.2 Issue DoD
+Release Ready 公式：
 
 ```text
-- Issue 下所有 Task 完成。
-- Traceability Matrix 已更新。
-- Review 通过。
-- 无 P0/P1 known gaps。
-```
-
-### 14.3 Goal DoD
-
-```text
-- 所有 REQ 完成。
-- release-final-check 通过。
-- score >= 9.8。
-- kernel integration 通过。
-- Evidence manifest 生成。
-- Retrospective 输出 Prompt/Harness/Rule Patch。
-```
-
-### 14.4 Release DoD
-
-```text
-- tag version 与 manifest version 一致。
-- commit/tree/source digest 一致。
-- contracts fingerprint 一致。
-- dependency inventory 一致。
-- CI artifact 上传成功。
-- release-final-check 通过。
-```
-
-### 14.5 Retrospective DoD
-
-```text
-- 记录本次失败点。
-- 记录新增 gate 建议。
-- 记录 Prompt Patch。
-- 记录 Harness Patch。
-- 记录 Rule Patch。
-- 生成下一轮 Issue candidates。
+release_ready =
+  governance_check_passed
+  AND p1_governance_check_passed
+  AND runtime_health_passed
+  AND required_gates_passed
+  AND evidence_complete
+  AND manifest_valid
+  AND workspace_clean
+  AND no_p0_blocker
+  AND no_open_security_incident
+  AND review_complete
 ```
 
 ---
 
-## 15. Risk Register
+## 16. Runtime File Ownership
 
-| Risk ID | 风险 | 等级 | 触发条件 | 缓解方案 |
-|---|---|---:|---|---|
-| RISK-001 | 改 module path 导致 imports 大面积失败 | P0 | `go test ./...` 失败 | 全局替换 + gofmt + go mod tidy |
-| RISK-002 | 旧名清理过度，migration 文档也被误删 | P1 | docs/migration 缺上下文 | stale-name gate 支持 allowlist |
-| RISK-003 | xlibgate 一次性 Go 化过大 | P1 | 超过 1 天无法完成 | 先包装现有脚本，再逐步迁移 |
-| RISK-004 | kernel 生成后不符合真实 kernel 需求 | P1 | kernel 后续实现冲突 | kernel 专用 profile ADR |
-| RISK-005 | score 变成形式主义 | P1 | 只检查文件存在 | score 必须绑定 executable evidence |
-| RISK-006 | security scanner 误报过多 | P2 | CI 阻塞 | allowlist 必须显式、可审计 |
-| RISK-007 | 下游矩阵过大拖慢 CI | P2 | integration 时间过长 | MVA 覆盖 kernel/corekit，Full nightly 覆盖全矩阵 |
-| RISK-008 | Goal Runtime 文档膨胀但不可执行 | P1 | `.agent` 只写概念 | docs-check 校验对象与 traceability |
+```yaml
+file_classes:
+  XLIB_OWNED:
+    description: xlib-standard may generate and update
+  USER_OWNED:
+    description: never overwrite
+  MERGE_REQUIRED:
+    description: generate patch / three-way merge plan
+  GENERATED:
+    description: can be rebuilt; follow generated artifact policy
+```
+
+Runtime install/upgrade 必须：
+
+```text
+1. 先 classify target files。
+2. 默认 dry-run。
+3. USER_OWNED 不覆盖。
+4. MERGE_REQUIRED 只生成 patch plan。
+5. --apply 需要显式传入。
+6. destructive write 需要 backup 和 rollback note。
+```
 
 ---
 
-## 16. Rollback Protocol
+## 17. Downstream Adoption Modes
 
-### 16.1 命名迁移回滚
+```text
+local_path:   用户本地已有 clone，xlibgate 对路径执行 dry-run/apply。
+patch_only:   只生成 patch bundle，不写下游仓库。
+pr_plan:      生成 PR plan，不直接创建 PR，除非权限明确。
+```
 
-如果 module path 迁移失败：
+下游 adoption 前必须运行 baseline scan：
+
+```text
+module path
+package layout
+Makefile
+CI
+contracts
+docs
+x.go reverse dependency
+secret default usage
+existing release flow
+adoption risk score
+```
+
+首批顺序：
+
+```text
+1. xlib-standard self-conformance -> standard-source
+2. kernel -> l0-kernel
+3. configx -> l1-shared
+```
+
+---
+
+## 18. GitHub Governance
+
+必须提供但不能隐式 apply：
+
+```text
+.github/CODEOWNERS
+.github/ISSUE_TEMPLATE/goal.yml
+.github/ISSUE_TEMPLATE/bugfix.yml
+.github/pull_request_template.md
+.agent/github-settings.yaml
+docs/standard/branch-protection.md
+scripts/github/verify_settings.sh
+```
+
+规则：
+
+```text
+1. CODEOWNERS 覆盖 CONSTITUTION.md、.agent/**、.github/**、Makefile、cmd/xlibgate/**、contracts/**、release/**。
+2. Branch protection / required checks 必须 verify。
+3. Admin bypass 必须 break-glass + human approval。
+4. Apply scripts 只可手动显式执行。
+```
+
+---
+
+## 19. Supply Chain Security
+
+P1 最小基线：
+
+```text
+govulncheck
+golangci-lint
+secret scan / gitleaks equivalent
+actions pinning policy
+permissions least privilege
+go.mod / go.sum drift check
+.tool-versions
+.agent/toolchain.yaml
+```
+
+P2/P3 roadmap：
+
+```text
+SBOM
+License check
+Dependency risk report
+Third-party policy admission
+```
+
+---
+
+## 20. Naming Policy
+
+默认名称：
+
+```text
+standard repo: xlib-standard
+L0 downstream: kernel
+old template name: baselib-template only allowed in migration / ADR / compatibility context
+old downstream example: foundationx only allowed in migration / ADR / compatibility context
+```
+
+禁止：
+
+```text
+1. README 主叙事使用 baselib-template。
+2. Generator 默认输出 foundationx。
+3. Release manifest 使用旧名作为当前事实。
+4. 下游 adoption manifest 使用旧名。
+```
+
+---
+
+## 21. Risk Register
+
+| Risk ID  | Risk                                       | Level | Mitigation                               |
+| -------- | ------------------------------------------ | ----: | ---------------------------------------- |
+| RISK-001 | 宪法过重导致难以采用                       |    P0 | P0/P1/P2 分阶段，P3/P4 冻结              |
+| RISK-002 | Agent 在 main 上开发                       |    P0 | context-aware main-guard                 |
+| RISK-003 | worktree-guard 误伤 CI/release             |    P0 | execution-context policy                 |
+| RISK-004 | 无 Evidence 声称完成                       |    P0 | evidence-check + DONE parser             |
+| RISK-005 | 反向依赖 x.go                              |    P0 | boundary no-xgo-import check             |
+| RISK-006 | 生产 secret 路径污染模板                   |    P0 | no-secret-default check                  |
+| RISK-007 | Gate 无 fixture                            |    P1 | fixture-first + governance test strategy |
+| RISK-008 | .agent YAML 字段错误但静默通过             |    P1 | policy schema validation                 |
+| RISK-009 | GitHub settings 未真正生效                 |    P1 | verify settings protocol                 |
+| RISK-010 | Runtime install 覆盖下游手写内容           |    P1 | runtime file ownership + dry-run         |
+| RISK-011 | 下游 adoption 未扫描 baseline              |    P1 | downstream baseline scan                 |
+| RISK-012 | 旧名污染生成库                             |    P1 | naming guard                             |
+| RISK-013 | xlib-standard 自身未证明符合就要求下游符合 |    P1 | self-conformance attestation             |
+
+---
+
+## 22. Traceability Matrix
+
+| Requirement           | AC                                                 | Design                       | Task                 | Gate                                                  | Evidence               |
+| --------------------- | -------------------------------------------------- | ---------------------------- | -------------------- | ----------------------------------------------------- | ---------------------- |
+| 禁止 main 写入开发    | local_write on main fails                          | execution-context main-guard | P0-004/P0-013        | xlibgate main-guard --context local_write             | fixture output         |
+| CI/release 不误阻断   | ci/release contexts pass when clean                | execution-context            | P0-013               | xlibgate worktree-guard --context ci_pull_request     | fixture output         |
+| 强制 worktree         | local_write outside worktree fails                 | worktree-guard               | P0-005/P0-013        | xlibgate worktree-guard                               | fixture output         |
+| 无 Evidence 不得 DONE | DONE no evidence fails                             | evidence-check               | P0-006/P0-012        | xlibgate evidence-check                               | parser output          |
+| 禁止 x.go 反向依赖    | x.go import fails                                  | boundary                     | P0-007               | xlibgate boundary                                     | boundary report        |
+| 禁止 secret default   | default secret path fails                          | security                     | P0-008               | xlibgate security                                     | security report        |
+| 命令 SSOT             | command registry has all required commands         | command registry             | P0-015               | xlibgate command-registry                             | registry report        |
+| Makefile baseline     | required targets exist                             | makefile baseline            | P0-016               | xlibgate makefile-baseline                            | makefile report        |
+| PR 合规               | PR fields complete                                 | PR contract                  | P1-003               | xlibgate pr-template                                  | PR report              |
+| Runtime 自检          | runtime-health passes                              | runtime health               | P1-005               | xlibgate runtime-health                               | health report          |
+| Policy schema         | invalid yaml fails                                 | schema validation            | P1-017               | xlibgate policy-schema                                | schema report          |
+| GitHub settings       | required settings verify                           | github governance            | P1-018               | xlibgate github-settings --verify                     | verify report          |
+| Evidence path         | artifact roots declared                            | evidence artifacts           | P1-020               | xlibgate evidence-artifacts                           | artifact policy report |
+| 命名一致              | stale default names blocked                        | naming policy                | P1-021               | xlibgate naming                                       | naming report          |
+| Release Ready         | formula returns ready only if all constraints pass | release readiness            | P2-003               | xlibgate release-ready                                | readiness report       |
+| 自符合证明            | standard-source attestation generated              | conformance                  | P2-015               | xlibgate attest-conformance --profile standard-source | attestation            |
+| 下游 baseline         | kernel/configx scanned before adoption             | downstream baseline          | P2-014               | xlibgate downstream-baseline                          | scan report            |
+| 下游 adoption         | patch-only adoption generated                      | adoption modes               | P2-009/P2-010/P2-012 | xlibgate downstream-adoption --mode patch-only        | patch report           |
+
+---
+
+## 23. Definition of Done
+
+### Task DoD
+
+```text
+1. Scope matches issue.
+2. Worktree and branch recorded.
+3. Required gates run.
+4. Evidence bundle generated.
+5. Known gaps declared.
+```
+
+### Issue DoD
+
+```text
+1. All AC passed.
+2. All required gates passed.
+3. Traceability updated.
+4. Evidence linked.
+5. Review done.
+```
+
+### P0 DoD
+
+```text
+1. P0-001..P0-016 done.
+2. governance-check passes in local_write context.
+3. release-check passes in release_verify context.
+4. xlibgate doctor/cli-contract/issue-registry/command-registry/makefile-baseline pass.
+5. Release manifest skeleton generated.
+```
+
+### P1 DoD
+
+```text
+1. P1-001..P1-021 done.
+2. p1-governance-check passes.
+3. policy-schema, github-settings verify, toolchain, evidence-artifacts, naming pass.
+4. Self-healing skeleton exists.
+```
+
+### P2 DoD
+
+```text
+1. P2-001..P2-015 done.
+2. p2-runtime-check passes.
+3. xlib-standard self-conformance attestation exists.
+4. kernel/configx baseline scan reports exist.
+5. kernel/configx patch-only adoption reports exist.
+```
+
+---
+
+## 24. 1 天 / 7 天 / 30 天行动计划
+
+### 1 天：冻结范围 + 生成 SSOT
+
+```text
+1. 创建 CONSTITUTION.md 最小版。
+2. 创建 .agent/minimal-kernel.yaml。
+3. 创建 .agent/enforcement-levels.yaml。
+4. 创建 .agent/execution-context.yaml。
+5. 创建 .agent/issue-registry.yaml。
+6. 创建 .agent/command-registry.yaml。
+7. 创建 .agent/makefile-baseline.yaml。
+8. 明确 P0-001..P0-016 owner/gate/fixture/evidence。
+```
+
+验收：
 
 ```bash
-git revert <migration_commit>
+GOWORK=off go run ./cmd/xlibgate issue-registry
+GOWORK=off go run ./cmd/xlibgate command-registry
 ```
 
-然后进入：
+### 7 天：完成 P0 Minimal Kernel
 
 ```text
-NEEDS_REPLAN
+1. xlibgate CLI skeleton。
+2. execution-context-aware main/worktree guard。
+3. evidence-check。
+4. boundary no-xgo-import。
+5. no-secret-default。
+6. Makefile governance-check/release-check。
+7. CI required skeleton。
+8. release manifest skeleton。
+9. DONE with evidence protocol。
+10. CLI contract/report schema。
 ```
 
-重新拆分：
+验收：
 
-```text
-Phase 1: docs rename
-Phase 2: go.mod/import rename
-Phase 3: integration rename
+```bash
+XLIB_CONTEXT=local_write GOWORK=off make governance-check
+XLIB_CONTEXT=release_verify GOWORK=off make release-check
+GOWORK=off go test ./...
+GOWORK=off go run ./cmd/xlibgate cli-contract
 ```
 
-### 16.2 xlibgate 回滚
-
-如果 Go 化 gate 引发大面积失败：
+### 30 天：完成 P1 + P2 到 v2.9.3
 
 ```text
-保留 scripts/*.sh 为主入口
-xlibgate 作为 experimental
-Makefile 回滚到 scripts
-新增 Issue：逐个迁移 gate
+1. P1 Governance Hardening 全部完成。
+2. P2 Runtime & Conformance Automation 全部完成。
+3. xlib-standard self-conformance attestation 生成。
+4. kernel/configx baseline scan 生成。
+5. kernel/configx patch-only adoption reports 生成。
 ```
 
-### 16.3 Evidence schema 回滚
+验收：
 
-如果 manifest schema 导致 release blocked：
-
-```text
-保留旧 schema v1
-新增 manifest schema_version
-v2 字段先 optional
-下一版本再强制 required
-```
-
----
-
-## 17. Human Approval Gates
-
-以下变更必须人工确认：
-
-```text
-- 是否最终废弃 baselib-template 名称。
-- 是否允许 xlib-standard 同时包含标准与实现。
-- 是否将 foundationx 全面迁移为 kernel。
-- 是否把 score >= 9.8 作为 release-final-check 强制条件。
-- 是否在 CI 中执行完整 downstream matrix。
-```
-
-默认本方案裁决：
-
-```text
-已废弃 baselib-template 主口径。
-xlib-standard = 标准 + 模板 + gate + evidence。
-foundationx → kernel。
-release-final-check 要求 score >= 9.5；10 分目标要求 >= 9.8。
-CI required 覆盖 kernel；nightly/full 覆盖全 downstream matrix。
+```bash
+GOWORK=off make governance-check
+GOWORK=off make p1-governance-check
+GOWORK=off make p2-runtime-check
+GOWORK=off make release-check
+GOWORK=off go test ./...
 ```
 
 ---
 
-## 18. Failure Budget
+## 25. Agent Team 可执行 Prompt
 
 ```text
-P0 failure budget: 0
-P1 failure budget: 0 for release-final-check
-P2 failure budget: <= 3 warnings allowed
-P3 docs polish: 可进入 retrospective backlog
-```
+You are executing GOAL-20260602-001 for github.com/ZoneCNH/xlib-standard.
 
-P0 包括：
+Hard constraints:
+- Do not develop on main.
+- Use git worktree for any local write task.
+- Respect .agent/execution-context.yaml.
+- Do not claim DONE without evidence.
+- Do not import github.com/bytechainx/x.go or github.com/ZoneCNH/x.go.
+- Do not default-read /home/k8s/secrets/env/*.
+- Do not implement P3/P4 features before P0/P1/P2 are done.
 
-```text
-go test failure
-race failure
-x.go dependency leak
-secret leak
-release manifest mismatch
-module path inconsistency
-kernel integration failure
-score < 9.5
-```
+Execution order:
+1. P0-001..P0-016
+2. P1-001..P1-021
+3. P2-001..P2-015
 
----
-
-## 19. 最小可行行动 MVA
-
-MVA 目标：用最小改动把分数从 7.1 拉到 8.5+。
-
-### MVA 必做
-
-```text
-1. 新增 ADR：xlib-standard 角色裁决。
-2. go.mod 改为 github.com/ZoneCNH/xlib-standard。
-3. 全局替换 baselib-template 主口径。
-4. 全局替换 foundationx 主口径为 kernel。
-5. integration 默认渲染 kernel。
-6. docs/module-boundary 解除自相矛盾。
-7. contracts tests import 新 module path。
-8. 新增 stale-name gate。
-9. 运行 GOWORK=off make release-check。
-10. 输出 DONE with evidence。
-```
-
-### MVA 不做
-
-```text
-- 不一次性完成所有 xlibgate Go 化。
-- 不一次性覆盖所有下游基础库。
-- 不一次性重写全部 .agent 文档。
+For every issue:
+- Read issue-registry and command-registry.
+- Create or use assigned worktree.
+- Modify only declared paths.
+- Add valid and invalid fixtures for any guard.
+- Run required gates.
+- Produce evidence bundle under declared artifact roots.
+- Update traceability matrix.
+- Finish only with DONE with evidence.
 ```
 
 ---
 
-## 20. 1 天行动计划
-
-目标：修复 P0 身份矛盾。
+## 26. 最终推荐路径
 
 ```text
-Day 1 / Block 1:
-  - 新增 ADR-20260602-001-xlib-standard-role.md
-  - 新增 ADR-20260602-002-kernel-rename.md
+P0 Minimal Kernel
+  = 防止灾难，保证底线。
 
-Day 1 / Block 2:
-  - 修改 go.mod
-  - 替换 imports
-  - go mod tidy
+P1 Governance Hardening
+  = 支撑多人 / Agent Teams / PR / Review / GitHub / Toolchain / Evidence 管理。
 
-Day 1 / Block 3:
-  - 修改 README/AGENTS/docs/standard
-  - 替换 generation 示例为 kernel
+P2 Runtime & Conformance Automation
+  = 让标准能安装、升级、打包、证明符合，并验证 kernel/configx。
 
-Day 1 / Block 4:
-  - 修改 run_integration.sh kernel case
-  - 修改 check_rendered_template allowlist
-  - 新增 stale-name 检查
-
-Day 1 / Verification:
-  - GOWORK=off go test ./...
-  - GOWORK=off make contracts
-  - GOWORK=off make boundary
-  - GOWORK=off make integration
-  - GOWORK=off make release-check
+P3/P4
+  = 暂时冻结，等 P2 DONE with evidence 后再启动。
 ```
 
-交付物：
+最终裁决：
 
 ```text
-- P0 命名统一完成
-- kernel 渲染通过
-- release manifest 生成
-- 当前评分预计：8.5 / 10
-```
-
----
-
-## 21. 7 天行动计划
-
-目标：把仓库升级为 9+ 标准工厂。
-
-### Day 2：xlibgate 框架
-
-```text
-- 创建 cmd/xlibgate
-- 实现 CLI skeleton
-- docs-check 迁移为 Go
-- boundary 迁移为 Go
-```
-
-### Day 3：Contracts / Secrets / Render
-
-```text
-- contracts 子命令
-- secrets 子命令
-- render 子命令
-- render-check 子命令
-```
-
-### Day 4：Evidence v2
-
-```text
-- manifest schema v2
-- workflow metadata
-- artifact metadata
-- score placeholder
-```
-
-### Day 5：Goal Runtime v3.1
-
-```text
-- .agent/object-model.md
-- .agent/state-machine.md
-- .agent/traceability-matrix.md
-- .agent/risk-register.md
-- .agent/rollback-protocol.md
-```
-
-### Day 6：Scorecard
-
-```text
-- xlibgate score
-- docs/scorecard.md
-- release-check score threshold
-```
-
-### Day 7：Review + Release Candidate
-
-```text
-- release-check-extended
-- release-final-check
-- retrospective
-- prompt/harness/rule patches
-```
-
-交付物：
-
-```text
-- 当前评分预计：9.2 ~ 9.5 / 10
-```
-
----
-
-## 22. 30 天行动计划
-
-目标：达到 10 分标准，并形成可复利基础库工厂。
-
-### Week 1：标准源自洽
-
-```text
-- 角色裁决
-- 命名统一
-- kernel 兼容
-- xlibgate 初版
-- Evidence v2
-```
-
-### Week 2：下游矩阵
-
-```text
-- configx profile
-- observex profile
-- redisx profile
-- postgresx profile
-- kafkax profile
-- taosx profile
-- ossx profile
-- clickhousex profile
-```
-
-### Week 3：质量与安全
-
-```text
-- gitleaks / enhanced secret scan
-- manifest schema validation
-- downstream compatibility scoring
-- benchmark smoke
-- fuzz smoke 扩展
-- property tests 扩展
-```
-
-### Week 4：复利工程
-
-```text
-- Prompt Patch
-- Harness Patch
-- Rule Patch
-- New Issue Candidates
-- x.go integration examples
-- kernel bootstrap validation
-- release v0.2.0 / v1.0.0-rc
-```
-
-最终交付物：
-
-```text
-- xlib-standard 10分版本
-- kernel 可生成/可校验版本
-- downstream matrix
-- xlibgate CLI
-- release manifest v2
-- Goal Runtime v3.1 工程化
-- score >= 9.8
-```
-
----
-
-## 23. 衡量指标
-
-### 23.1 工程指标
-
-```text
-go_test_pass_rate = 100%
-race_pass_rate = 100%
-contract_gate_pass_rate = 100%
-boundary_gate_pass_rate = 100%
-security_gate_pass_rate = 100%
-release_check_pass_rate = 100%
-kernel_render_success = true
-score >= 9.8
-```
-
-### 23.2 一致性指标
-
-```text
-old_name_leak_count = 0
-module_path_mismatch_count = 0
-foundationx_main_usage_count = 0
-xgo_dependency_count = 0
-business_term_leak_count = 0
-```
-
-### 23.3 Evidence 指标
-
-```text
-manifest_exists = true
-manifest_checksum_valid = true
-source_digest_match = true
-contract_fingerprint_match = true
-dependency_inventory_match = true
-workflow_artifact_uploaded = true
-tree_state = clean
-```
-
-### 23.4 复利指标
-
-```text
-new_library_bootstrap_time <= 10 minutes
-new_library_required_gate_pass_time <= 30 minutes
-downstream_profile_reuse_rate >= 80%
-manual_copy_paste_steps <= 2
-```
-
----
-
-## 24. 迭代优化机制
-
-### 24.1 每次失败都要产生补丁
-
-```text
-Test failure → Harness Patch
-Docs ambiguity → Prompt Patch
-Boundary leak → Rule Patch
-Release failure → CI Gate Suggestion
-Downstream incompatibility → Template Patch
-```
-
-### 24.2 Retrospective 输出格式
-
-```text
-RETRO-YYYYMMDD-NNN
-- What failed:
-- Why it failed:
-- Detection gap:
-- Prevention patch:
-- Prompt Patch:
-- Harness Patch:
-- Rule Patch:
-- New Issue Candidates:
-```
-
-### 24.3 自动研究 AutoResearch 触发条件
-
-```text
-- Go / golangci-lint / govulncheck 行为不确定。
-- GitHub Actions artifact API 行为变化。
-- gitleaks 配置不确定。
-- 下游生成库失败原因不明确。
-- kernel 与 xlib-standard 设计冲突。
-- x.go 边界要求变化。
-```
-
-### 24.4 Self-improving 机制
-
-每次 release 后更新：
-
-```text
-.agent/prompt-patches.md
-.agent/harness-patches.md
-.agent/rule-patches.md
-docs/scorecard.md
-docs/downstream-matrix.md
-CHANGELOG.md
-```
-
----
-
-## 25. 最终推荐路径
-
-推荐采用：
-
-```text
-路径 B：xlib-standard = 标准源 + Go 模板实现 + Generator + Harness + Evidence Runtime
-```
-
-不推荐拆分为 `xlib-standard` + `xlib-template` 两个仓库，因为当前仓库已经有完整模板实现资产，拆分会增加迁移成本和同步成本。
-
-最终路径：
-
-```text
-Phase 1:
-  先把 xlib-standard 身份统一，清除 baselib-template/foundationx 主口径。
-
-Phase 2:
-  让 kernel 成为默认下游生成样板。
-
-Phase 3:
-  把核心 gate Go 化为 xlibgate。
-
-Phase 4:
-  强化 Evidence manifest 与 scorecard。
-
-Phase 5:
-  扩展 downstream matrix，形成基础库工厂。
-
-Phase 6:
-  用 retrospective 让标准自我增强。
-```
-
----
-
-## 26. 可执行 Agent Prompt
-
-将以下 Prompt 交给执行 Agent：
-
-```text
-你是 xlib-standard 10分标准升级执行 Agent。
-
-目标：
-将 https://github.com/ZoneCNH/xlib-standard 从当前 7.1/10 升级到 10/10 标准基础库工厂。
-
-执行标准：
-Goal Runtime Prompt v3.1，Full 模式。
-
-必须完成：
-1. 裁决 xlib-standard 角色为 Standard Source + Go Reference Template + Generator + Harness/Evidence Runtime。
-2. 将 baselib-template 主口径统一迁移为 xlib-standard。
-3. 将 foundationx 主口径统一迁移为 kernel。
-4. 修改 go.mod module path 为 github.com/ZoneCNH/xlib-standard。
-5. 修复所有 imports、docs、scripts、contracts、CI、.agent 中的旧命名。
-6. integration 默认渲染 github.com/ZoneCNH/kernel。
-7. 新增或更新 ADR、migration docs、module boundary、repository roles。
-8. 新增 xlibgate CLI，至少提供 docs-check/boundary/secrets/contracts/render-check/evidence/score 的可执行入口；允许第一阶段包装旧脚本，但必须形成 Go 化迁移计划。
-9. 升级 .agent 为 Goal Runtime v3.1 对象模型、状态机、Traceability、Risk、Decision、Rollback、Retrospective。
-10. 升级 release manifest，记录 score、workflow artifact、checksum、contract fingerprint、dependency inventory。
-11. 新增 scorecard，release-final-check 要求 score >= 9.5；10分目标要求 >= 9.8。
-12. 确保基础库不得依赖 x.go，不得泄漏 /home/k8s/secrets/env/*，不得包含业务模型。
-
-验证命令：
-- GOWORK=off go test ./...
-- GOWORK=off go test -race ./...
-- GOWORK=off make contracts
-- GOWORK=off make boundary
-- GOWORK=off make security
-- GOWORK=off make integration
-- GOWORK=off make docs-check
-- CHECK_STATUS=passed GOWORK=off make evidence
-- RELEASE_EVIDENCE_REQUIRE_PASSED=1 GOWORK=off make release-evidence-check
-- GOWORK=off make release-final-check
-- go run ./cmd/xlibgate score --min 9.8
-
-完成声明必须使用：
-DONE with evidence:
-- scope: GOAL-20260602-001
-- gates:
-- artifacts:
-- known gaps:
-```
-
----
-
-## 27. 10 分完成检查表
-
-```text
-[ ] go.mod module path = github.com/ZoneCNH/xlib-standard
-[ ] README 主标题 = xlib-standard
-[ ] baselib-template 只出现在 migration/ADR 历史说明中
-[ ] foundationx 只出现在 migration/ADR 历史说明中
-[ ] kernel 是默认生成示例
-[ ] docs/standard/module-boundary 与实际仓库角色一致
-[ ] docs/standard/repository-roles 与 kernel 命名一致
-[ ] cmd/xlibgate 存在
-[ ] Makefile 调用 xlibgate 或兼容包装
-[ ] contracts 与代码常量一致
-[ ] release manifest v2 可生成
-[ ] release manifest checksum 可验证
-[ ] CI 上传 release evidence artifact
-[ ] .agent 包含 v3.1 对象模型与状态机
-[ ] traceability matrix 覆盖所有 REQ
-[ ] risk register 存在
-[ ] rollback protocol 存在
-[ ] scorecard 存在
-[ ] score >= 9.8
-[ ] kernel integration pass
-[ ] x.go dependency count = 0
-[ ] business term leak count = 0
-[ ] secret leak count = 0
-[ ] DONE with evidence 输出
-```
-
----
-
-## 28. 最终结论
-
-当前 `xlib-standard` 不是失败项目，而是一个已经具备 70% 工程基础的标准模板工厂雏形。
-
-它要达到 10 分，关键不是继续堆文档，而是完成以下五件事：
-
-```text
-1. 角色唯一化。
-2. 命名彻底统一。
-3. kernel 下游样板化。
-4. Gate Go 化与 Evidence 强化。
-5. Goal Runtime v3.1 真正工程化。
-```
-
-最终推荐路径：
-
-```text
-先用 1 天完成 P0 角色/命名/kernel 修复，把评分拉到 8.5；
-再用 7 天完成 xlibgate + Evidence v2 + Goal Runtime 工程化，把评分拉到 9.5；
-最后用 30 天扩展 downstream matrix + security + scorecard + retrospective，冲 10 分。
-```
-
-完成后的 `xlib-standard` 应该成为：
-
-```text
-x.go 基础库体系的唯一标准事实源；
-kernel 和所有 L1/L2 基础库的生成源；
-Agent Teams 的可执行 Goal Runtime；
-CI/Harness/Evidence 的统一裁决器；
-长期自我改进的复利工程资产。
+xlib-standard v2.9.3 Complete 的核心目标，
+是把前面所有宪法、方法论、Harness、Agent Teams、Self-improving、AutoResearch、Compound Engineering
+收敛成一个可执行工程内核：
+P0 先防灾难，
+P1 再硬化协作治理，
+P2 再完成运行时安装/升级/符合性证明；
+任何高级治理功能必须等 P2 DONE with evidence 后再解锁。
 ```
