@@ -1,0 +1,93 @@
+schema_version: "1.0"
+module: xlib-standard
+scope: first-pr-mva-truth-state
+source: "/home/xlib-standard/.worktree/patch.md"
+acceptance:
+  command: "GOWORK=off make governance-check"
+  optional:
+    - "GOWORK=off go test ./cmd/xlibgate ./contracts"
+summary: "记录 first-PR/MVA 只建立事实状态边界，不把计划、注册、dry-run 或本地检查升级为 release-usable。"
+excluded_scope:
+  release_manifest_cutover: true
+  release_check_behavior_change: true
+  gate_result_runtime: true
+  downstream_migration_wave: true
+strength_order:
+  - planned
+  - manifest_covered
+  - dry_run_verified
+  - shadow_executed
+  - real_executed
+  - evidence_verified
+  - release_usable
+observable_states:
+  registered:
+    meaning: "命令或对象存在于 registry / harness / 文档矩阵中。"
+    passed_gate_evidence: false
+  baseline_scanned:
+    meaning: "完成基线扫描或差距登记，但未完成实现或采用。"
+    passed_gate_evidence: false
+  planned:
+    meaning: "已有计划或路线图条目。"
+    passed_gate_evidence: false
+  dry_run_ready:
+    meaning: "有 dry-run/verify 契约，可在本地验证契约存在或报告差距。"
+    passed_gate_evidence: false
+  implemented:
+    meaning: "已有可执行实现或委托脚本，但仍需要当前命令输出证明是否通过。"
+    passed_gate_evidence: "conditional"
+  executed:
+    meaning: "当前上下文实际运行过命令。"
+    passed_gate_evidence: "conditional"
+  artifact_exists:
+    meaning: "产物文件存在。"
+    passed_gate_evidence: false
+  checksum_verified:
+    meaning: "产物与 checksum 在当前上下文校验一致。"
+    passed_gate_evidence: "conditional"
+  usable:
+    meaning: "产物满足消费方字段、可重放、上下文和校验要求。"
+    passed_gate_evidence: "conditional"
+  adopted:
+    meaning: "下游库完成迁移、验证并有证据引用。"
+    passed_gate_evidence: "conditional"
+  not_run:
+    meaning: "当前上下文没有执行证据。"
+    passed_gate_evidence: false
+forbidden_upgrades:
+  - from: planned
+    to: implemented
+    reason: "计划不是实现。"
+  - from: manifest_covered
+    to: release_usable
+    reason: "manifest 覆盖不等于 release 可用证据。"
+  - from: dry_run_verified
+    to: release_usable
+    reason: "dry-run 只证明契约或差距，不证明 release 可用。"
+  - from: not_run
+    to: passed
+    reason: "未运行不得记为通过。"
+  - from: registered
+    to: adopted
+    reason: "注册目标库不等于下游采用。"
+  - from: baseline_scanned
+    to: implemented
+    reason: "基线扫描不等于功能实现。"
+  - from: artifact_exists
+    to: usable
+    reason: "产物存在不等于字段完整、checksum 可验证、消费方可用。"
+  - from: check_status_passed
+    to: release_ready_evidence
+    reason: "CHECK_STATUS=passed 只是生成前置，不是 release-ready 证据闭环。"
+fact_files:
+  command_implementation: ".agent/command-implementation-status.yaml"
+  release_required_gates: ".agent/release-required-gates.yaml"
+  evidence_usability: ".agent/evidence-usability.yaml"
+  downstream_adoption: ".agent/downstream-adoption-status.yaml"
+current_mva_assertions:
+  release_manifest_changed: false
+  release_check_behavior_changed: false
+  gate_result_runtime_changed: false
+  downstream_migration_wave_changed: false
+  release_manifest_generated: false
+  downstream_adoption_claimed: false
