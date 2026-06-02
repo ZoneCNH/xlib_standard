@@ -89,28 +89,28 @@ var governanceRuntimeProfileStatuses = map[string]string{
 }
 
 type Manifest struct {
-	Module                 string                 `json:"module"`
-	Version                string                 `json:"version"`
-	Commit                 string                 `json:"commit"`
-	TreeSHA                string                 `json:"tree_sha"`
-	SourceDigest           string                 `json:"source_digest"`
-	TrackedFileCount       int                    `json:"tracked_file_count"`
-	GoVersion              string                 `json:"go_version"`
-	GeneratedAt            string                 `json:"generated_at"`
-	GeneratedBy            string                 `json:"generated_by"`
-	TreeState              string                 `json:"tree_state"`
-	Checks                 map[string]string      `json:"checks"`
-	Workflow               WorkflowEvidence       `json:"workflow"`
-	Score                  releasequality.Report  `json:"score"`
-	Contracts              []FileDigest           `json:"contracts"`
-	Dependencies           []ModuleDigest         `json:"dependencies"`
-	StandardImpact         StandardImpactEvidence `json:"standard_impact"`
+	Module                 string                    `json:"module"`
+	Version                string                    `json:"version"`
+	Commit                 string                    `json:"commit"`
+	TreeSHA                string                    `json:"tree_sha"`
+	SourceDigest           string                    `json:"source_digest"`
+	TrackedFileCount       int                       `json:"tracked_file_count"`
+	GoVersion              string                    `json:"go_version"`
+	GeneratedAt            string                    `json:"generated_at"`
+	GeneratedBy            string                    `json:"generated_by"`
+	TreeState              string                    `json:"tree_state"`
+	Checks                 map[string]string         `json:"checks"`
+	Workflow               WorkflowEvidence          `json:"workflow"`
+	Score                  releasequality.Report     `json:"score"`
+	Contracts              []FileDigest              `json:"contracts"`
+	Dependencies           []ModuleDigest            `json:"dependencies"`
+	StandardImpact         StandardImpactEvidence    `json:"standard_impact"`
 	GovernanceRuntime      GovernanceRuntimeEvidence `json:"governance_runtime"`
-	DownstreamSyncRequired bool                   `json:"downstream_sync_required"`
-	GeneratorEvidence      GeneratorEvidence      `json:"generator_evidence"`
-	Tools                  map[string]string      `json:"tools"`
-	Artifacts              []string               `json:"artifacts"`
-	Notes                  Notes                  `json:"notes"`
+	DownstreamSyncRequired bool                      `json:"downstream_sync_required"`
+	GeneratorEvidence      GeneratorEvidence         `json:"generator_evidence"`
+	Tools                  map[string]string         `json:"tools"`
+	Artifacts              []string                  `json:"artifacts"`
+	Notes                  Notes                     `json:"notes"`
 }
 
 type WorkflowEvidence struct {

@@ -153,6 +153,7 @@ func TestRunCLIGeneratesManifestToOut(t *testing.T) {
 	if manifest.StandardImpact.ReportPath != standardImpactReportPath || manifest.StandardImpact.Status == "" {
 		t.Fatalf("standard impact evidence is incomplete: %+v", manifest.StandardImpact)
 	}
+	assertGovernanceRuntimeEvidence(t, manifest.GovernanceRuntime)
 	if manifest.DownstreamSyncRequired != manifest.StandardImpact.DownstreamSyncRequired {
 		t.Fatalf("downstream_sync_required = %t, want standard impact value %t", manifest.DownstreamSyncRequired, manifest.StandardImpact.DownstreamSyncRequired)
 	}
@@ -343,6 +344,8 @@ func TestRunCLIVerifyReportsDrift(t *testing.T) {
 	manifest.Checks["lint"] = "failed"
 	manifest.StandardImpact.Status = "stale"
 	manifest.DownstreamSyncRequired = !manifest.StandardImpact.DownstreamSyncRequired
+	manifest.GovernanceRuntime.RuntimeVersion = "v2.9.2"
+	manifest.GovernanceRuntime.ProfileStatuses["p2_runtime"] = "failed"
 	manifest.GeneratorEvidence.Targets = nil
 	if err := writeManifest(outPath, manifest); err != nil {
 		t.Fatal(err)
@@ -362,6 +365,9 @@ func TestRunCLIVerifyReportsDrift(t *testing.T) {
 		"ERROR: release evidence verification failed",
 		"source_digest does not match current tracked file contents",
 		"standard_impact does not match current standard impact evidence",
+		"governance_runtime does not match current governance runtime evidence",
+		`governance_runtime.runtime_version must be "v2.9.3", got "v2.9.2"`,
+		`governance_runtime.profile_statuses.p2_runtime must be passed, got "failed"`,
 		"generator_evidence does not match current integration evidence",
 		`checks.lint must be passed, got "failed"`,
 	} {
@@ -523,6 +529,7 @@ func TestBuildManifestRecordsFixtureRepositoryFacts(t *testing.T) {
 	if manifest.DownstreamSyncRequired != manifest.StandardImpact.DownstreamSyncRequired {
 		t.Fatalf("downstream_sync_required = %t, want standard impact value %t", manifest.DownstreamSyncRequired, manifest.StandardImpact.DownstreamSyncRequired)
 	}
+	assertGovernanceRuntimeEvidence(t, manifest.GovernanceRuntime)
 	if manifest.GeneratorEvidence.Command != "GOWORK=off make integration" || !manifest.GeneratorEvidence.Required {
 		t.Fatalf("generator_evidence = %+v, want integration command and required=true", manifest.GeneratorEvidence)
 	}
@@ -651,6 +658,7 @@ func TestVerifyManifestAcceptsFreshManifestAndRejectsDrift(t *testing.T) {
 	manifest.Artifacts = []string{"release/manifest/latest.json"}
 	manifest.StandardImpact.Status = "stale"
 	manifest.DownstreamSyncRequired = !manifest.StandardImpact.DownstreamSyncRequired
+	manifest.GovernanceRuntime.GateStatuses["governance"] = "failed"
 	manifest.GeneratorEvidence.Command = "make old-integration"
 	badPath := filepath.Join(t.TempDir(), "stale.json")
 	if err := writeManifest(badPath, manifest); err != nil {
@@ -668,6 +676,8 @@ func TestVerifyManifestAcceptsFreshManifestAndRejectsDrift(t *testing.T) {
 		"artifacts must include release/manifest/latest.json.sha256",
 		"standard_impact does not match current standard impact evidence",
 		"downstream_sync_required must match standard_impact.downstream_sync_required",
+		"governance_runtime does not match current governance runtime evidence",
+		`governance_runtime.gate_statuses.governance must be passed, got "failed"`,
 		"generator_evidence does not match current integration evidence",
 	} {
 		if !strings.Contains(message, want) {
@@ -696,6 +706,7 @@ func TestVerifyManifestRejectsCorruptedManifestFields(t *testing.T) {
 	manifest.Score.Threshold = 0
 	manifest.Contracts = nil
 	manifest.Dependencies = nil
+	manifest.GovernanceRuntime = GovernanceRuntimeEvidence{}
 	manifest.GeneratorEvidence.Required = false
 	manifest.Tools = map[string]string{}
 
@@ -721,6 +732,11 @@ func TestVerifyManifestRejectsCorruptedManifestFields(t *testing.T) {
 		"score.threshold is required",
 		"contract fingerprints do not match current contract files",
 		"dependency inventory does not match go list -m -json all",
+		`governance_runtime.schema_version must be "v2.9.3", got ""`,
+		`governance_runtime.runtime_version must be "v2.9.3", got ""`,
+		"governance_runtime.gate_statuses.governance is required",
+		"governance_runtime.profile_statuses.p1_governance is required",
+		"governance_runtime.profile_statuses.p2_runtime is required",
 		"generator_evidence.required must be true",
 		"tools.go must be recorded",
 	} {
@@ -844,6 +860,41 @@ func TestBuildGeneratorEvidenceRecordsRepresentativeDownstreams(t *testing.T) {
 	}
 	if !hasGeneratorTarget(got.Targets, "corekit", "example.com/acme/corekit", "corekit") {
 		t.Fatalf("targets = %+v, want corekit target", got.Targets)
+	}
+}
+
+func TestBuildGovernanceRuntimeEvidenceRecordsVersionsAndPassedStatuses(t *testing.T) {
+	got := buildGovernanceRuntimeEvidence()
+
+	assertGovernanceRuntimeEvidence(t, got)
+
+	got.GateStatuses["governance"] = "failed"
+	got.ProfileStatuses["p1_governance"] = "failed"
+	if governanceRuntimeGateStatuses["governance"] != "passed" {
+		t.Fatalf("gate status fixture was mutated: %v", governanceRuntimeGateStatuses)
+	}
+	if governanceRuntimeProfileStatuses["p1_governance"] != "passed" {
+		t.Fatalf("profile status fixture was mutated: %v", governanceRuntimeProfileStatuses)
+	}
+}
+
+func TestValidateGovernanceRuntimeEvidenceRequiresVersionsAndPassedStatuses(t *testing.T) {
+	got := buildGovernanceRuntimeEvidence()
+	got.SchemaVersion = "v2.9.2"
+	got.RuntimeVersion = ""
+	got.GateStatuses["governance"] = "failed"
+	delete(got.ProfileStatuses, "p2_runtime")
+
+	failures := validateGovernanceRuntimeEvidence(got)
+	for _, want := range []string{
+		`governance_runtime.schema_version must be "v2.9.3", got "v2.9.2"`,
+		`governance_runtime.runtime_version must be "v2.9.3", got ""`,
+		`governance_runtime.gate_statuses.governance must be passed, got "failed"`,
+		"governance_runtime.profile_statuses.p2_runtime is required",
+	} {
+		if !contains(failures, want) {
+			t.Fatalf("failures = %v, want %q", failures, want)
+		}
 	}
 }
 
@@ -1272,6 +1323,28 @@ func hasGeneratorTarget(targets []GeneratorTarget, name string, modulePath strin
 		}
 	}
 	return false
+}
+
+func assertGovernanceRuntimeEvidence(t *testing.T, got GovernanceRuntimeEvidence) {
+	t.Helper()
+
+	if got.SchemaVersion != governanceRuntimeVersion {
+		t.Fatalf("governance_runtime.schema_version = %q, want %q", got.SchemaVersion, governanceRuntimeVersion)
+	}
+	if got.RuntimeVersion != governanceRuntimeVersion {
+		t.Fatalf("governance_runtime.runtime_version = %q, want %q", got.RuntimeVersion, governanceRuntimeVersion)
+	}
+	assertMapHas(t, got.GateStatuses, "governance", "passed")
+	assertMapHas(t, got.ProfileStatuses, "p1_governance", "passed")
+	assertMapHas(t, got.ProfileStatuses, "p2_runtime", "passed")
+}
+
+func assertMapHas(t *testing.T, got map[string]string, key string, want string) {
+	t.Helper()
+
+	if got[key] != want {
+		t.Fatalf("map[%q] = %q, want %q (map: %v)", key, got[key], want, got)
+	}
 }
 
 type errorWriter struct{}
