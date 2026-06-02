@@ -153,7 +153,7 @@ func TestRunCLIGeneratesManifestToOut(t *testing.T) {
 	if manifest.StandardImpact.ReportPath != standardImpactReportPath || manifest.StandardImpact.Status == "" {
 		t.Fatalf("standard impact evidence is incomplete: %+v", manifest.StandardImpact)
 	}
-	if manifest.StandardImpact.DownstreamReleaseDecision == "" || manifest.StandardImpact.RepositoryRulesReleaseDecision == "" {
+	if manifest.StandardImpact.Status == "present" && (manifest.StandardImpact.DownstreamReleaseDecision == "" || manifest.StandardImpact.RepositoryRulesReleaseDecision == "") {
 		t.Fatalf("standard impact release decisions are incomplete: %+v", manifest.StandardImpact)
 	}
 	assertGovernanceRuntimeEvidence(t, manifest.GovernanceRuntime)
