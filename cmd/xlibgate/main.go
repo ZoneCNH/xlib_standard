@@ -49,6 +49,22 @@ func run(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) int
 		return runContextProfileCheck("context-schema-check", args[1:], stdout, stderr)
 	case "context-lite", "context-standard", "context-full", "context-release", "context-fast-check", "context-standard-check", "context-full-check":
 		return runContextProfileAlias(args[0], args[1:], stdout, stderr)
+	case "debt":
+		return runDebt(args[1:], stdout, stderr)
+	case "architecture":
+		return runDebtAlias("architecture", "enforce", args[1:], stdout, stderr)
+	case "domain":
+		return runDebtAlias("domain", "enforce", args[1:], stdout, stderr)
+	case "docs-drift":
+		return runDebtAlias("docs", "warn", args[1:], stdout, stderr)
+	case "dependency-debt":
+		return runDebtAlias("dependency", "warn", args[1:], stdout, stderr)
+	case "testing-debt":
+		return runDebtAlias("testing", "warn", args[1:], stdout, stderr)
+	case "implementation-debt":
+		return runDebtAlias("implementation", "observe", args[1:], stdout, stderr)
+	case "security-debt":
+		return runDebtAlias("security", "warn", args[1:], stdout, stderr)
 	case "minimal-kernel", "done-assertion", "agent-team-contract", "scope-lock", "pr-template", "acceptance-matrix", "runtime-health", "goal-runtime", "naming", "upgrade-standard", "conformance-profile", "downstream-registry", "self-healing-skeleton", "policy-schema", "github-settings", "toolchain", "evidence-artifacts", "install-runtime", "upgrade-runtime", "release-ready", "evidence-replay", "attest-conformance", "pack-standard", "pack-gate", "pack-evidence", "runtime-file-ownership", "downstream-baseline", "downstream-adoption", "autoresearch", "changelog", "github-governance", "governance-fixture-test", "supply-chain", "execution-context":
 		return runPlannedCommand(args[0], args[1:], stdout, stderr)
 	case "boundary":
@@ -143,6 +159,7 @@ const usage = `usage: xlibgate <command> [args]
 commands:
   agent-team-contract [--dry-run]
   acceptance-matrix
+  architecture [debt args]
   attest-conformance [--profile <name>]
   autoresearch
   boundary
@@ -161,7 +178,11 @@ commands:
   context-standard
   context-standard-check
   contracts
+  debt [--config <path>] [--section <name>] [--mode <enforce|warn|observe>] [--min-score <score>] [--output json|markdown]
+  dependency-debt [debt args]
   dependency-check
+  docs-drift [debt args]
+  domain [debt args]
   doctor [--json]
   docs-check
   downstream-adoption
@@ -178,6 +199,7 @@ commands:
   governance-fixture-test
   install-runtime [--dry-run]
   integration
+  implementation-debt [debt args]
   issue-registry
   main-guard [--context local_write|local_readonly|ci_pull_request|ci_main_verify|release_verify]
   makefile-baseline
@@ -202,10 +224,12 @@ commands:
   score [--min <score>]
   secrets
   security
+  security-debt [debt args]
   self-healing-skeleton
   standard-impact-check
   supply-chain
   toolchain
+  testing-debt [debt args]
   upgrade-runtime [--dry-run]
   upgrade-standard [--dry-run]
   version [--json]

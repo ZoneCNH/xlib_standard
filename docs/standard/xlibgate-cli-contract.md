@@ -116,3 +116,7 @@ Context Runtime v4.0 新增可叠加的 profile baseline，但不替换现有 P0
 - `context-full-check`
 
 `context-release` 不得调用 `release-check` 或 `release-final-check`；唯一允许方向是 `release-final-check` 在严格 release evidence check 前委托执行 `context-release`。Legacy aliases（`context-fast-check`、`context-standard-check`、`context-full-check`）必须保持可用。除非仓库内实际存在 `.agent/context` 文件，否则该基线不得宣称已落地这些文件。
+
+## Debt command surface
+
+`xlibgate debt` supports `--section`, `--mode`, `--min-score`, and `--output json|markdown`. Aliases `architecture`, `domain`, `docs-drift`, `dependency-debt`, `testing-debt`, `implementation-debt`, and `security-debt` select the corresponding debt sections.

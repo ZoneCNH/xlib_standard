@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ZoneCNH/xlib-standard/internal/debtcheck"
 	"github.com/ZoneCNH/xlib-standard/internal/releasequality"
 )
 
@@ -69,6 +70,9 @@ var contractFiles = []string{
 var requiredArtifacts = []string{
 	"release/manifest/latest.json",
 	"release/manifest/latest.json.sha256",
+	"release/debt/latest.json",
+	"release/debt/latest.md",
+	"release/debt/latest.json.sha256",
 }
 
 const standardImpactReportPath = "release/standard-impact/latest.md"
@@ -115,6 +119,7 @@ type Manifest struct {
 	Contracts              []FileDigest           `json:"contracts"`
 	Dependencies           []ModuleDigest         `json:"dependencies"`
 	StandardImpact         StandardImpactEvidence `json:"standard_impact"`
+	Debt                   debtcheck.Evidence     `json:"debt"`
 	GovernanceRuntime      GovernanceRuntime      `json:"governance_runtime"`
 	DownstreamSyncRequired bool                   `json:"downstream_sync_required"`
 	GeneratorEvidence      GeneratorEvidence      `json:"generator_evidence"`
@@ -267,6 +272,10 @@ func buildManifest() (Manifest, error) {
 	if err != nil {
 		return Manifest{}, err
 	}
+	debtReport, err := debtcheck.Run(debtcheck.Options{Mode: "enforce", MinScore: debtcheck.DefaultMinScore})
+	if err != nil {
+		return Manifest{}, err
+	}
 
 	return Manifest{
 		Module:                 module,
@@ -285,6 +294,7 @@ func buildManifest() (Manifest, error) {
 		Contracts:              contracts,
 		Dependencies:           dependencies,
 		StandardImpact:         standardImpact,
+		Debt:                   debtcheck.EvidenceFromReport(debtReport),
 		GovernanceRuntime:      buildGovernanceRuntime(),
 		DownstreamSyncRequired: standardImpact.DownstreamSyncRequired,
 		GeneratorEvidence:      buildGeneratorEvidence(),
@@ -381,6 +391,12 @@ func verifyManifest(path string, requirePassed bool, requireClean bool, expectVe
 	}
 	if !reflect.DeepEqual(got.StandardImpact, current.StandardImpact) {
 		failures = append(failures, "standard_impact does not match current standard impact evidence")
+	}
+	if !reflect.DeepEqual(got.Debt, current.Debt) {
+		failures = append(failures, "debt does not match current debt governance evidence")
+	}
+	if debtFailures := debtcheck.ValidateEvidence(got.Debt, debtcheck.DefaultMinScore); len(debtFailures) > 0 {
+		failures = append(failures, debtFailures...)
 	}
 	if !reflect.DeepEqual(got.GovernanceRuntime, current.GovernanceRuntime) {
 		failures = append(failures, "governance_runtime does not match current context runtime evidence")

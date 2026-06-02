@@ -1431,9 +1431,29 @@ func releaseManifestFixtureRepo(t *testing.T) string {
 			t.Fatal(err)
 		}
 	}
+	writeFixtureDebtPolicy(t, repo)
 	writeFixtureOMCState(t, repo)
 	runTestCommand(t, repo, "git", "add", ".")
 	return repo
+}
+
+func writeFixtureDebtPolicy(t *testing.T, repo string) {
+	t.Helper()
+	files := map[string]string{
+		".agent/debt/rules.yaml":              "schema_version: debt-rules/v1\nprofile: fixture\n",
+		".agent/debt/rule-registry.yaml":      "schema_version: debt-rule-registry/v1\nrules: []\n",
+		".agent/debt/exceptions.yaml":         "schema_version: debt-exceptions/v1\nexceptions: []\n",
+		".agent/debt/dependency-purpose.yaml": "schema_version: debt-dependency-purpose/v1\npurposes: []\n",
+	}
+	for path, content := range files {
+		fullPath := filepath.Join(repo, filepath.FromSlash(path))
+		if err := os.MkdirAll(filepath.Dir(fullPath), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(fullPath, []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
 }
 
 func writeStandardImpactReportFixture(t *testing.T, repo string) {

@@ -50,6 +50,49 @@ docs-check:
 	$(XLIBGATE) docs-check
 
 .PHONY: security
+
+architecture:
+	$(XLIBGATE) debt --section architecture --mode enforce
+
+domain:
+	$(XLIBGATE) debt --section domain --mode enforce
+
+docs-drift:
+	$(XLIBGATE) debt --section docs --mode warn
+
+dependency-debt:
+	$(XLIBGATE) debt --section dependency --mode warn
+
+testing-debt:
+	$(XLIBGATE) debt --section testing --mode warn
+
+implementation-debt:
+	$(XLIBGATE) debt --section implementation --mode observe
+
+security-debt:
+	$(XLIBGATE) debt --section security --mode warn
+
+debt:
+	$(XLIBGATE) debt --config .agent/debt/rules.yaml --exceptions .agent/debt/exceptions.yaml --dependency-purpose .agent/debt/dependency-purpose.yaml --mode enforce --min-score 9.8
+
+debt-evidence:
+	mkdir -p release/debt
+	$(XLIBGATE) debt --config .agent/debt/rules.yaml --exceptions .agent/debt/exceptions.yaml --dependency-purpose .agent/debt/dependency-purpose.yaml --mode enforce --min-score 9.8 --output json > release/debt/latest.json
+	$(XLIBGATE) debt --config .agent/debt/rules.yaml --exceptions .agent/debt/exceptions.yaml --dependency-purpose .agent/debt/dependency-purpose.yaml --mode enforce --min-score 9.8 --output markdown > release/debt/latest.md
+	if command -v sha256sum >/dev/null 2>&1; then sha256sum release/debt/latest.json > release/debt/latest.json.sha256; else shasum -a 256 release/debt/latest.json > release/debt/latest.json.sha256; fi
+
+debt-register-update:
+	$(XLIBGATE) debt register-update
+
+debt-trend:
+	$(XLIBGATE) debt trend
+
+debt-patch-suggest:
+	$(XLIBGATE) debt patch-suggest
+
+debt-lifecycle-check:
+	$(XLIBGATE) debt lifecycle-check
+
 security:
 	@if command -v govulncheck >/dev/null 2>&1; then \
 		govulncheck ./...; \
@@ -158,7 +201,7 @@ execution-context:
 	$(XLIBGATE) $@ --dry-run --verify
 
 .PHONY: governance-check
-governance-check: require-gowork-off main-guard worktree-guard evidence-check boundary security contracts docs-check cli-contract issue-registry command-registry makefile-baseline
+governance-check: require-gowork-off main-guard worktree-guard evidence-check boundary architecture domain security security-debt contracts docs-check cli-contract issue-registry command-registry makefile-baseline debt
 
 .PHONY: p1-governance-check
 p1-governance-check: agent-team-contract scope-lock pr-template acceptance-matrix runtime-health upgrade-standard conformance-profile downstream-registry self-healing-skeleton goal-runtime github-governance supply-chain changelog governance-fixture-test autoresearch policy-schema github-settings toolchain evidence-artifacts naming
@@ -188,7 +231,7 @@ context-standard: require-gowork-off governance-check p1-governance-check docs-c
 context-full: require-gowork-off governance-check p1-governance-check p2-runtime-check
 
 .PHONY: context-release
-context-release: require-gowork-off context-full integration dependency-check standard-impact-check score-check
+context-release: require-gowork-off context-full integration dependency-check standard-impact-check score-check debt-evidence
 	CHECK_STATUS=passed $(MAKE) evidence
 	$(MAKE) release-evidence-hash
 	$(MAKE) release-evidence-check
@@ -204,13 +247,13 @@ context-standard-check: context-standard
 context-full-check: context-full
 
 .PHONY: ci
-ci: fmt vet lint test race boundary security contracts governance-check score
+ci: fmt vet lint test race boundary architecture domain security security-debt contracts governance-check debt score
 
 .PHONY: ci-extended
-ci-extended: ci property golden fuzz-smoke
+ci-extended: ci property golden fuzz-smoke docs-drift
 
 .PHONY: release-check
-release-check: require-gowork-off ci integration dependency-check standard-impact-check docs-check score-check governance-check p1-governance-check p2-runtime-check
+release-check: require-gowork-off ci integration dependency-check standard-impact-check docs-check docs-drift score-check governance-check p1-governance-check p2-runtime-check debt-evidence
 	CHECK_STATUS=passed $(MAKE) evidence
 	$(MAKE) release-evidence-hash
 	$(MAKE) release-evidence-check

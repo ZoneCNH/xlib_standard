@@ -158,3 +158,7 @@ go run ./cmd/xlibgate score --min 9.8
 ```
 
 `release/manifest/latest.json` 必须记录 `score` 与 `workflow` 字段。`workflow_run_id`、`artifact_name`、`artifact_url` 用来把本地 manifest 与 GitHub Actions 上传的 `release-manifest-<workflow-run-id>` artifact 对齐；本地运行时允许使用 `local:*` artifact URL。`release-final-check` 会在 clean tree 要求之外校验 manifest 内的 score threshold。
+
+## Debt evidence
+
+Release checks generate debt evidence with `make debt-evidence` before manifest generation. `release-final-check` enforces `xlibgate debt --mode enforce --min-score 9.8` and release evidence verification validates the manifest `debt` block. Generated `release/debt/*` artifacts are not committed.
