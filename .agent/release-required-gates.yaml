@@ -2,7 +2,7 @@ schema_version: "1.0"
 module: xlib-standard
 source_harness: .agent/harness.yaml
 truth_state: .agent/truth-state.yaml
-purpose: "列出 release required gate 与 first-PR/MVA 当前证据等级。"
+purpose: "列出 release required gate 与 first-PR/MVA 当前证据等级；本文件不运行 gate、不改变 release-check。"
 
 mva_assertions:
   does_not_run_release_gates: true
@@ -11,6 +11,8 @@ mva_assertions:
   does_not_cut_release_manifest_over: true
 
 required_release_evidence:
+  - commit
+  - tree_sha
   - command
   - exit_code
   - context_env
@@ -145,3 +147,5 @@ forbidden_upgrades:
   - "CHECK_STATUS=passed != release-ready evidence"
   - "not_generated_in_mva != release manifest available"
   - "local governance-check pass != release gate pass"
+  - "manifest_covered 不得记为 release_usable。"
+  - "本地 governance-check 通过不得替代 release evidence manifest。"
