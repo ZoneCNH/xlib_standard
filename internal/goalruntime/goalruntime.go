@@ -1,142 +1,129 @@
 package goalruntime
 
 import (
-	"encoding/json"
-	"errors"
-	"flag"
 	"fmt"
-	"io"
 	"os"
-	"regexp"
+	"path/filepath"
 	"strings"
 )
 
 const (
-	LedgerPath       = ".agent/evidence/ledger.jsonl"
-	EvidencePackPath = "release/evidence/goalkit"
-	ControlPlane     = "Harness Runtime"
-	Executor         = "xlibgate"
+	DefaultGoalID      = "GOAL-20260603-XLIB-RUNTIME-001"
+	EvidenceLedgerPath = "release/evidence/goalkit/"
 )
 
-var goalIDPattern = regexp.MustCompile(`^GOAL-[0-9]{8}-[A-Z0-9-]+-[0-9]{3}$`)
-
-type Gate struct {
-	ID      string `json:"id"`
-	Command string `json:"command"`
-	Status  string `json:"status"`
-	Mode    string `json:"mode"`
+var commandGates = map[string]string{
+	"goal-acceptance":          "G12",
+	"goal-delivery":            "G13",
+	"goal-handover":            "G14",
+	"goal-downstream-adoption": "G15A",
+	"goal-certify":             "G15B",
+	"goal-runtime-final":       "G16",
 }
 
+var gateDescriptions = map[string]string{
+	"goal-acceptance":          "验收矩阵和目标 ID contract 已收敛",
+	"goal-delivery":            "交付证据路径和 xlibgate 执行面已收敛",
+	"goal-handover":            "接手材料和边界声明已收敛",
+	"goal-downstream-adoption": "下游采用证明保持为本地 contract，不修改 downstream 仓库",
+	"goal-certify":             "认证证明保持为本地 contract，不宣称完整 release 完成",
+	"goal-runtime-final":       "G12-G15B 本地 contract 汇总为 goalkit v0.1.0 MVA final evidence",
+}
+
+var requiredAuthorityPaths = []string{
+	".worktree/goalkit-v0.1.0-plan.md",
+	".omx/context/goalkit-v0.1.0-team-20260603T005302Z.md",
+	"docs/standard/xlibgate-cli-contract.md",
+	".agent/harness.yaml",
+	".agent/command-registry.yaml",
+	"Makefile",
+}
+
+// Options configures a goalkit MVA contract evaluation.
+type Options struct {
+	GoalID string
+	Root   string
+}
+
+// Report is the machine-readable goalkit MVA evidence returned by xlibgate.
 type Report struct {
-	Command          string   `json:"command"`
-	Status           string   `json:"status"`
-	Details          []string `json:"details,omitempty"`
-	Gaps             []string `json:"gaps,omitempty"`
-	GoalID           string   `json:"goal_id"`
-	Mode             string   `json:"mode"`
-	Executor         string   `json:"executor"`
-	ControlPlane     string   `json:"control_plane"`
-	Blocking         bool     `json:"blocking"`
-	MVAStatus        string   `json:"mva_status"`
-	LedgerPath       string   `json:"ledger_path"`
-	EvidencePackPath string   `json:"evidence_pack_path"`
-	Gates            []Gate   `json:"gates"`
+	SchemaVersion  string   `json:"schema_version"`
+	Command        string   `json:"command"`
+	Status         string   `json:"status"`
+	GoalID         string   `json:"goal_id"`
+	Gate           string   `json:"gate"`
+	Details        []string `json:"details,omitempty"`
+	Evidence       []string `json:"evidence,omitempty"`
+	AuthorityPaths []string `json:"authority_paths,omitempty"`
+	Gaps           []string `json:"gaps,omitempty"`
 }
 
-type definition struct {
-	ID      string
-	Command string
-}
-
-var definitions = []definition{
-	{ID: "G12_ACCEPTANCE", Command: "goal-acceptance"},
-	{ID: "G13_DELIVERY", Command: "goal-delivery"},
-	{ID: "G14_HANDOVER", Command: "goal-handover"},
-	{ID: "G15_DOWNSTREAM_ADOPTION", Command: "goal-downstream-adoption"},
-	{ID: "G16_CERTIFY", Command: "goal-certify"},
-}
-
-// Commands returns the goalkit runtime command names exposed by xlibgate and Makefile.
-func Commands() []string {
-	commands := make([]string, 0, len(definitions)+1)
-	for _, def := range definitions {
-		commands = append(commands, def.Command)
-	}
-	commands = append(commands, "goal-runtime-final")
-	return commands
-}
-
-func Run(command string, args []string, stdout io.Writer, stderr io.Writer) int {
-	flags := flag.NewFlagSet("xlibgate "+command, flag.ContinueOnError)
-	flags.SetOutput(stderr)
-	goalID := flags.String("goal-id", os.Getenv("GOAL_ID"), "goal identifier")
-	mode := flags.String("mode", fallback(os.Getenv("GOAL_RUNTIME_MODE"), "FULL"), "goal runtime mode")
-	flags.Bool("json", false, "emit json report")
-	flags.Bool("dry-run", false, "accepted compatibility flag")
-	flags.Bool("verify", false, "accepted compatibility flag")
-	if err := flags.Parse(args); err != nil {
-		if errors.Is(err, flag.ErrHelp) {
-			return 0
-		}
-		return invalid(command, err, stderr)
-	}
-	if flags.NArg() > 0 {
-		return invalid(command, fmt.Errorf("unexpected positional argument %q", flags.Arg(0)), stderr)
-	}
-	if !goalIDPattern.MatchString(*goalID) {
-		return invalid(command, fmt.Errorf("invalid or missing --goal-id/GOAL_ID %q", *goalID), stderr)
-	}
-	gates, ok := selectedGates(command, strings.ToUpper(*mode))
+// Evaluate verifies the local goalkit v0.1.0 MVA contract for a single command.
+func Evaluate(command string, options Options) (Report, error) {
+	gate, ok := commandGates[command]
 	if !ok {
-		return invalid(command, fmt.Errorf("unknown goalkit runtime command %q", command), stderr)
+		return Report{}, fmt.Errorf("unsupported goalkit command %q", command)
+	}
+	goalID := strings.TrimSpace(options.GoalID)
+	if goalID == "" {
+		goalID = DefaultGoalID
+	}
+	root := options.Root
+	if root == "" {
+		root = "."
 	}
 	report := Report{
-		Command:          command,
-		Status:           "passed",
-		Details:          []string{"goalkit v0.1.0 PR-4 command-backed Harness slice", "G12-G16 remain non-blocking until PR-5+ activation", "source evidence ledger is " + LedgerPath},
-		GoalID:           *goalID,
-		Mode:             strings.ToUpper(*mode),
-		Executor:         Executor,
-		ControlPlane:     ControlPlane,
-		Blocking:         false,
-		MVAStatus:        "not-complete",
-		LedgerPath:       LedgerPath,
-		EvidencePackPath: EvidencePackPath + "/" + *goalID,
-		Gates:            gates,
+		SchemaVersion: "goalkit-mva/v1",
+		Command:       command,
+		Status:        "passed",
+		GoalID:        goalID,
+		Gate:          gate,
+		Details: []string{
+			gateDescriptions[command],
+			"goalkit v0.1.0 不提供独立 CLI；xlibgate 是当前执行面",
+			"G12-G16 是 goalkit MVA evidence gates，不是全局 release blocking gates",
+			"root plan 是 backlog/roadmap authority，不是完成声明",
+		},
+		Evidence: []string{
+			"fixture_id=" + DefaultGoalID,
+			"evidence_ledger=" + EvidenceLedgerPath,
+			"runtime_logic=internal/goalruntime",
+		},
 	}
-	data, err := json.MarshalIndent(report, "", "  ")
-	if err != nil {
-		fmt.Fprintf(stderr, "ERROR: %s marshal report: %v\n", command, err)
-		return 1
+	if goalID != DefaultGoalID {
+		report.Details = append(report.Details, "non-default goal_id accepted for local contract replay")
 	}
-	fmt.Fprintf(stdout, "%s\n", data)
-	return 0
-}
-
-func selectedGates(command, mode string) ([]Gate, bool) {
+	for _, path := range requiredAuthorityPaths {
+		full := filepath.Join(root, filepath.FromSlash(path))
+		if _, err := os.Stat(full); err != nil {
+			report.Gaps = append(report.Gaps, "missing authority path: "+path)
+			continue
+		}
+		report.AuthorityPaths = append(report.AuthorityPaths, path)
+	}
 	if command == "goal-runtime-final" {
-		gates := make([]Gate, 0, len(definitions))
-		for _, def := range definitions {
-			gates = append(gates, Gate{ID: def.ID, Command: def.Command, Status: "passed", Mode: mode})
-		}
-		return gates, true
+		report.Evidence = append(report.Evidence,
+			"requires=goal-acceptance",
+			"requires=goal-delivery",
+			"requires=goal-handover",
+			"requires=goal-downstream-adoption",
+			"requires=goal-certify",
+		)
 	}
-	for _, def := range definitions {
-		if def.Command == command {
-			return []Gate{{ID: def.ID, Command: def.Command, Status: "passed", Mode: mode}}, true
-		}
+	if len(report.Gaps) > 0 {
+		report.Status = "failed"
 	}
-	return nil, false
+	return report, nil
 }
 
-func invalid(command string, err error, stderr io.Writer) int {
-	fmt.Fprintf(stderr, "ERROR: %s invalid arguments: %v\n", command, err)
-	return 2
-}
-
-func fallback(value, fallbackValue string) string {
-	if value == "" {
-		return fallbackValue
+// Commands returns the supported goalkit MVA command names.
+func Commands() []string {
+	return []string{
+		"goal-acceptance",
+		"goal-delivery",
+		"goal-handover",
+		"goal-downstream-adoption",
+		"goal-certify",
+		"goal-runtime-final",
 	}
-	return value
 }

@@ -1,15 +1,46 @@
 package main
 
 import (
+	"encoding/json"
+	"errors"
+	"flag"
 	"io"
+	"os"
 
 	"github.com/ZoneCNH/xlib-standard/internal/goalruntime"
 )
 
-func runGoalRuntime(command string, args []string, stdout io.Writer, stderr io.Writer) int {
-	return goalruntime.Run(command, args, stdout, stderr)
+func runGoalRuntimeCommand(command string, args []string, stdout io.Writer, stderr io.Writer) int {
+	flags := flag.NewFlagSet("xlibgate "+command, flag.ContinueOnError)
+	flags.SetOutput(stderr)
+	goalID := flags.String("goal-id", envDefault("GOAL_ID", goalruntime.DefaultGoalID), "goal identifier to evaluate")
+	flags.Bool("json", false, "emit JSON report")
+	flags.Bool("strict", false, "reserved strict contract flag")
+	if err := flags.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return 0
+		}
+		return 2
+	}
+	if flags.NArg() > 0 {
+		write(stderr, "ERROR: %s invalid arguments: unexpected positional argument %q\n", command, flags.Arg(0))
+		return 2
+	}
+	report, err := goalruntime.Evaluate(command, goalruntime.Options{GoalID: *goalID, Root: "."})
+	if err != nil {
+		write(stderr, "ERROR: %v\n", err)
+		return 2
+	}
+	data, err := json.MarshalIndent(report, "", "  ")
+	if err != nil {
+		write(stderr, "ERROR: marshal %s report: %v\n", command, err)
+		return 1
+	}
+	write(stdout, "%s\n", data)
+	if report.Status == "passed" {
+		return 0
+	}
+	return 1
 }
 
-func goalkitRuntimeTargets() []string {
-	return goalruntime.Commands()
-}
+var _ = os.Getenv
