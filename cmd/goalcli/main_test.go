@@ -3059,6 +3059,7 @@ func testAgentIndexLayer(path string) string {
 		path == ".agent/registries/issue-registry.yaml" ||
 		path == ".agent/registries/command-implementation-status.yaml" ||
 		path == ".agent/registries/generated-artifacts.yaml" ||
+		path == ".agent/registries/physical-migration-manifest.yaml" ||
 		path == ".agent/registries/makefile-target-registry.yaml" ||
 		path == ".agent/registries/makefile-baseline.yaml":
 		return "registry"
