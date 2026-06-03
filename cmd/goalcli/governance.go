@@ -13,6 +13,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/ZoneCNH/xlib-standard/internal/validation"
 )
 
 const (
@@ -1013,6 +1015,9 @@ func validatePlannedCommandFile(command string, path string, content []byte) []s
 		if !strings.Contains(text, marker) {
 			gaps = append(gaps, path+" missing semantic marker "+marker)
 		}
+	}
+	if command == "runtime-file-ownership" && path == ".agent/runtime-file-ownership.yaml" {
+		gaps = append(gaps, validation.ValidateRuntimeFileOwnership(path, text)...)
 	}
 	return gaps
 }

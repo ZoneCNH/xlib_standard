@@ -1493,14 +1493,23 @@ roles:
 	}
 }
 
-func TestRuntimeFileOwnershipRequiresControlPlaneSemanticMarkers(t *testing.T) {
+func TestRuntimeFileOwnershipRejectsInvalidControlPlaneIndex(t *testing.T) {
 	root := t.TempDir()
 	writeTestFiles(t, root, map[string]string{
 		".agent/runtime-file-ownership.yaml": `schema_version: "2.9.3"
 owners:
   ".agent/":
-    owner: governance
-    rationale: control plane
+    owner: user
+    review_required: false
+    rationale: Invalid control plane owner.
+  "cmd/goalcli/":
+    owner: gate-runtime
+    review_required: true
+    rationale: Goalcli validator surface.
+  "contracts/":
+    owner: standard
+    review_required: true
+    rationale: Public contracts.
 `,
 	})
 	chdir(t, root)
@@ -1508,14 +1517,17 @@ owners:
 	var stdout, stderr bytes.Buffer
 	got := run([]string{"runtime-file-ownership", "--dry-run", "--verify"}, strings.NewReader(""), &stdout, &stderr)
 	if got != 1 {
-		t.Fatalf("runtime ownership semantic exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+		t.Fatalf("runtime-file-ownership exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
 	}
 	var report gateReport
 	if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
 		t.Fatalf("stdout is not gateReport JSON: %v; stdout %q", err, stdout.String())
 	}
-	if !gapsContainSubstring(report.Gaps, ".agent/runtime-file-ownership.yaml missing semantic marker review_required:") {
-		t.Fatalf("gaps = %#v; want missing review_required marker gap", report.Gaps)
+	if !gapsContainSubstring(report.Gaps, ".agent/runtime-file-ownership.yaml .agent/ owner must be governance") {
+		t.Fatalf("gaps = %#v; want control-plane owner gap", report.Gaps)
+	}
+	if !gapsContainSubstring(report.Gaps, ".agent/runtime-file-ownership.yaml .agent/ review_required must be true") {
+		t.Fatalf("gaps = %#v; want control-plane review gap", report.Gaps)
 	}
 }
 
