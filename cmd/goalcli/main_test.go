@@ -1358,6 +1358,53 @@ func TestPlannedCommandVerifyPassesWithManifestCoverage(t *testing.T) {
 	}
 }
 
+func TestRuntimeFileOwnershipControlPlaneIndexIsGoalcliValidated(t *testing.T) {
+	chdir(t, filepath.Join("..", ".."))
+
+	files := plannedCommandFiles["runtime-file-ownership"]
+	if len(files) != 1 || files[0] != ".agent/runtime-file-ownership.yaml" {
+		t.Fatalf("runtime-file-ownership files = %#v; want .agent/runtime-file-ownership.yaml", files)
+	}
+	markers := plannedCommandMarkers("runtime-file-ownership", ".agent/runtime-file-ownership.yaml")
+	for _, marker := range []string{"schema_version:", "owners:", "owner:", "review_required:", "rationale:"} {
+		if !slicesContain(markers, marker) {
+			t.Fatalf("runtime-file-ownership markers = %#v; want %q", markers, marker)
+		}
+	}
+
+	content, err := os.ReadFile(".agent/runtime-file-ownership.yaml")
+	if err != nil {
+		t.Fatalf("read runtime ownership manifest: %v", err)
+	}
+	for _, ownerPath := range []string{`".agent/"`, `"cmd/goalcli/"`} {
+		if !strings.Contains(string(content), ownerPath) {
+			t.Fatalf(".agent/runtime-file-ownership.yaml missing control-plane owner path %s", ownerPath)
+		}
+	}
+
+	var stdout, stderr bytes.Buffer
+	got := run([]string{"runtime-file-ownership", "--dry-run", "--verify"}, strings.NewReader(""), &stdout, &stderr)
+	if got != 0 {
+		t.Fatalf("verified runtime-file-ownership exit = %d, stderr %q, stdout %q; want 0", got, stderr.String(), stdout.String())
+	}
+	var report gateReport
+	if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
+		t.Fatalf("stdout is not gateReport JSON: %v; stdout %q", err, stdout.String())
+	}
+	if report.Status != "passed" {
+		t.Fatalf("report status = %q; want passed; report %#v", report.Status, report)
+	}
+	if !slicesContain(report.Details, "found .agent/runtime-file-ownership.yaml") {
+		t.Fatalf("details = %#v; want runtime ownership manifest detail", report.Details)
+	}
+	if !slicesContain(report.Details, "local dry-run verifier satisfied manifest coverage") {
+		t.Fatalf("details = %#v; want verify detail", report.Details)
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("stderr = %q; want empty stderr", stderr.String())
+	}
+}
+
 func TestDownstreamGapVerifyIsBlocking(t *testing.T) {
 	chdir(t, filepath.Join("..", ".."))
 
@@ -1446,6 +1493,32 @@ roles:
 	}
 }
 
+func TestRuntimeFileOwnershipRequiresControlPlaneSemanticMarkers(t *testing.T) {
+	root := t.TempDir()
+	writeTestFiles(t, root, map[string]string{
+		".agent/runtime-file-ownership.yaml": `schema_version: "2.9.3"
+owners:
+  ".agent/":
+    owner: governance
+    rationale: control plane
+`,
+	})
+	chdir(t, root)
+
+	var stdout, stderr bytes.Buffer
+	got := run([]string{"runtime-file-ownership", "--dry-run", "--verify"}, strings.NewReader(""), &stdout, &stderr)
+	if got != 1 {
+		t.Fatalf("runtime ownership semantic exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+	}
+	var report gateReport
+	if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
+		t.Fatalf("stdout is not gateReport JSON: %v; stdout %q", err, stdout.String())
+	}
+	if !gapsContainSubstring(report.Gaps, ".agent/runtime-file-ownership.yaml missing semantic marker review_required:") {
+		t.Fatalf("gaps = %#v; want missing review_required marker gap", report.Gaps)
+	}
+}
+
 func TestGoalcliMVAGoalCommandsRequireHarnessMarkers(t *testing.T) {
 	tests := []struct {
 		command string
@@ -1515,6 +1588,7 @@ func TestPlannedCommandRejectsInvalidArgs(t *testing.T) {
 		{name: "unknown flag", args: []string{"agent-team-contract", "--bogus"}, wantStderr: "invalid arguments"},
 		{name: "invalid context", args: []string{"agent-team-contract", "--context", "bad_context"}, wantStderr: `invalid context "bad_context"`},
 		{name: "positional arg", args: []string{"agent-team-contract", "extra"}, wantStderr: `unexpected positional argument "extra"`},
+		{name: "runtime ownership positional arg", args: []string{"runtime-file-ownership", "extra"}, wantStderr: `unexpected positional argument "extra"`},
 	}
 
 	for _, tt := range tests {
