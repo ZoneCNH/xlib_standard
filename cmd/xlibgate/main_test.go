@@ -433,8 +433,8 @@ func TestGoalkitMVACommandSurfaceRequiresG12ThroughG16Equivalents(t *testing.T) 
 			if report.Blocking {
 				t.Fatalf("report is blocking; G12-G16 must stay non-blocking in the PR-4 slice")
 			}
-			if report.MVAStatus != "not-complete" {
-				t.Fatalf("mva_status = %q; want not-complete", report.MVAStatus)
+			if !slicesContain(report.Evidence, "evidence_ledger="+goalruntime.EvidenceLedgerPath) {
+				t.Fatalf("evidence = %#v; want goalkit ledger path", report.Evidence)
 			}
 			if report.LedgerPath != ".agent/evidence/ledger.jsonl" || !strings.HasPrefix(report.EvidencePackPath, "release/evidence/goalkit") {
 				t.Fatalf("ledger/evidence paths = %q/%q; want source ledger and generated pack split", report.LedgerPath, report.EvidencePackPath)
@@ -945,7 +945,7 @@ func TestCommandRegistryRequiresFullCommandSurface(t *testing.T) {
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 			t.Fatalf("mkdir %s: %v", filepath.Dir(path), err)
 		}
-		content := strings.Replace(strings.Join(requiredCommandRegistryNeedles(), "\n")+"\n", "name: goal-runtime-final\n", "", 1)
+		content := strings.Replace(strings.Join(requiredCommandRegistryNeedles(), "\n")+"\n", "name: goal-certify\n", "", 1)
 		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
 			t.Fatalf("write %s: %v", path, err)
 		}
@@ -956,8 +956,8 @@ func TestCommandRegistryRequiresFullCommandSurface(t *testing.T) {
 		if got != 1 {
 			t.Fatalf("command-registry incomplete fixture exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
 		}
-		if !strings.Contains(stdout.String(), ".agent/command-registry.yaml missing name: goal-runtime-final") {
-			t.Fatalf("stdout = %q; want missing goal-runtime-final gap", stdout.String())
+		if !strings.Contains(stdout.String(), ".agent/command-registry.yaml missing name: goal-certify") {
+			t.Fatalf("stdout = %q; want missing goal-certify gap", stdout.String())
 		}
 	})
 }
@@ -1815,6 +1815,15 @@ func latestChangelogVersion(t *testing.T, text string) string {
 func slicesContain(values []string, want string) bool {
 	for _, value := range values {
 		if value == want {
+			return true
+		}
+	}
+	return false
+}
+
+func containsSubstring(values []string, want string) bool {
+	for _, value := range values {
+		if strings.Contains(value, want) {
 			return true
 		}
 	}

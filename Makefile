@@ -233,8 +233,24 @@ install-runtime upgrade-runtime release-ready evidence-replay attest-conformance
 execution-context:
 	$(XLIBGATE) $@ --dry-run --verify
 
-.PHONY: goal-acceptance goal-delivery goal-handover goal-downstream-adoption goal-certify
-goal-acceptance goal-delivery goal-handover goal-downstream-adoption goal-certify: require-gowork-off
+.PHONY: goal-acceptance
+goal-acceptance: require-gowork-off
+	$(XLIBGATE) $@ --goal-id "$(GOAL_ID)" --json
+
+.PHONY: goal-delivery
+goal-delivery: require-gowork-off
+	$(XLIBGATE) $@ --goal-id "$(GOAL_ID)" --json
+
+.PHONY: goal-handover
+goal-handover: require-gowork-off
+	$(XLIBGATE) $@ --goal-id "$(GOAL_ID)" --json
+
+.PHONY: goal-downstream-adoption
+goal-downstream-adoption: require-gowork-off
+	$(XLIBGATE) $@ --goal-id "$(GOAL_ID)" --json
+
+.PHONY: goal-certify
+goal-certify: require-gowork-off
 	$(XLIBGATE) $@ --goal-id "$(GOAL_ID)" --json
 
 .PHONY: goal-runtime-final

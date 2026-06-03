@@ -1,40 +1,100 @@
 package goalruntime
 
 import (
-	"bytes"
-	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
 
-func TestRunGoalRuntimeFinalIncludesAllNonBlockingGates(t *testing.T) {
-	var stdout, stderr bytes.Buffer
-	got := Run("goal-runtime-final", []string{"--goal-id", "GOAL-20260603-XLIB-RUNTIME-001", "--mode", "FULL", "--json"}, &stdout, &stderr)
-	if got != 0 {
-		t.Fatalf("Run exit = %d, stderr %q, stdout %q; want 0", got, stderr.String(), stdout.String())
+func TestEvaluateGoalRuntimeFinalPassesWithAuthority(t *testing.T) {
+	root := t.TempDir()
+	writeAuthorityFixture(t, root)
+
+	report, err := Evaluate("goal-runtime-final", Options{Root: root})
+	if err != nil {
+		t.Fatalf("Evaluate returned error: %v", err)
 	}
-	var report Report
-	if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
-		t.Fatalf("stdout is not Report JSON: %v; stdout %q", err, stdout.String())
+	if report.Status != "passed" {
+		t.Fatalf("status = %q; gaps %#v", report.Status, report.Gaps)
 	}
-	if report.Command != "goal-runtime-final" || report.Status != "passed" || report.Blocking || report.MVAStatus != "not-complete" {
-		t.Fatalf("report = %#v; want passed, non-blocking, not-complete final report", report)
+	if report.GoalID != DefaultGoalID {
+		t.Fatalf("goal_id = %q; want %q", report.GoalID, DefaultGoalID)
 	}
-	if report.Executor != Executor || report.ControlPlane != ControlPlane || report.LedgerPath != LedgerPath {
-		t.Fatalf("report authority = %#v; want xlibgate/Harness/%s", report, LedgerPath)
+	if report.Gate != "G16" {
+		t.Fatalf("gate = %q; want G16", report.Gate)
 	}
-	if len(report.Gates) != 5 {
-		t.Fatalf("gates = %#v; want 5 G12-G16 gates", report.Gates)
+	if !contains(report.Evidence, "evidence_ledger="+EvidenceLedgerPath) {
+		t.Fatalf("evidence = %#v; want ledger path", report.Evidence)
+	}
+	if !contains(report.Evidence, "requires=goal-certify") {
+		t.Fatalf("evidence = %#v; want final gate dependency", report.Evidence)
+	}
+	if !containsSubstring(report.Details, "不是全局 release blocking gates") {
+		t.Fatalf("details = %#v; want false-completion boundary", report.Details)
+	}
+	if len(report.AuthorityPaths) == 0 {
+		t.Fatalf("authority_paths is empty")
 	}
 }
 
-func TestRunGoalRuntimeRequiresValidGoalID(t *testing.T) {
-	var stdout, stderr bytes.Buffer
-	got := Run("goal-acceptance", []string{"--goal-id", "bad", "--json"}, &stdout, &stderr)
-	if got != 2 {
-		t.Fatalf("Run invalid goal id exit = %d, stdout %q, stderr %q; want 2", got, stdout.String(), stderr.String())
+func TestEvaluateRejectsUnknownCommand(t *testing.T) {
+	if _, err := Evaluate("not-a-goalkit-command", Options{}); err == nil {
+		t.Fatalf("Evaluate returned nil error for unknown command")
 	}
-	if !strings.Contains(stderr.String(), "invalid or missing --goal-id/GOAL_ID") {
-		t.Fatalf("stderr = %q; want invalid goal id error", stderr.String())
+}
+
+func TestEvaluateReportsMissingAuthorityPaths(t *testing.T) {
+	root := t.TempDir()
+	report, err := Evaluate("goal-acceptance", Options{Root: root})
+	if err != nil {
+		t.Fatalf("Evaluate returned error: %v", err)
 	}
+	if report.Status != "failed" {
+		t.Fatalf("status = %q; want failed", report.Status)
+	}
+	if len(report.Gaps) == 0 {
+		t.Fatalf("gaps is empty; want missing authority paths")
+	}
+	if !containsSubstring(report.Gaps, ".worktree/goalkit-v0.1.0-plan.md") {
+		t.Fatalf("gaps = %#v; want root plan gap", report.Gaps)
+	}
+}
+
+func writeAuthorityFixture(t *testing.T, root string) {
+	t.Helper()
+	for _, path := range []string{
+		".worktree/goalkit-v0.1.0-plan.md",
+		".omx/context/goalkit-v0.1.0-team-20260603T005302Z.md",
+		"docs/standard/xlibgate-cli-contract.md",
+		".agent/harness.yaml",
+		".agent/command-registry.yaml",
+		"Makefile",
+	} {
+		full := filepath.Join(root, filepath.FromSlash(path))
+		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+			t.Fatalf("mkdir fixture path %s: %v", path, err)
+		}
+		if err := os.WriteFile(full, []byte("fixture\n"), 0o644); err != nil {
+			t.Fatalf("write fixture path %s: %v", path, err)
+		}
+	}
+}
+
+func contains(values []string, want string) bool {
+	for _, value := range values {
+		if value == want {
+			return true
+		}
+	}
+	return false
+}
+
+func containsSubstring(values []string, want string) bool {
+	for _, value := range values {
+		if strings.Contains(value, want) {
+			return true
+		}
+	}
+	return false
 }
