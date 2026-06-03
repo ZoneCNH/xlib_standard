@@ -19,8 +19,8 @@ generated_at: 2026-06-03
 total_rules: 419
 p0_count: 119
 p1_count: 300
-active_count: 354
-indexed_count: 65
+active_count: 363
+indexed_count: 56
 
 rules:
   - id: RULE-BRANCH-001
@@ -191,9 +191,9 @@ rules:
     source_section: 1
     source_section_title: "第一性原理铁律"
     source_line: 132
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate self-improving-check"
+    exit_code: 1
+    status: active
   - id: RULE-DOD-001
     level: P0
     title: "Task Done 必须有证据"
@@ -3235,45 +3235,45 @@ rules:
     source_section: 17
     source_section_title: "Retrospective / Self-improving 规则"
     source_line: 1025
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate self-improving-check"
+    exit_code: 1
+    status: active
   - id: RULE-RETRO-002
     level: P1
     title: "必须生成 Patch"
     source_section: 17
     source_section_title: "Retrospective / Self-improving 规则"
     source_line: 1042
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate self-improving-check"
+    exit_code: 1
+    status: active
   - id: RULE-RETRO-003
     level: P1
     title: "重复问题必须升级为规则"
     source_section: 17
     source_section_title: "Retrospective / Self-improving 规则"
     source_line: 1056
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate self-improving-check"
+    exit_code: 1
+    status: active
   - id: RULE-RETRO-CHECK-001
     level: P1
     title: "Retrospective 不能只是总结"
     source_section: 128
     source_section_title: "Retro Check 规则"
     source_line: 5464
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate self-improving-check"
+    exit_code: 1
+    status: active
   - id: RULE-RETRO-CHECK-002
     level: P1
     title: "缺 Patch 候选则 Retro Gate 失败"
     source_section: 128
     source_section_title: "Retro Check 规则"
     source_line: 5482
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate self-improving-check"
+    exit_code: 1
+    status: active
   - id: RULE-REVIEW-001
     level: P1
     title: "Review 不是读代码，而是审事实链"
@@ -3487,27 +3487,27 @@ rules:
     source_section: 44
     source_section_title: "Self-improving 运行规则"
     source_line: 2154
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate self-improving-check"
+    exit_code: 1
+    status: active
   - id: RULE-SI-002
     level: P1
     title: "Patch 必须分状态"
     source_section: 44
     source_section_title: "Self-improving 运行规则"
     source_line: 2168
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate self-improving-check"
+    exit_code: 1
+    status: active
   - id: RULE-SI-003
     level: P1
     title: "Patch 必须进入 Patch Registry"
     source_section: 44
     source_section_title: "Self-improving 运行规则"
     source_line: 2180
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate self-improving-check"
+    exit_code: 1
+    status: active
   - id: RULE-SIMPLICITY-001
     level: P1
     title: "v0.1.0 不实现全自动写代码"

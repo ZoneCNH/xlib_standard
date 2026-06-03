@@ -105,6 +105,8 @@ func run(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) int
 		return runExternal(stdin, stdout, stderr, "./scripts/check_secrets.sh")
 	case "standard-impact-check":
 		return runExternal(stdin, stdout, stderr, "./scripts/check_standard_impact.sh")
+	case "self-improving-check", "retro-check":
+		return runSelfImprovingCheck(args[0], args[1:], stdout, stderr)
 	case "help", "-h", "--help":
 		write(stdout, usage)
 		return 0
