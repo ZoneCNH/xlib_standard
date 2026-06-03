@@ -206,12 +206,15 @@ func verifyArtifactExists(artifact string) error {
 	}
 	if strings.HasSuffix(artifact, "/*") {
 		dir := strings.TrimSuffix(artifact, "/*")
-		entries, err := os.ReadDir(dir)
+		info, err := os.Stat(dir)
 		if err != nil {
-			return fmt.Errorf("directory not found: %s", dir)
+			if os.IsNotExist(err) {
+				return fmt.Errorf("directory not found: %s", dir)
+			}
+			return fmt.Errorf("directory stat error %s: %w", dir, err)
 		}
-		if len(entries) == 0 {
-			return fmt.Errorf("directory exists but empty: %s", dir)
+		if !info.IsDir() {
+			return fmt.Errorf("not a directory: %s", dir)
 		}
 		return nil
 	}
