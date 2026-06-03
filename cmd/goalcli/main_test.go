@@ -1634,99 +1634,6 @@ func TestCommandRegistryRequiresFullCommandSurface(t *testing.T) {
 			t.Fatalf("stdout = %q; want harness gate_link_semantics gap", stdout.String())
 		}
 	})
-
-	t.Run("rejects registry command missing status entry", func(t *testing.T) {
-		root := t.TempDir()
-		writeValidAgentIndexFixture(t, root)
-		statusFixture := commandImplementationStatusFixture()
-		statusFixture = strings.Replace(statusFixture, "      - version\n", "", 1)
-		writeTestFiles(t, root, map[string]string{
-			".agent/registries/command-registry.yaml":              commandRegistryFixture(""),
-			".agent/registries/command-implementation-status.yaml": statusFixture,
-		})
-		chdir(t, root)
-
-		var stdout, stderr bytes.Buffer
-		got := run([]string{"command-registry"}, strings.NewReader(""), &stdout, &stderr)
-		if got != 1 {
-			t.Fatalf("command-registry missing status entry exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
-		}
-		if !strings.Contains(stdout.String(), "missing status entry for command version") {
-			t.Fatalf("stdout = %q; want missing status entry for version", stdout.String())
-		}
-	})
-
-	t.Run("rejects dry_run_ready with release_usable true", func(t *testing.T) {
-		root := t.TempDir()
-		writeValidAgentIndexFixture(t, root)
-		statusFixture := "schema_version: \"1.0\"\ngroups:\n  - id: test_group\n    implementation_status: dry_run_ready\n    release_usable: \"true\"\n    execution_status: passed\n    commands:\n      - version\n"
-		writeTestFiles(t, root, map[string]string{
-			".agent/registries/command-registry.yaml":              commandRegistryFixture(""),
-			".agent/registries/command-implementation-status.yaml": statusFixture,
-		})
-		chdir(t, root)
-
-		var stdout, stderr bytes.Buffer
-		got := run([]string{"command-registry"}, strings.NewReader(""), &stdout, &stderr)
-		if got != 1 {
-			t.Fatalf("command-registry dry_run release_usable exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
-		}
-		if !strings.Contains(stdout.String(), "dry_run_ready must not set release_usable=true") {
-			t.Fatalf("stdout = %q; want dry_run release_usable gap", stdout.String())
-		}
-	})
-
-	t.Run("rejects execution context missing release_verify", func(t *testing.T) {
-		root := t.TempDir()
-		writeValidAgentIndexFixture(t, root)
-		ctxFixture := "schema_version: \"2.9.3\"\ncontexts:\n  local_write:\n    write_scope: worktree\n  local_readonly:\n    write_scope: read_only\n"
-		writeTestFiles(t, root, map[string]string{
-			".agent/registries/command-registry.yaml": commandRegistryFixture(""),
-			".agent/policies/execution-context.yaml":  ctxFixture,
-		})
-		chdir(t, root)
-
-		var stdout, stderr bytes.Buffer
-		got := run([]string{"command-registry"}, strings.NewReader(""), &stdout, &stderr)
-		if got != 1 {
-			t.Fatalf("command-registry missing release_verify exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
-		}
-		if !strings.Contains(stdout.String(), "missing release_verify:") {
-			t.Fatalf("stdout = %q; want missing release_verify gap", stdout.String())
-		}
-	})
-
-	t.Run("rejects harness DAG cycle in refs", func(t *testing.T) {
-		root := t.TempDir()
-		writeValidAgentIndexFixture(t, root)
-		harnessWithCycle := `schema_version: "2.9.3"
-required_gates:
-  - id: gate_a
-    refs: [gate_b]
-    purpose: "fixture"
-  - id: gate_b
-    refs: [gate_a]
-    purpose: "fixture"
-gate_link_semantics:
-  duplicate_command_links: aliases
-  duplicate_entries_do_not_create_new_authorities: true
-  authority_source: required_gates[].id
-`
-		writeTestFiles(t, root, map[string]string{
-			".agent/registries/command-registry.yaml": commandRegistryFixture(""),
-			".agent/harness/harness.yaml":             harnessWithCycle,
-		})
-		chdir(t, root)
-
-		var stdout, stderr bytes.Buffer
-		got := run([]string{"command-registry"}, strings.NewReader(""), &stdout, &stderr)
-		if got != 1 {
-			t.Fatalf("command-registry DAG cycle exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
-		}
-		if !strings.Contains(stdout.String(), "required_gates DAG cycle") {
-			t.Fatalf("stdout = %q; want DAG cycle gap", stdout.String())
-		}
-	})
 }
 
 func TestIssueRegistryRequiresDynamicContract(t *testing.T) {
@@ -2919,21 +2826,7 @@ func TestAgentPhysicalMigrationManifestGuardsNewPaths(t *testing.T) {
 		}
 		text := string(data)
 		for _, oldPath := range oldPaths {
-			idx := 0
-			for {
-				pos := strings.Index(text[idx:], oldPath)
-				if pos == -1 {
-					break
-				}
-				absPos := idx + pos
-				// 检查匹配前后是否为路径边界，避免旧路径作为新路径子串的误报
-				beforeOK := absPos == 0 || text[absPos-1] == '/' || text[absPos-1] == '"' || text[absPos-1] == '\'' || text[absPos-1] == ' ' || text[absPos-1] == '\t' || text[absPos-1] == '\n' || text[absPos-1] == '`'
-				afterPos := absPos + len(oldPath)
-				afterOK := afterPos >= len(text) || text[afterPos] == '/' || text[afterPos] == '"' || text[afterPos] == '\'' || text[afterPos] == ' ' || text[afterPos] == '\t' || text[afterPos] == '\n' || text[afterPos] == '`' || text[afterPos] == ':'
-				if !beforeOK || !afterOK {
-					idx = afterPos
-					continue
-				}
+			if strings.Contains(text, oldPath) {
 				t.Fatalf("%s still references migrated old path %s outside manifest/release evidence compatibility records", rel, oldPath)
 			}
 		}
@@ -3110,15 +3003,15 @@ func commandRegistryFixture(extra string) string {
 func writeValidAgentIndexFixture(t *testing.T, root string) {
 	t.Helper()
 	files := map[string]string{
-		".agent/registries/generated-artifacts.yaml":           validGeneratedArtifactsFixture(),
-		".agent/harness/harness.yaml":                          validHarnessAliasFixture(),
-		".agent/index.yaml":                                    validAgentIndexFixture(),
-		".agent/rules/registry.yaml":                           validRulesRegistryFixture("goalcli version"),
-		".agent/rules/agent-runtime-rules.md":                  "fixture\n",
-		".agent/rules/core-rules.md":                           "fixture\n",
-		".agent/rules/schema-registry-rules.md":                "fixture\n",
-		".agent/registries/command-implementation-status.yaml": commandImplementationStatusFixture(),
-		".agent/policies/execution-context.yaml":               executionContextFixture(),
+		".agent/registries/generated-artifacts.yaml":  validGeneratedArtifactsFixture(),
+		".agent/harness/harness.yaml":                 validHarnessAliasFixture(),
+		".agent/index.yaml":                           validAgentIndexFixture(),
+		".agent/rules/registry.yaml":                  validRulesRegistryFixture("goalcli version"),
+		".agent/rules/agent-runtime-rules.md":         "fixture\n",
+		".agent/rules/core-rules.md":                  "fixture\n",
+		".agent/rules/schema-registry-rules.md":       "fixture\n",
+		".agent/command-implementation-status.yaml":   commandImplementationStatusFixture(),
+		".agent/execution-context.yaml":               executionContextFixture(),
 	}
 	for _, path := range requiredAgentIndexPaths() {
 		if _, ok := files[path]; ok {
@@ -3247,7 +3140,7 @@ artifacts:
 }
 
 func validHarnessAliasFixture() string {
-	return `schema_version: "3.1"
+	return `schema_version: "2.9.3"
 required_gates:
   - id: governance_check
     command: "GOWORK=off make governance-check"
@@ -3259,38 +3152,36 @@ required_gates:
     command: "GOWORK=off make p2-runtime-check"
     purpose: "fixture"
   - id: governance_chain
-    alias_of: governance_check
-    refs: [governance_check]
+    command: "GOWORK=off make governance-check"
     purpose: "fixture"
+    alias_of: governance_check
     semantic_role: "fixture"
   - id: p1_governance_chain
-    alias_of: p1_governance_check
-    refs: [p1_governance_check]
+    command: "GOWORK=off make p1-governance-check"
     purpose: "fixture"
+    alias_of: p1_governance_check
     semantic_role: "fixture"
   - id: p2_runtime_chain
-    alias_of: p2_runtime_check
-    refs: [p2_runtime_check]
+    command: "GOWORK=off make p2-runtime-check"
     purpose: "fixture"
+    alias_of: p2_runtime_check
     semantic_role: "fixture"
   - id: governance_release_scope
-    alias_of: governance_check
-    refs: [governance_check]
+    command: "GOWORK=off make governance-check"
     purpose: "fixture"
+    alias_of: governance_check
     semantic_role: "fixture"
   - id: p1_governance_release_scope
-    alias_of: p1_governance_check
-    refs: [p1_governance_check]
+    command: "GOWORK=off make p1-governance-check"
     purpose: "fixture"
+    alias_of: p1_governance_check
     semantic_role: "fixture"
   - id: p2_runtime_release_scope
-    alias_of: p2_runtime_check
-    refs: [p2_runtime_check]
+    command: "GOWORK=off make p2-runtime-check"
     purpose: "fixture"
+    alias_of: p2_runtime_check
     semantic_role: "fixture"
 gate_link_semantics:
-  dag_mode: true
-  composite_gates_use_refs: true
   duplicate_command_links: aliases
   duplicate_entries_do_not_create_new_authorities: true
   authority_source: required_gates[].id

@@ -10,16 +10,11 @@ import (
 )
 
 func TestRunDownstreamSyncPlanWritesRequiredPlan(t *testing.T) {
-	internalTestingBypassAbsolute = true
-	t.Cleanup(func() { internalTestingBypassAbsolute = false })
-
-	dir := t.TempDir()
+	t.Parallel()
+	dir := localDownstreamSyncPlanTestDir(t)
 	impactReport := filepath.Join(dir, "impact.md")
 	output := filepath.Join(dir, "release", "downstream-sync", "latest.md")
 	workspaceRoot := filepath.Join(dir, "workspace")
-	if err := os.MkdirAll(filepath.Dir(output), 0o755); err != nil {
-		t.Fatalf("create output dir: %v", err)
-	}
 	if err := os.WriteFile(impactReport, []byte(requiredDownstreamImpactReportFixture()), 0o644); err != nil {
 		t.Fatalf("write impact report fixture: %v", err)
 	}
@@ -61,10 +56,8 @@ func TestRunDownstreamSyncPlanWritesRequiredPlan(t *testing.T) {
 }
 
 func TestRunDownstreamSyncPlanWritesNotRequiredPlan(t *testing.T) {
-	internalTestingBypassAbsolute = true
-	t.Cleanup(func() { internalTestingBypassAbsolute = false })
-
-	dir := t.TempDir()
+	t.Parallel()
+	dir := localDownstreamSyncPlanTestDir(t)
 	impactReport := filepath.Join(dir, "impact.md")
 	output := filepath.Join(dir, "latest.md")
 	if err := os.WriteFile(impactReport, []byte(notRequiredDownstreamImpactReportFixture()), 0o644); err != nil {
@@ -113,7 +106,7 @@ func TestRunDownstreamSyncPlanReportsMissingImpactReport(t *testing.T) {
 
 func TestRunDownstreamSyncPlanRendersJSONToStdout(t *testing.T) {
 	t.Parallel()
-	dir := t.TempDir()
+	dir := localDownstreamSyncPlanTestDir(t)
 	impactReport := filepath.Join(dir, "impact.md")
 	if err := os.WriteFile(impactReport, []byte(requiredDownstreamImpactReportFixture()), 0o644); err != nil {
 		t.Fatalf("write impact report fixture: %v", err)
@@ -145,7 +138,7 @@ func TestRunDownstreamSyncPlanRendersJSONToStdout(t *testing.T) {
 
 func TestRunDownstreamSyncPlanRendersMarkdownToStdout(t *testing.T) {
 	t.Parallel()
-	dir := t.TempDir()
+	dir := localDownstreamSyncPlanTestDir(t)
 	impactReport := filepath.Join(dir, "impact.md")
 	if err := os.WriteFile(impactReport, []byte(requiredDownstreamImpactReportFixture()), 0o644); err != nil {
 		t.Fatalf("write impact report fixture: %v", err)
@@ -177,18 +170,13 @@ func TestRunDownstreamSyncPlanRendersMarkdownToStdout(t *testing.T) {
 }
 
 func TestRunDownstreamSyncPlanRejectsUnsafeOutputPaths(t *testing.T) {
-	dir := t.TempDir()
+	t.Parallel()
+	dir := localDownstreamSyncPlanTestDir(t)
 	impactReport := filepath.Join(dir, "impact.md")
 	if err := os.WriteFile(impactReport, []byte(requiredDownstreamImpactReportFixture()), 0o644); err != nil {
 		t.Fatalf("write impact report fixture: %v", err)
 	}
 	workspaceRoot := filepath.Join(dir, "workspace")
-
-	// 确保旁路标志关闭以验证生产安全检查
-	origBypass := internalTestingBypassAbsolute
-	internalTestingBypassAbsolute = false
-	t.Cleanup(func() { internalTestingBypassAbsolute = origBypass })
-
 	absoluteOutput := filepath.Join(t.TempDir(), "downstream-sync-plan.md")
 	cases := []struct {
 		name   string
@@ -226,10 +214,8 @@ func TestRunDownstreamSyncPlanRejectsUnsafeOutputPaths(t *testing.T) {
 }
 
 func TestRunDispatchesDownstreamSyncPlan(t *testing.T) {
-	internalTestingBypassAbsolute = true
-	t.Cleanup(func() { internalTestingBypassAbsolute = false })
-
-	dir := t.TempDir()
+	t.Parallel()
+	dir := localDownstreamSyncPlanTestDir(t)
 	impactReport := filepath.Join(dir, "impact.md")
 	output := filepath.Join(dir, "latest.md")
 	if err := os.WriteFile(impactReport, []byte(requiredDownstreamImpactReportFixture()), 0o644); err != nil {
@@ -244,6 +230,25 @@ func TestRunDispatchesDownstreamSyncPlan(t *testing.T) {
 	if _, err := os.Stat(output); err != nil {
 		t.Fatalf("output missing: %v", err)
 	}
+}
+
+func localDownstreamSyncPlanTestDir(t *testing.T) string {
+	t.Helper()
+	name := strings.NewReplacer("/", "_", "\\", "_", " ", "_", ":", "_").Replace(t.Name())
+	dir := filepath.Join(".downstream-sync-plan-test", name)
+	if err := os.RemoveAll(dir); err != nil {
+		t.Fatalf("remove stale downstream sync plan test dir: %v", err)
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatalf("create local test dir %s: %v", dir, err)
+	}
+	t.Cleanup(func() {
+		if err := os.RemoveAll(dir); err != nil {
+			t.Errorf("remove downstream sync plan test dir: %v", err)
+		}
+		_ = os.Remove(".downstream-sync-plan-test")
+	})
+	return dir
 }
 
 func requiredDownstreamImpactReportFixture() string {

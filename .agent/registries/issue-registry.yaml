@@ -149,9 +149,6 @@ issues:
   - id: P0-019
     title: 目标完整性本地审计
     status: implemented
-    implementation_status: implemented
-    execution_status: passed
-    evidence_status: current
     command: audit-goal
     evidence: [audit-goal, traceability-check, goal-runtime-final]
   - id: P1-001

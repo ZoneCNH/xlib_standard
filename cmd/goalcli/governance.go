@@ -258,14 +258,13 @@ func runTaskCheck(args []string, stdout io.Writer, stderr io.Writer) int {
 	if err := validateInternalCommandArgs("task-check", args, internalCommandFlagSpec{boolFlags: []string{"json"}}); err != nil {
 		return invalidInternalArgsExit("task-check", err, stderr)
 	}
-	switch {
-	case fileExists(".agent/registries/command-registry.yaml"):
+	if fileExists(".agent/registries/command-registry.yaml") {
 		return emitReport(stdout, "task-check", "passed", []string{".agent/registries/command-registry.yaml is present"}, nil)
-	case fileExists(".agent/registries/commands.yaml"):
-		return emitReport(stdout, "task-check", "passed", []string{"legacy .agent/registries/commands.yaml is present"}, nil)
-	default:
-		return emitReport(stdout, "task-check", "passed", []string{"warning: command registry not present"}, nil)
 	}
+	if fileExists(".agent/registries/commands.yaml") {
+		return emitReport(stdout, "task-check", "failed", nil, []string{"canonical .agent/registries/command-registry.yaml missing; .agent/registries/commands.yaml is compatibility coverage only"})
+	}
+	return emitReport(stdout, "task-check", "failed", nil, []string{"missing .agent/registries/command-registry.yaml"})
 }
 
 func runPRCheck(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) int {
@@ -338,11 +337,11 @@ func runEvidenceCheck(args []string, stdout io.Writer, stderr io.Writer) int {
 		return invalidInternalArgsExit("evidence-check", err, stderr)
 	}
 	return runRegistryCheck("evidence-check", map[string][]string{
-		".agent/evidence/done-assertion.yaml":               {"DONE with evidence", "commit", "gates"},
-		".agent/evidence/evidence-artifact-policy.yaml":     {"redaction", "sha256", "release/manifest/latest.json"},
-		".agent/harness/harness.yaml":                      {"manifest", "checksum", "required_fields"},
-		".agent/evidence/evidence-artifacts.yaml":           {"release_evidence", "execution_evidence", "schema:", "contracts/execution-evidence.schema.json"},
-		"contracts/execution-evidence.schema.json": {"evidence_id", "stdout_sha256", "commit", "exit_code", "artifact_path"},
+		".agent/evidence/done-assertion.yaml":           {"DONE with evidence", "commit", "gates"},
+		".agent/evidence/evidence-artifact-policy.yaml": {"redaction", "sha256", "release/manifest/latest.json"},
+		".agent/harness/harness.yaml":                   {"manifest", "checksum", "required_fields"},
+		".agent/evidence/evidence-artifacts.yaml":       {"release_evidence", "execution_evidence", "schema:", "contracts/execution-evidence.schema.json"},
+		"contracts/execution-evidence.schema.json":      {"evidence_id", "stdout_sha256", "commit", "exit_code", "artifact_path"},
 	}, stdout, stderr)
 }
 
@@ -351,9 +350,9 @@ func runCLIContract(args []string, stdout io.Writer, stderr io.Writer) int {
 		return invalidInternalArgsExit("cli-contract", err, stderr)
 	}
 	return runRegistryCheck("cli-contract", map[string][]string{
-		"docs/standard/goalcli-cli-contract.md": goalcliCLIContractNeedles(),
-		"contracts/goalcli-report.schema.json":  {"command", "status", "details", "gaps"},
-		".agent/registries/command-registry.yaml":          requiredCommandRegistryNeedles(),
+		"docs/standard/goalcli-cli-contract.md":   goalcliCLIContractNeedles(),
+		"contracts/goalcli-report.schema.json":    {"command", "status", "details", "gaps"},
+		".agent/registries/command-registry.yaml": requiredCommandRegistryNeedles(),
 	}, stdout, stderr)
 }
 
@@ -476,11 +475,11 @@ func runContextProfileCheck(command string, args []string, stdout io.Writer, std
 	}
 	contextTargets := contextRuntimeTargets()
 	required := map[string][]string{
-		".agent/registries/command-registry.yaml":          requiredCommandRegistryNeedles(),
-		".agent/registries/makefile-target-registry.yaml":  contextTargets,
-		".agent/registries/makefile-baseline.yaml":         contextTargets,
-		"docs/standard/goalcli-cli-contract.md": goalcliCLIContractNeedles(),
-		"Makefile":                              {"release-final-check:", "$(MAKE) context-release"},
+		".agent/registries/command-registry.yaml":         requiredCommandRegistryNeedles(),
+		".agent/registries/makefile-target-registry.yaml": contextTargets,
+		".agent/registries/makefile-baseline.yaml":        contextTargets,
+		"docs/standard/goalcli-cli-contract.md":           goalcliCLIContractNeedles(),
+		"Makefile":                                        {"release-final-check:", "$(MAKE) context-release"},
 	}
 	for _, target := range contextTargets {
 		required["Makefile"] = append(required["Makefile"], ".PHONY: "+target, target+":")
@@ -973,10 +972,10 @@ var plannedCommandSemanticMarkers = map[string]map[string][]string{
 		".agent/evidence/evidence-replay.yaml": {"schema_version:", "fixtures:", "ledger:", "expected_status:", "hash_chain"},
 	},
 	"downstream-adoption": {
-		".agent/registries/downstream-adoption-modes.yaml":           {"schema_version:", "modes:", "patch-only"},
-		".agent/registries/downstream-adoption-status.yaml":          {"proof_contract:", "source_repo", "gate_outputs", "rollback"},
-		"contracts/downstream-adoption-proof.schema.json": {"source_repo", "source_commit", "gate_outputs", "rollback"},
-		"docs/standard/downstream-registry.md":            {"Proof contract", "source_repo", "gate_outputs", "rollback"},
+		".agent/registries/downstream-adoption-modes.yaml":  {"schema_version:", "modes:", "patch-only"},
+		".agent/registries/downstream-adoption-status.yaml": {"proof_contract:", "source_repo", "gate_outputs", "rollback"},
+		"contracts/downstream-adoption-proof.schema.json":   {"source_repo", "source_commit", "gate_outputs", "rollback"},
+		"docs/standard/downstream-registry.md":              {"Proof contract", "source_repo", "gate_outputs", "rollback"},
 	},
 	"runtime-file-ownership": {
 		".agent/policies/runtime-file-ownership.yaml": {"schema_version:", "owners:", "owner:", "review_required:", "review_rule:", "rationale:"},
@@ -1256,11 +1255,16 @@ func releaseReadyDecisionDetails(args []string, fileContents map[string]string, 
 		*gaps = append(*gaps, ".agent/release/release-required-gates.yaml missing required_release_evidence items")
 	}
 	replayReady := strings.Contains(fileContents[".agent/evidence/evidence-replay.yaml"], "replay:") && strings.Contains(fileContents[".agent/evidence/evidence-replay.yaml"], "strict: true")
-	if requireReadiness && !replayReady {
+	if requireContract && !replayReady {
 		*gaps = append(*gaps, ".agent/evidence/evidence-replay.yaml replay must be strict")
 	}
 
+	mode := "readiness_gate"
+	if dryRunRequested {
+		mode = "dry_run_contract"
+	}
 	details = append(details,
+		"mode="+mode,
 		"verdict="+verdict,
 		fmt.Sprintf("score=%d/100", score),
 		fmt.Sprintf("required_gates=%d", requiredGates),

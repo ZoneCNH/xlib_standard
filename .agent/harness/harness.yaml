@@ -67,20 +67,20 @@ required_gates:
     command: "GOWORK=off make makefile-baseline"
     purpose: "validates required Makefile target matrix"
   - id: governance_chain
+    command: "GOWORK=off make governance-check"
+    purpose: "runs the P0 governance chain"
     alias_of: governance_check
-    refs: [governance_check]
-    purpose: "P0 治理链，引用原子 governance_check gate"
-    semantic_role: "P0 chain DAG node"
+    semantic_role: "P0 chain alias for the same governance_check target."
   - id: p1_governance_chain
+    command: "GOWORK=off make p1-governance-check"
+    purpose: "runs P1 governance hardening gates"
     alias_of: p1_governance_check
-    refs: [p1_governance_check]
-    purpose: "P1 治理加固链，引用原子 p1_governance_check gate"
-    semantic_role: "P1 chain DAG node"
+    semantic_role: "P1 chain alias for the same p1_governance_check target."
   - id: p2_runtime_chain
+    command: "GOWORK=off make p2-runtime-check"
+    purpose: "runs P2 runtime/conformance/execution-context dry-run gates with explicit downstream gaps"
     alias_of: p2_runtime_check
-    refs: [p2_runtime_check]
-    purpose: "P2 运行时链，引用原子 p2_runtime_check gate"
-    semantic_role: "P2 chain DAG node"
+    semantic_role: "P2 chain alias for the same p2_runtime_check target."
   - id: integration
     command: "make integration"
     purpose: "generator 和 downstream smoke"
@@ -97,20 +97,20 @@ required_gates:
     command: "GOWORK=off make doctor"
     purpose: "runtime preflight checks"
   - id: governance_release_scope
+    command: "GOWORK=off make governance-check"
+    purpose: "P0 worktree, evidence, boundary, security, contracts, docs, CLI, and registry gates"
     alias_of: governance_check
-    refs: [governance_check]
-    purpose: "发布范围 P0 治理 gate，引用原子 governance_check"
-    semantic_role: "Release-scope P0 DAG node"
+    semantic_role: "Release-scope alias for the same P0 governance_check target."
   - id: p1_governance_release_scope
+    command: "GOWORK=off make p1-governance-check"
+    purpose: "P1 governance dry-run/verify commands"
     alias_of: p1_governance_check
-    refs: [p1_governance_check]
-    purpose: "发布范围 P1 治理 gate，引用原子 p1_governance_check"
-    semantic_role: "Release-scope P1 DAG node"
+    semantic_role: "Release-scope alias for the same P1 governance gate target."
   - id: p2_runtime_release_scope
+    command: "GOWORK=off make p2-runtime-check"
+    purpose: "P2 runtime, packaging, replay, downstream, and execution-context dry-run/verify commands"
     alias_of: p2_runtime_check
-    refs: [p2_runtime_check]
-    purpose: "发布范围 P2 运行时 gate，引用原子 p2_runtime_check"
-    semantic_role: "Release-scope P2 DAG node"
+    semantic_role: "Release-scope alias for the same P2 runtime gate target."
   - id: release_evidence_check
     command: "RELEASE_EVIDENCE_REQUIRE_PASSED=1 GOWORK=off make release-evidence-check"
     purpose: "validate release manifest and checksum"
@@ -165,12 +165,9 @@ evidence:
     - sha256
     - gates
 gate_link_semantics:
-  dag_mode: true
-  composite_gates_use_refs: true
   duplicate_command_links: aliases
   duplicate_entries_do_not_create_new_authorities: true
   authority_source: required_gates[].id
-  ref_semantics: "带有 'refs' 字段的 gate 将执行委托给引用的原子 gate；不复制 command。"
 forbidden:
   - "x.go dependency in base libraries"
   - "production secrets in source, docs, CI, manifest, Issue, PR, or test logs"
