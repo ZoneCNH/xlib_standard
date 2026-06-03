@@ -1,5 +1,6 @@
 XLIBGATE ?= go run ./cmd/xlibgate
 XLIB_CONTEXT ?= local_write
+GOAL_ID ?= GOAL-20260603-XLIB-RUNTIME-001
 
 .PHONY: require-gowork-off
 require-gowork-off:
@@ -231,6 +232,14 @@ install-runtime upgrade-runtime release-ready evidence-replay attest-conformance
 .PHONY: execution-context
 execution-context:
 	$(XLIBGATE) $@ --dry-run --verify
+
+.PHONY: goal-acceptance goal-delivery goal-handover goal-downstream-adoption goal-certify
+goal-acceptance goal-delivery goal-handover goal-downstream-adoption goal-certify: require-gowork-off
+	$(XLIBGATE) $@ --goal-id "$(GOAL_ID)" --json
+
+.PHONY: goal-runtime-final
+goal-runtime-final: require-gowork-off goal-acceptance goal-delivery goal-handover goal-downstream-adoption goal-certify
+	$(XLIBGATE) $@ --goal-id "$(GOAL_ID)" --json
 
 .PHONY: governance-check
 governance-check: require-gowork-off main-guard worktree-guard evidence-check boundary architecture domain security security-debt contracts docs-check cli-contract issue-registry command-registry makefile-baseline debt

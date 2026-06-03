@@ -192,12 +192,24 @@ func runMakefileBaseline(args []string, stdout io.Writer, stderr io.Writer) int 
 	if err := validateInternalCommandArgs("makefile-baseline", args, internalCommandFlagSpec{boolFlags: []string{"json"}}); err != nil {
 		return invalidInternalArgsExit("makefile-baseline", err, stderr)
 	}
-	requiredTargets := append([]string{"fmt", "vet", "lint", "test", "race", "boundary", "security", "contracts", "docs-check", "evidence", "score-check", "main-guard", "worktree-guard", "evidence-check", "cli-contract", "issue-registry", "command-registry", "makefile-baseline", "governance-check", "p1-governance-check", "goal-acceptance", "goal-delivery", "goal-handover", "goal-downstream", "goal-certify", "execution-context", "p2-runtime-check", "release-check", "release-final-check"}, contextRuntimeTargets()...)
+	requiredTargets := append([]string{"fmt", "vet", "lint", "test", "race", "boundary", "security", "contracts", "docs-check", "evidence", "score-check", "main-guard", "worktree-guard", "evidence-check", "cli-contract", "issue-registry", "command-registry", "makefile-baseline", "governance-check", "p1-governance-check", "execution-context", "p2-runtime-check", "release-check", "release-final-check"}, contextRuntimeTargets()...)
+	requiredTargets = append(requiredTargets, goalkitMakefileTargets()...)
 	required := map[string][]string{"Makefile": {}, ".agent/makefile-target-registry.yaml": requiredTargets, ".agent/makefile-baseline.yaml": requiredTargets}
 	for _, target := range requiredTargets {
 		required["Makefile"] = append(required["Makefile"], ".PHONY: "+target, target+":")
 	}
 	return runRegistryCheck("makefile-baseline", required, stdout, stderr)
+}
+
+func goalkitMakefileTargets() []string {
+	return []string{
+		"goal-acceptance",
+		"goal-delivery",
+		"goal-handover",
+		"goal-downstream-adoption",
+		"goal-certify",
+		"goal-runtime-final",
+	}
 }
 
 var contextProfileGates = map[string][]string{
@@ -974,8 +986,9 @@ var commandRegistryCommands = []string{
 	"goal-acceptance",
 	"goal-delivery",
 	"goal-handover",
-	"goal-downstream",
+	"goal-downstream-adoption",
 	"goal-certify",
+	"goal-runtime-final",
 	"naming",
 	"upgrade-standard",
 	"conformance-profile",

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ZoneCNH/xlib-standard/internal/goalruntime"
 	"github.com/ZoneCNH/xlib-standard/internal/releasequality"
 	"github.com/ZoneCNH/xlib-standard/pkg/templatex"
 )
@@ -306,11 +307,12 @@ func TestGoalGovernanceCommandSurface(t *testing.T) {
 		{command: "acceptance-matrix"},
 		{command: "runtime-health"},
 		{command: "goal-runtime"},
-		{command: "goal-acceptance"},
-		{command: "goal-delivery"},
-		{command: "goal-handover"},
-		{command: "goal-downstream"},
-		{command: "goal-certify"},
+		{command: "goal-acceptance", args: []string{"--json"}},
+		{command: "goal-delivery", args: []string{"--json"}},
+		{command: "goal-handover", args: []string{"--json"}},
+		{command: "goal-downstream-adoption", args: []string{"--json"}},
+		{command: "goal-certify", args: []string{"--json"}},
+		{command: "goal-runtime-final", args: []string{"--json"}},
 		{command: "github-settings"},
 		{command: "github-governance"},
 		{command: "governance-fixture-test"},
@@ -367,6 +369,51 @@ func TestGoalGovernanceCommandSurface(t *testing.T) {
 			}
 			if report.Status != wantStatus {
 				t.Fatalf("report status = %q; want %s; report %#v", report.Status, wantStatus, report)
+			}
+		})
+	}
+}
+
+func TestGoalRuntimeCommandsPassForFixture(t *testing.T) {
+	chdir(t, repoRoot(t))
+	commands := map[string]string{
+		"goal-acceptance":          "G12",
+		"goal-delivery":            "G13",
+		"goal-handover":            "G14",
+		"goal-downstream-adoption": "G15A",
+		"goal-certify":             "G15B",
+		"goal-runtime-final":       "G16",
+	}
+
+	for command, gate := range commands {
+		t.Run(command, func(t *testing.T) {
+			var stdout, stderr bytes.Buffer
+			got := run([]string{command, "--goal-id", goalruntime.DefaultGoalID, "--json"}, strings.NewReader(""), &stdout, &stderr)
+			if got != 0 {
+				t.Fatalf("run(%s) = %d, stderr %q, stdout %q; want 0", command, got, stderr.String(), stdout.String())
+			}
+
+			var report goalruntime.Report
+			if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
+				t.Fatalf("stdout is not goalkit report JSON: %v; stdout %q", err, stdout.String())
+			}
+			if report.Command != command {
+				t.Fatalf("command = %q; want %q", report.Command, command)
+			}
+			if report.Status != "passed" {
+				t.Fatalf("status = %q; report %#v", report.Status, report)
+			}
+			if report.GoalID != goalruntime.DefaultGoalID {
+				t.Fatalf("goal_id = %q; want %q", report.GoalID, goalruntime.DefaultGoalID)
+			}
+			if report.Gate != gate {
+				t.Fatalf("gate = %q; want %q", report.Gate, gate)
+			}
+			if !contains(report.Evidence, "evidence_ledger="+goalruntime.EvidenceLedgerPath) {
+				t.Fatalf("evidence = %#v; want goalkit ledger path", report.Evidence)
+			}
+			if !containsSubstring(report.Details, "不是全局 release blocking gates") {
+				t.Fatalf("details = %#v; want non-global-release-blocking boundary", report.Details)
 			}
 		})
 	}

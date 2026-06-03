@@ -63,6 +63,12 @@ targets:
   - goal-certify
   - execution-context
   - p2-runtime-check
+  - goal-acceptance
+  - goal-delivery
+  - goal-handover
+  - goal-downstream-adoption
+  - goal-certify
+  - goal-runtime-final
   - release-check
   - release-final-check
   - goal-acceptance

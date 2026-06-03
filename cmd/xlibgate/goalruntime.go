@@ -5,7 +5,6 @@ import (
 	"errors"
 	"flag"
 	"io"
-	"os"
 
 	"github.com/ZoneCNH/xlib-standard/internal/goalruntime"
 )
@@ -42,5 +41,3 @@ func runGoalRuntimeCommand(command string, args []string, stdout io.Writer, stde
 	}
 	return 1
 }
-
-var _ = os.Getenv

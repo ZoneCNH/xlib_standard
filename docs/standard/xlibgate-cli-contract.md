@@ -68,11 +68,12 @@
 - `acceptance-matrix`
 - `runtime-health`
 - `goal-runtime`
-- `goal-acceptance`
-- `goal-delivery`
-- `goal-handover`
-- `goal-downstream`
-- `goal-certify`
+- `goal-acceptance --goal-id <id> --json`
+- `goal-delivery --goal-id <id> --json`
+- `goal-handover --goal-id <id> --json`
+- `goal-downstream-adoption --goal-id <id> --json`
+- `goal-certify --goal-id <id> --json`
+- `goal-runtime-final --goal-id <id> --json`
 - `naming`
 - `upgrade-standard --dry-run --repo <path>`
 - `conformance-profile`
@@ -102,6 +103,10 @@
 - `downstream-baseline --repo kernel/configx --mode patch-only`
 - `downstream-adoption --repo kernel/configx --mode patch-only`
 - `execution-context`
+
+## Goalkit MVA commands
+
+Goalkit MVA commands (`goal-acceptance`, `goal-delivery`, `goal-handover`, `goal-downstream-adoption`, `goal-certify`, and `goal-runtime-final`) only prove local G12-G16 evidence contracts for `goalkit v0.1.0`. They do not promote G12-G16 to global release blocking gates, do not create an independent `goalkit` CLI, do not modify downstream repositories, and write authority through the xlibgate execution surface with the evidence ledger path `release/evidence/goalkit/`. The root goalkit plan remains backlog/roadmap authority, not completion evidence.
 
 ## Debt governance commands
 

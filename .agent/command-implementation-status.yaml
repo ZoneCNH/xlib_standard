@@ -117,17 +117,11 @@ groups:
       - downstream-baseline
       - downstream-adoption
 
-
-  - id: goalkit_pr4_command_backed_non_blocking
-    phase: GOALKIT
+  - id: goalkit_mva_contracts
+    phase: P2
     implementation_status: implemented
-    mva_status: not-complete
-    evidence_strength: command_backed_non_blocking
-    control_plane: Harness Runtime
-    executor: xlibgate
-    source_evidence_ledger: .agent/evidence/ledger.jsonl
-    generated_evidence_pack: release/evidence/goalkit/
-    note: "G12-G16 command equivalents exist for PR-4 verification, but remain non-blocking and do not complete the goalkit v0.1.0 MVA."
+    evidence_strength: local_contract_evidence
+    note: "goalkit v0.1.0 MVA commands prove local G12-G16 evidence contracts through xlibgate; they are not global release blocking gates."
     commands:
       - goal-acceptance
       - goal-delivery

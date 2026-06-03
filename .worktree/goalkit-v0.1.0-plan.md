@@ -1,5 +1,7 @@
 # goalkit v0.1.0 × xlib-standard 完整可执行 Goal 方案
 
+> 2026-06-03 worker-1 MVA reconciliation: split ADR/standard/roadmap are implementation authority; canonical evidence ledger is `release/evidence/goalkit/`; this root plan remains backlog/roadmap authority, not completion evidence; G12-G16 are goalkit MVA evidence gates and not promoted to required global release gates.
+
 > 目标仓库：`git@github.com:ZoneCNH/xlib-standard.git`  
 > 起始版本：`goalkit v0.1.0`  
 > 对齐标准：Goal Runtime Prompt v3.1 / Goal Runtime v3.1.1  
