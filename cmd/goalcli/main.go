@@ -55,6 +55,8 @@ func run(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) int
 		return runMakefileBaseline(args[1:], stdout, stderr)
 	case "audit-goal":
 		return runAuditGoal(args[1:], stdout, stderr)
+	case "dashboard-generate":
+		return runDashboardGenerate(args[1:], stdout, stderr)
 	case "context-profile":
 		return runContextProfile(args[1:], stdout, stderr)
 	case "context-profile-check":
@@ -212,6 +214,7 @@ commands:
   acceptance-matrix
   architecture [debt args]
   audit-goal [--goal-id <id>] [--matrix .agent/traceability-matrix.md] [--json]
+  dashboard-generate [--goal-id <id>] [--matrix .agent/traceability-matrix.md] [--format json|markdown]
   attest-conformance [--profile <name>]
   autoresearch
   boundary

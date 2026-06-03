@@ -43,6 +43,7 @@ targets:
   - command-registry
   - makefile-baseline
   - audit-goal
+  - dashboard-generate
   - context-profile
   - context-profile-check
   - context-schema-check

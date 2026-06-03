@@ -43,6 +43,7 @@ baseline_targets:
   command-registry: "$(GOALCLI) command-registry"
   makefile-baseline: "$(GOALCLI) makefile-baseline"
   audit-goal: "$(GOALCLI) audit-goal"
+  dashboard-generate: "$(GOALCLI) dashboard-generate"
   context-profile: "$(GOALCLI) context-profile --profile $${PROFILE:-standard}"
   context-profile-check: "$(GOALCLI) context-profile-check"
   context-schema-check: "$(GOALCLI) context-schema-check"

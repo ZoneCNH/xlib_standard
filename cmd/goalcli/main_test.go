@@ -1209,6 +1209,25 @@ func TestCommandRegistryRequiresFullCommandSurface(t *testing.T) {
 		}
 	})
 
+	t.Run("rejects unclassified agent file", func(t *testing.T) {
+		root := t.TempDir()
+		writeValidAgentIndexFixture(t, root)
+		writeTestFiles(t, root, map[string]string{
+			".agent/command-registry.yaml": commandRegistryFixture(""),
+			".agent/untracked.yaml":        "fixture\n",
+		})
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		got := run([]string{"command-registry"}, strings.NewReader(""), &stdout, &stderr)
+		if got != 1 {
+			t.Fatalf("command-registry unclassified fixture exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+		}
+		if !strings.Contains(stdout.String(), ".agent/index.yaml missing file entry .agent/untracked.yaml") {
+			t.Fatalf("stdout = %q; want unclassified .agent file gap", stdout.String())
+		}
+	})
+
 	t.Run("rejects invalid agent index", func(t *testing.T) {
 		root := t.TempDir()
 		writeTestFiles(t, root, map[string]string{
@@ -1622,6 +1641,117 @@ func TestDownstreamGapVerifyIsBlocking(t *testing.T) {
 	}
 }
 
+func TestEvidenceReplayFixtureBackedGatePasses(t *testing.T) {
+	chdir(t, filepath.Join("..", ".."))
+
+	var stdout, stderr bytes.Buffer
+	got := run([]string{"evidence-replay", "--verify"}, strings.NewReader(""), &stdout, &stderr)
+	if got != 0 {
+		t.Fatalf("evidence replay exit = %d, stderr %q, stdout %q; want 0", got, stderr.String(), stdout.String())
+	}
+	var report gateReport
+	if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
+		t.Fatalf("stdout is not gateReport JSON: %v; stdout %q", err, stdout.String())
+	}
+	if report.Status != "passed" {
+		t.Fatalf("report status = %q; want passed; report %#v", report.Status, report)
+	}
+	for _, detail := range []string{"checksum verified", "hash chain verified", "expected command status verified"} {
+		if !slicesContain(report.Details, detail) {
+			t.Fatalf("details = %#v; want %q", report.Details, detail)
+		}
+	}
+	if !gapsContainSubstring(report.Details, "replayed ledger=testkit/governance/fixtures/evidence-replay/passed/ledger.jsonl") {
+		t.Fatalf("details = %#v; want replayed fixture ledger", report.Details)
+	}
+}
+
+func TestEvidenceReplayRejectsChecksumAndHashMismatch(t *testing.T) {
+	chdir(t, filepath.Join("..", ".."))
+	fixture := copyEvidenceReplayFixture(t)
+	artifact := filepath.Join(fixture, "artifacts", "runtime-health.out")
+	if err := os.WriteFile(artifact, []byte("tampered runtime-health output\n"), 0o644); err != nil {
+		t.Fatalf("tamper artifact: %v", err)
+	}
+	ledger := filepath.Join(fixture, "ledger.jsonl")
+	content, err := os.ReadFile(ledger)
+	if err != nil {
+		t.Fatalf("read copied ledger: %v", err)
+	}
+	content = []byte(strings.Replace(string(content), `"previous_hash":"cd168fe5bec5dc0e90de912a62fb7d76d850e77eb106c9c32c73f39e894e390a"`, `"previous_hash":"0000000000000000000000000000000000000000000000000000000000000000"`, 1))
+	if err := os.WriteFile(ledger, content, 0o644); err != nil {
+		t.Fatalf("tamper ledger: %v", err)
+	}
+
+	var stdout, stderr bytes.Buffer
+	got := run([]string{"evidence-replay", "--input", fixture, "--verify"}, strings.NewReader(""), &stdout, &stderr)
+	if got != 1 {
+		t.Fatalf("tampered evidence replay exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+	}
+	var report gateReport
+	if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
+		t.Fatalf("stdout is not gateReport JSON: %v; stdout %q", err, stdout.String())
+	}
+	if report.Status != "failed" {
+		t.Fatalf("report status = %q; want failed; report %#v", report.Status, report)
+	}
+	if !gapsContainSubstring(report.Gaps, "checksum mismatch") {
+		t.Fatalf("gaps = %#v; want checksum mismatch", report.Gaps)
+	}
+	if !gapsContainSubstring(report.Gaps, "hash chain mismatch") {
+		t.Fatalf("gaps = %#v; want hash chain mismatch", report.Gaps)
+	}
+}
+
+func TestEvidenceReplayMissingOrStaleEvidenceBlocks(t *testing.T) {
+	chdir(t, filepath.Join("..", ".."))
+	missingFixture := t.TempDir()
+
+	var missingStdout, missingStderr bytes.Buffer
+	got := run([]string{"evidence-replay", "--input", missingFixture, "--verify"}, strings.NewReader(""), &missingStdout, &missingStderr)
+	if got != 1 {
+		t.Fatalf("missing evidence replay exit = %d, stderr %q, stdout %q; want 1", got, missingStderr.String(), missingStdout.String())
+	}
+	var missingReport gateReport
+	if err := json.Unmarshal(missingStdout.Bytes(), &missingReport); err != nil {
+		t.Fatalf("stdout is not gateReport JSON: %v; stdout %q", err, missingStdout.String())
+	}
+	if missingReport.Status != "gap" || !gapsContainSubstring(missingReport.Gaps, "missing evidence replay expected status") {
+		t.Fatalf("missing report = %#v; want missing expected status gap", missingReport)
+	}
+
+	staleFixture := copyEvidenceReplayFixture(t)
+	staleExpected := `{"schema_version":"goalcli-evidence-replay/v1","generated_at":"2000-01-01T00:00:00Z","max_age_hours":1,"commands":{"release-ready":"passed","runtime-health":"passed","attest-conformance":"passed"}}`
+	if err := os.WriteFile(filepath.Join(staleFixture, "expected-status.json"), []byte(staleExpected), 0o644); err != nil {
+		t.Fatalf("write stale expected status: %v", err)
+	}
+	var staleStdout, staleStderr bytes.Buffer
+	got = run([]string{"evidence-replay", "--input", staleFixture, "--verify"}, strings.NewReader(""), &staleStdout, &staleStderr)
+	if got != 1 {
+		t.Fatalf("stale evidence replay exit = %d, stderr %q, stdout %q; want 1", got, staleStderr.String(), staleStdout.String())
+	}
+	var staleReport gateReport
+	if err := json.Unmarshal(staleStdout.Bytes(), &staleReport); err != nil {
+		t.Fatalf("stdout is not gateReport JSON: %v; stdout %q", err, staleStdout.String())
+	}
+	if staleReport.Status != "gap" || !gapsContainSubstring(staleReport.Gaps, "stale evidence replay fixture") {
+		t.Fatalf("stale report = %#v; want stale gap", staleReport)
+	}
+}
+
+func TestDownstreamAdoptionProofContractIsDocumented(t *testing.T) {
+	chdir(t, filepath.Join("..", ".."))
+
+	for _, path := range []string{".agent/downstream-adoption-status.yaml", "contracts/downstream-adoption-proof.schema.json", "docs/standard/downstream-registry.md"} {
+		if !slicesContain(plannedCommandFiles["downstream-adoption"], path) {
+			t.Fatalf("downstream-adoption files = %#v; want %s", plannedCommandFiles["downstream-adoption"], path)
+		}
+	}
+	assertFileContainsAll(t, ".agent/downstream-adoption-status.yaml", "proof_contract:", "source_repo", "gate_outputs", "rollback")
+	assertFileContainsAll(t, "contracts/downstream-adoption-proof.schema.json", "source_repo", "source_commit", "gate_outputs", "rollback")
+	assertFileContainsAll(t, "docs/standard/downstream-registry.md", "Proof contract", "source_repo", "gate_outputs", "rollback")
+}
+
 func TestDownstreamGapWithoutVerifyIsBlocking(t *testing.T) {
 	chdir(t, filepath.Join("..", ".."))
 
@@ -1640,6 +1770,46 @@ func TestDownstreamGapWithoutVerifyIsBlocking(t *testing.T) {
 	}
 	if !strings.Contains(stderr.String(), "cannot satisfy a release gate") {
 		t.Fatalf("stderr = %q; want release gate blocker", stderr.String())
+	}
+}
+
+func copyEvidenceReplayFixture(t *testing.T) string {
+	t.Helper()
+	source := filepath.Join("testkit", "governance", "fixtures", "evidence-replay", "passed")
+	target := t.TempDir()
+	for _, relative := range []string{
+		"expected-status.json",
+		"ledger.jsonl",
+		filepath.Join("artifacts", "release-ready.out"),
+		filepath.Join("artifacts", "runtime-health.out"),
+		filepath.Join("artifacts", "attest-conformance.out"),
+	} {
+		data, err := os.ReadFile(filepath.Join(source, relative))
+		if err != nil {
+			t.Fatalf("read fixture %s: %v", relative, err)
+		}
+		destination := filepath.Join(target, relative)
+		if err := os.MkdirAll(filepath.Dir(destination), 0o755); err != nil {
+			t.Fatalf("mkdir fixture %s: %v", relative, err)
+		}
+		if err := os.WriteFile(destination, data, 0o644); err != nil {
+			t.Fatalf("write fixture %s: %v", relative, err)
+		}
+	}
+	return target
+}
+
+func assertFileContainsAll(t *testing.T, path string, needles ...string) {
+	t.Helper()
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read %s: %v", path, err)
+	}
+	text := string(content)
+	for _, needle := range needles {
+		if !strings.Contains(text, needle) {
+			t.Fatalf("%s missing %q", path, needle)
+		}
 	}
 }
 
@@ -1709,6 +1879,106 @@ owners:
 	}
 	if !gapsContainSubstring(report.Gaps, ".agent/runtime-file-ownership.yaml missing semantic marker review_required:") {
 		t.Fatalf("gaps = %#v; want missing review_required marker gap", report.Gaps)
+	}
+}
+
+func TestExecutionContextRequiresSemanticValidation(t *testing.T) {
+	root := t.TempDir()
+	writeTestFiles(t, root, map[string]string{
+		".agent/execution-context.yaml": `schema_version: "2.9.3"
+contexts:
+  local_write:
+    write_scope: worktree
+    mutates_files: true
+    release_evidence: false
+    requires_gowork: off
+  local_readonly:
+    write_scope: read_only
+    mutates_files: false
+    release_evidence: false
+    requires_gowork: off
+  ci_pull_request:
+    write_scope: read_only
+    mutates_files: false
+    release_evidence: false
+    requires_gowork: off
+  ci_main_verify:
+    write_scope: read_only
+    mutates_files: false
+    release_evidence: false
+    requires_gowork: off
+  release_magic:
+    write_scope: release_read_only
+    mutates_files: false
+    release_evidence: true
+    requires_gowork: off
+`,
+		"contracts/execution-context.schema.json": `{
+  "type": "object",
+  "properties": {
+    "context": {"type": "string"}
+  }
+}`,
+	})
+	chdir(t, root)
+
+	var stdout, stderr bytes.Buffer
+	got := run([]string{"execution-context", "--dry-run", "--verify"}, strings.NewReader(""), &stdout, &stderr)
+	if got != 1 {
+		t.Fatalf("execution-context semantic exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+	}
+	var report gateReport
+	if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
+		t.Fatalf("stdout is not gateReport JSON: %v; stdout %q", err, stdout.String())
+	}
+	if !gapsContainSubstring(report.Gaps, ".agent/execution-context.yaml unknown context release_magic") ||
+		!gapsContainSubstring(report.Gaps, ".agent/execution-context.yaml missing context release_verify") {
+		t.Fatalf("gaps = %#v; want semantic execution-context gaps", report.Gaps)
+	}
+}
+
+func TestReleaseReadyVerifyExplainsReadinessDecision(t *testing.T) {
+	chdir(t, filepath.Join("..", ".."))
+
+	var stdout, stderr bytes.Buffer
+	got := run([]string{"release-ready", "--verify"}, strings.NewReader(""), &stdout, &stderr)
+	if got != 1 {
+		t.Fatalf("release-ready exit = %d, stderr %q, stdout %q; want 1 because current release gates are not release_usable", got, stderr.String(), stdout.String())
+	}
+	var report gateReport
+	if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
+		t.Fatalf("stdout is not gateReport JSON: %v; stdout %q", err, stdout.String())
+	}
+	for _, want := range []string{
+		"context=release_verify",
+		"verdict=not_ready",
+		"required_gates=",
+		"evidence_replay=strict:true",
+		"reasons=release-ready uses required gate release_usable state, strict evidence replay, and release_verify context",
+	} {
+		if !detailsContainSubstring(report.Details, want) {
+			t.Fatalf("details = %#v; want %q", report.Details, want)
+		}
+	}
+	if !gapsContainSubstring(report.Gaps, "release-ready verdict not_ready") {
+		t.Fatalf("gaps = %#v; want not_ready verdict gap", report.Gaps)
+	}
+}
+
+func TestReleaseReadyVerifyRequiresReleaseContext(t *testing.T) {
+	chdir(t, filepath.Join("..", ".."))
+
+	var stdout, stderr bytes.Buffer
+	got := run([]string{"release-ready", "--verify", "--context", "local_write"}, strings.NewReader(""), &stdout, &stderr)
+	if got != 1 {
+		t.Fatalf("release-ready local_write exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+	}
+	var report gateReport
+	if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
+		t.Fatalf("stdout is not gateReport JSON: %v; stdout %q", err, stdout.String())
+	}
+	if !gapsContainSubstring(report.Gaps, "release-ready requires context release_verify; got local_write") {
+		t.Fatalf("gaps = %#v; want release context gap", report.Gaps)
 	}
 }
 
@@ -2190,7 +2460,7 @@ func writeValidAgentIndexFixture(t *testing.T, root string) {
 		".agent/index.yaml": validAgentIndexFixture(),
 	}
 	for _, path := range requiredAgentIndexPaths() {
-		if path == ".agent/command-registry.yaml" {
+		if path == ".agent/index.yaml" || path == ".agent/command-registry.yaml" {
 			continue
 		}
 		files[path] = "fixture\n"
@@ -2222,6 +2492,7 @@ func testAgentIndexLayer(path string) string {
 	case strings.Contains(path, "evidence"):
 		return "evidence"
 	case path == ".agent/command-registry.yaml" ||
+		path == ".agent/index.yaml" ||
 		path == ".agent/issue-registry.yaml" ||
 		path == ".agent/command-implementation-status.yaml" ||
 		path == ".agent/makefile-target-registry.yaml" ||
@@ -2267,6 +2538,15 @@ func issueRegistryFixture(ids ...string) string {
 func gapsContainSubstring(gaps []string, want string) bool {
 	for _, gap := range gaps {
 		if strings.Contains(gap, want) {
+			return true
+		}
+	}
+	return false
+}
+
+func detailsContainSubstring(details []string, want string) bool {
+	for _, detail := range details {
+		if strings.Contains(detail, want) {
 			return true
 		}
 	}

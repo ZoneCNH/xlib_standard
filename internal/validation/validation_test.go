@@ -56,11 +56,65 @@ func TestValidateRuntimeFileOwnershipRejectsDuplicateEntries(t *testing.T) {
 	fixture := runtimeFileOwnershipFixture() + `  ".agent/":
     owner: governance
     review_required: true
+    review_rule: RULE-CHANGE
     rationale: Duplicate control plane.
 `
 	gaps := ValidateRuntimeFileOwnership(".agent/runtime-file-ownership.yaml", fixture)
 	if !validationGapsContain(gaps, ".agent/runtime-file-ownership.yaml duplicate owner entry .agent/") {
 		t.Fatalf("gaps = %#v; want duplicate owner gap", gaps)
+	}
+}
+
+func TestValidateRuntimeFileOwnershipRejectsUnknownOwner(t *testing.T) {
+	fixture := strings.Replace(runtimeFileOwnershipFixture(), "owner: governance", "owner: mystery-owner", 1)
+
+	gaps := ValidateRuntimeFileOwnership(".agent/runtime-file-ownership.yaml", fixture)
+	if !validationGapsContain(gaps, ".agent/runtime-file-ownership.yaml .agent/ unknown owner mystery-owner") {
+		t.Fatalf("gaps = %#v; want unknown owner gap", gaps)
+	}
+}
+
+func TestValidateRuntimeFileOwnershipRequiresReviewRule(t *testing.T) {
+	fixture := strings.Replace(runtimeFileOwnershipFixture(), "    review_rule: RULE-CHANGE\n", "", 1)
+
+	gaps := ValidateRuntimeFileOwnership(".agent/runtime-file-ownership.yaml", fixture)
+	if !validationGapsContain(gaps, ".agent/runtime-file-ownership.yaml .agent/ missing review_rule") {
+		t.Fatalf("gaps = %#v; want missing review_rule gap", gaps)
+	}
+}
+
+func TestValidateRuntimeFileOwnershipRejectsAbsoluteOwnerPath(t *testing.T) {
+	fixture := strings.Replace(runtimeFileOwnershipFixture(), "\".agent/\":", "\"/tmp/.agent/\":", 1)
+
+	gaps := ValidateRuntimeFileOwnership(".agent/runtime-file-ownership.yaml", fixture)
+	if !validationGapsContain(gaps, ".agent/runtime-file-ownership.yaml /tmp/.agent/ must be repository-relative") {
+		t.Fatalf("gaps = %#v; want repository-relative path gap", gaps)
+	}
+}
+
+func TestValidateExecutionContextAcceptsSemanticManifest(t *testing.T) {
+	gaps := ValidateExecutionContext(".agent/execution-context.yaml", executionContextFixture(), executionContextsFixture())
+	if len(gaps) != 0 {
+		t.Fatalf("gaps = %#v; want none", gaps)
+	}
+}
+
+func TestValidateExecutionContextRejectsUnknownContext(t *testing.T) {
+	fixture := strings.Replace(executionContextFixture(), "release_verify:", "release_magic:", 1)
+
+	gaps := ValidateExecutionContext(".agent/execution-context.yaml", fixture, executionContextsFixture())
+	if !validationGapsContain(gaps, ".agent/execution-context.yaml unknown context release_magic") {
+		t.Fatalf("gaps = %#v; want unknown context gap", gaps)
+	}
+}
+
+func TestValidateExecutionContextRequiresDistinctLocalWriteAndReleaseVerify(t *testing.T) {
+	fixture := strings.Replace(executionContextFixture(), "mutates_files: false\n    release_evidence: true", "mutates_files: true\n    release_evidence: false", 1)
+
+	gaps := ValidateExecutionContext(".agent/execution-context.yaml", fixture, executionContextsFixture())
+	if !validationGapsContain(gaps, ".agent/execution-context.yaml release_verify mutates_files must be false") ||
+		!validationGapsContain(gaps, ".agent/execution-context.yaml release_verify release_evidence must be true") {
+		t.Fatalf("gaps = %#v; want release_verify semantic gaps", gaps)
 	}
 }
 
@@ -70,16 +124,54 @@ owners:
   ".agent/":
     owner: governance
     review_required: true
+    review_rule: RULE-CHANGE
     rationale: Control plane manifests.
   "cmd/goalcli/":
     owner: gate-runtime
     review_required: true
+    review_rule: GATE-RUNTIME-CHANGE
     rationale: Goalcli validator surface.
   "contracts/":
     owner: standard
     review_required: true
+    review_rule: CONTRACT-CHANGE
     rationale: Public contracts.
 `
+}
+
+func executionContextFixture() string {
+	return `schema_version: "2.9.3"
+contexts:
+  local_write:
+    write_scope: worktree
+    mutates_files: true
+    release_evidence: false
+    requires_gowork: off
+  local_readonly:
+    write_scope: read_only
+    mutates_files: false
+    release_evidence: false
+    requires_gowork: off
+  ci_pull_request:
+    write_scope: read_only
+    mutates_files: false
+    release_evidence: false
+    requires_gowork: off
+  ci_main_verify:
+    write_scope: read_only
+    mutates_files: false
+    release_evidence: false
+    requires_gowork: off
+  release_verify:
+    write_scope: release_read_only
+    mutates_files: false
+    release_evidence: true
+    requires_gowork: off
+`
+}
+
+func executionContextsFixture() []string {
+	return []string{"local_write", "local_readonly", "ci_pull_request", "ci_main_verify", "release_verify"}
 }
 
 func validationGapsContain(gaps []string, want string) bool {

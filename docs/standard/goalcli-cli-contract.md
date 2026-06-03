@@ -32,6 +32,7 @@
 - `command-registry`
 - `makefile-baseline`
 - `audit-goal`
+- `dashboard-generate`
 - `context-profile`
 - `context-profile-check`
 - `context-schema-check`
@@ -122,6 +123,12 @@ Goalcli MVA commands（`goal-acceptance`、`goal-delivery`、`goal-handover`、`
 `goalcli audit-goal [--matrix .agent/traceability-matrix.md] [--json]` 是本地只读聚合审计入口，用于一次性验证 goal、REQ、task、issue、evidence 与 release readiness 的关键链路。它复用 `context-check`、`spec-check`、`design-check`、`task-check`、`evidence-check`、`cli-contract`、`issue-registry`、`command-registry`、`makefile-baseline` 和 `traceability-check`，并以 `--dry-run --verify` 调用 `goal-acceptance`、`goal-delivery`、`goal-handover`、`goal-downstream-adoption`、`goal-certify`、`goal-runtime-final`。
 
 该命令不传入 `--write-evidence`，不会写 `.agent/evidence/ledger.jsonl`，也不会修改 downstream 仓库。所有组件通过时返回 `0`；任一组件发现 gap 时返回 `1` 并在 `gaps` 中记录组件名、退出码和摘要；非法参数返回 `2`。
+
+## Goal dashboard command
+
+`goalcli dashboard-generate [--goal-id <id>] [--matrix .agent/traceability-matrix.md] [--format json|markdown]` 基于 `audit-goal` 的同一组本地只读 component checks 生成稳定 dashboard。默认输出 JSON，符合 `contracts/goalcli-dashboard.schema.json`；传入 `--format markdown` 时输出确定性的 Markdown 表格，便于人工审阅和 release handoff。
+
+该命令不包含时间戳、随机 ID 或外部状态字段，不传入 `--write-evidence`，不会写 `.agent/evidence/ledger.jsonl`，也不会修改 downstream 仓库。所有组件通过时返回 `0`；任一组件发现 gap 时返回 `1`，在 `components` 中保留组件顺序和状态，并在 `gaps` 中记录组件名、退出码和稳定摘要；非法参数或未知 format 返回 `2`。
 
 ## Debt governance commands
 

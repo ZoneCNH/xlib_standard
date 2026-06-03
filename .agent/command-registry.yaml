@@ -55,6 +55,9 @@ commands:
   - name: audit-goal
     phase: P0
     target: audit-goal
+  - name: dashboard-generate
+    phase: P0
+    target: dashboard-generate
   - name: boundary
     phase: P0
     target: boundary

@@ -207,6 +207,10 @@ makefile-baseline:
 audit-goal:
 	$(GOALCLI) audit-goal
 
+.PHONY: dashboard-generate
+dashboard-generate:
+	$(GOALCLI) dashboard-generate
+
 .PHONY: agent-team-contract scope-lock pr-template acceptance-matrix runtime-health upgrade-standard conformance-profile downstream-registry self-healing-skeleton goal-runtime github-governance supply-chain changelog governance-fixture-test autoresearch policy-schema github-settings toolchain evidence-artifacts naming
 agent-team-contract scope-lock pr-template acceptance-matrix runtime-health upgrade-standard conformance-profile downstream-registry self-healing-skeleton goal-runtime github-governance supply-chain changelog governance-fixture-test autoresearch policy-schema github-settings toolchain evidence-artifacts naming:
 	$(GOALCLI) $@ --dry-run --verify

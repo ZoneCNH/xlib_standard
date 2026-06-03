@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -13,6 +14,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ZoneCNH/xlib-standard/internal/validation"
 )
@@ -400,7 +402,7 @@ func runMakefileBaseline(args []string, stdout io.Writer, stderr io.Writer) int 
 }
 
 func requiredMakefileTargets() []string {
-	requiredTargets := append([]string{"fmt", "vet", "lint", "test", "race", "boundary", "security", "contracts", "docs-check", "rules-verify", "evidence", "score-check", "main-guard", "worktree-guard", "worktree-check", "context-check", "spec-check", "design-check", "task-check", "pr-check", "evidence-check", "cli-contract", "issue-registry", "command-registry", "makefile-baseline", "audit-goal", "governance-check", "p1-governance-check", "execution-context", "p2-runtime-check", "release-check", "release-final-check"}, contextRuntimeTargets()...)
+	requiredTargets := append([]string{"fmt", "vet", "lint", "test", "race", "boundary", "security", "contracts", "docs-check", "rules-verify", "evidence", "score-check", "main-guard", "worktree-guard", "worktree-check", "context-check", "spec-check", "design-check", "task-check", "pr-check", "evidence-check", "cli-contract", "issue-registry", "command-registry", "makefile-baseline", "audit-goal", "dashboard-generate", "governance-check", "p1-governance-check", "execution-context", "p2-runtime-check", "release-check", "release-final-check"}, contextRuntimeTargets()...)
 	return append(requiredTargets, goalcliMakefileTargets()...)
 }
 
@@ -916,7 +918,7 @@ var plannedCommandFiles = map[string][]string{
 	"evidence-artifacts":       {".agent/evidence-artifact-policy.yaml"},
 	"install-runtime":          {".agent/runtime-install.yaml"},
 	"upgrade-runtime":          {".agent/runtime-upgrade.yaml"},
-	"release-ready":            {".agent/release-readiness-formula.yaml"},
+	"release-ready":            {".agent/release-readiness-formula.yaml", ".agent/release-required-gates.yaml", ".agent/evidence-replay.yaml", ".agent/execution-context.yaml"},
 	"evidence-replay":          {".agent/evidence-replay.yaml"},
 	"attest-conformance":       {".agent/conformance-profiles.yaml"},
 	"pack-standard":            {".agent/standard-pack.yaml"},
@@ -924,7 +926,7 @@ var plannedCommandFiles = map[string][]string{
 	"pack-evidence":            {".agent/evidence-pack.yaml"},
 	"runtime-file-ownership":   {".agent/runtime-file-ownership.yaml"},
 	"downstream-baseline":      {".agent/downstream-baseline-scan.yaml", ".agent/downstream-registry.yaml"},
-	"downstream-adoption":      {".agent/downstream-adoption-modes.yaml", ".agent/downstream-registry.yaml"},
+	"downstream-adoption":      {".agent/downstream-adoption-modes.yaml", ".agent/downstream-registry.yaml", ".agent/downstream-adoption-status.yaml", "contracts/downstream-adoption-proof.schema.json", "docs/standard/downstream-registry.md"},
 	"autoresearch":             {".agent/autoresearch.yaml"},
 	"changelog":                {".agent/changelog.yaml"},
 	"supply-chain":             {"docs/supply-chain.md"},
@@ -960,10 +962,19 @@ var plannedCommandSemanticMarkers = map[string]map[string][]string{
 		".agent/harness.yaml": {"goalcli_mva_gates:", "G12_G16_FINAL", "goal-runtime-final"},
 	},
 	"execution-context": {
-		".agent/execution-context.yaml": {"schema_version:", "contexts:", "local_write", "ci_pull_request", "release_verify"},
+		".agent/execution-context.yaml": {"schema_version:", "contexts:", "local_write:", "ci_pull_request:", "release_verify:", "mutates_files:", "release_evidence:"},
+	},
+	"evidence-replay": {
+		".agent/evidence-replay.yaml": {"schema_version:", "fixtures:", "ledger:", "expected_status:", "hash_chain"},
+	},
+	"downstream-adoption": {
+		".agent/downstream-adoption-modes.yaml":           {"schema_version:", "modes:", "patch-only"},
+		".agent/downstream-adoption-status.yaml":          {"proof_contract:", "source_repo", "gate_outputs", "rollback"},
+		"contracts/downstream-adoption-proof.schema.json": {"source_repo", "source_commit", "gate_outputs", "rollback"},
+		"docs/standard/downstream-registry.md":            {"Proof contract", "source_repo", "gate_outputs", "rollback"},
 	},
 	"runtime-file-ownership": {
-		".agent/runtime-file-ownership.yaml": {"schema_version:", "owners:", "owner:", "review_required:", "rationale:"},
+		".agent/runtime-file-ownership.yaml": {"schema_version:", "owners:", "owner:", "review_required:", "review_rule:", "rationale:"},
 	},
 }
 
@@ -978,6 +989,7 @@ func runPlannedCommand(command string, args []string, stdout io.Writer, stderr i
 
 	var details []string
 	var gaps []string
+	fileContents := map[string]string{}
 	files, ok := plannedCommandFiles[command]
 	if !ok || len(files) == 0 {
 		write(stderr, "ERROR: %s has no manifest coverage\n", command)
@@ -989,8 +1001,12 @@ func runPlannedCommand(command string, args []string, stdout io.Writer, stderr i
 			gaps = append(gaps, gap)
 			continue
 		}
+		fileContents[path] = string(content)
 		details = append(details, "found "+path)
 		gaps = append(gaps, validatePlannedCommandFile(command, path, content)...)
+	}
+	if command == "release-ready" {
+		details = append(details, releaseReadyDecisionDetails(args, fileContents, &gaps)...)
 	}
 	if command == "downstream-baseline" || command == "downstream-adoption" || command == "upgrade-standard" {
 		mode := fallback(flagValue(args, "mode", ""), "patch-only")
@@ -1005,6 +1021,14 @@ func runPlannedCommand(command string, args []string, stdout io.Writer, stderr i
 			details = append(details, "repo=manifest-only", "mode="+mode, "dry_run=true")
 		}
 	}
+	if command == "evidence-replay" {
+		replayDetails, replayGaps, status := evaluateEvidenceReplay(flagValue(args, "input", "testkit/governance/fixtures/evidence-replay/passed"))
+		details = append(details, replayDetails...)
+		gaps = append(gaps, replayGaps...)
+		if status != "" && status != "passed" {
+			return emitPlannedReport(stdout, stderr, command, status, details, gaps, args)
+		}
+	}
 	if len(gaps) > 0 {
 		write(stderr, "ERROR: %s found %d gap(s)\n", command, len(gaps))
 		return emitReport(stdout, command, "failed", details, gaps)
@@ -1014,6 +1038,143 @@ func runPlannedCommand(command string, args []string, stdout io.Writer, stderr i
 		details = append(details, "local dry-run verifier satisfied manifest coverage")
 	}
 	return emitReport(stdout, command, "passed", details, nil)
+}
+
+type evidenceReplayExpectation struct {
+	SchemaVersion string            `json:"schema_version"`
+	GeneratedAt   string            `json:"generated_at"`
+	MaxAgeHours   int               `json:"max_age_hours"`
+	Commands      map[string]string `json:"commands"`
+}
+
+type evidenceReplayEntry struct {
+	Seq          int    `json:"seq"`
+	Command      string `json:"command"`
+	Status       string `json:"status"`
+	StdoutSHA256 string `json:"stdout_sha256"`
+	ArtifactPath string `json:"artifact_path"`
+	PreviousHash string `json:"previous_hash"`
+	EntryHash    string `json:"entry_hash"`
+}
+
+func evaluateEvidenceReplay(inputDir string) ([]string, []string, string) {
+	if strings.TrimSpace(inputDir) == "" {
+		inputDir = "testkit/governance/fixtures/evidence-replay/passed"
+	}
+	ledgerPath := filepath.Join(inputDir, "ledger.jsonl")
+	expectedPath := filepath.Join(inputDir, "expected-status.json")
+	details := []string{"fixture=" + inputDir}
+	var gaps []string
+
+	expectedData, err := os.ReadFile(expectedPath)
+	if err != nil {
+		return details, []string{"missing evidence replay expected status: " + expectedPath}, "gap"
+	}
+	var expected evidenceReplayExpectation
+	if err := json.Unmarshal(expectedData, &expected); err != nil {
+		return details, []string{"invalid evidence replay expected status " + expectedPath + ": " + err.Error()}, "failed"
+	}
+	if staleGap := evidenceReplayStaleGap(expected, expectedPath); staleGap != "" {
+		return details, []string{staleGap}, "gap"
+	}
+
+	ledgerData, err := os.ReadFile(ledgerPath)
+	if err != nil {
+		return details, []string{"missing evidence replay ledger: " + ledgerPath}, "gap"
+	}
+	entries, parseGaps := parseEvidenceReplayLedger(ledgerData, ledgerPath)
+	gaps = append(gaps, parseGaps...)
+	statusByCommand := map[string]string{}
+	previousHash := strings.Repeat("0", 64)
+	for _, entry := range entries {
+		if entry.Command == "" {
+			gaps = append(gaps, fmt.Sprintf("%s entry %d missing command", ledgerPath, entry.Seq))
+		}
+		if entry.Status == "" {
+			gaps = append(gaps, fmt.Sprintf("%s entry %d missing status", ledgerPath, entry.Seq))
+		}
+		artifactPath := filepath.Join(inputDir, entry.ArtifactPath)
+		artifactData, err := os.ReadFile(artifactPath)
+		if err != nil {
+			gaps = append(gaps, fmt.Sprintf("%s entry %d missing artifact %s", ledgerPath, entry.Seq, entry.ArtifactPath))
+		} else if got := sha256Hex(artifactData); got != entry.StdoutSHA256 {
+			gaps = append(gaps, fmt.Sprintf("%s entry %d checksum mismatch for %s: got %s want %s", ledgerPath, entry.Seq, entry.ArtifactPath, got, entry.StdoutSHA256))
+		}
+		if entry.PreviousHash != previousHash {
+			gaps = append(gaps, fmt.Sprintf("%s entry %d hash chain mismatch: previous_hash got %s want %s", ledgerPath, entry.Seq, entry.PreviousHash, previousHash))
+		}
+		if got := evidenceReplayEntryHash(entry); got != entry.EntryHash {
+			gaps = append(gaps, fmt.Sprintf("%s entry %d entry_hash mismatch: got %s want %s", ledgerPath, entry.Seq, got, entry.EntryHash))
+		}
+		statusByCommand[entry.Command] = entry.Status
+		previousHash = entry.EntryHash
+	}
+	if len(entries) == 0 {
+		gaps = append(gaps, "evidence replay ledger has no entries: "+ledgerPath)
+	}
+	for command, wantStatus := range expected.Commands {
+		if gotStatus, ok := statusByCommand[command]; !ok {
+			gaps = append(gaps, "evidence replay missing expected command status: "+command)
+		} else if gotStatus != wantStatus {
+			gaps = append(gaps, fmt.Sprintf("evidence replay status mismatch for %s: got %s want %s", command, gotStatus, wantStatus))
+		}
+	}
+	if len(gaps) > 0 {
+		return details, gaps, "failed"
+	}
+	details = append(details,
+		"replayed ledger="+ledgerPath,
+		fmt.Sprintf("replayed commands=%d", len(entries)),
+		"checksum verified",
+		"hash chain verified",
+		"expected command status verified",
+	)
+	return details, nil, "passed"
+}
+
+func evidenceReplayStaleGap(expected evidenceReplayExpectation, expectedPath string) string {
+	if expected.GeneratedAt == "" || expected.MaxAgeHours <= 0 {
+		return ""
+	}
+	generatedAt, err := time.Parse(time.RFC3339, expected.GeneratedAt)
+	if err != nil {
+		return "invalid evidence replay generated_at " + expectedPath + ": " + err.Error()
+	}
+	if time.Now().UTC().After(generatedAt.Add(time.Duration(expected.MaxAgeHours) * time.Hour)) {
+		return fmt.Sprintf("stale evidence replay fixture: %s older than %d hours", expected.GeneratedAt, expected.MaxAgeHours)
+	}
+	return ""
+}
+
+func parseEvidenceReplayLedger(data []byte, ledgerPath string) ([]evidenceReplayEntry, []string) {
+	var entries []evidenceReplayEntry
+	var gaps []string
+	for lineNumber, line := range strings.Split(string(data), "\n") {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" {
+			continue
+		}
+		var entry evidenceReplayEntry
+		if err := json.Unmarshal([]byte(trimmed), &entry); err != nil {
+			gaps = append(gaps, fmt.Sprintf("%s line %d invalid JSON: %v", ledgerPath, lineNumber+1, err))
+			continue
+		}
+		if entry.Seq == 0 {
+			entry.Seq = len(entries) + 1
+		}
+		entries = append(entries, entry)
+	}
+	return entries, gaps
+}
+
+func evidenceReplayEntryHash(entry evidenceReplayEntry) string {
+	payload := fmt.Sprintf("%d|%s|%s|%s|%s", entry.Seq, entry.Command, entry.Status, entry.StdoutSHA256, entry.PreviousHash)
+	return sha256Hex([]byte(payload))
+}
+
+func sha256Hex(data []byte) string {
+	sum := sha256.Sum256(data)
+	return fmt.Sprintf("%x", sum)
 }
 
 func readPlannedCommandFile(path string) ([]byte, string, bool) {
@@ -1048,7 +1209,100 @@ func validatePlannedCommandFile(command string, path string, content []byte) []s
 	if command == "runtime-file-ownership" && path == ".agent/runtime-file-ownership.yaml" {
 		gaps = append(gaps, validation.ValidateRuntimeFileOwnership(path, text)...)
 	}
+	if (command == "execution-context" || command == "release-ready") && path == ".agent/execution-context.yaml" {
+		gaps = append(gaps, validation.ValidateExecutionContext(path, text, validExecutionContexts)...)
+	}
 	return gaps
+}
+
+func releaseReadyDecisionDetails(args []string, fileContents map[string]string, gaps *[]string) []string {
+	context := fallback(flagValue(args, "context", ""), "release_verify")
+	requireReadiness := plannedCommandVerifyRequested(args)
+	details := []string{"context=" + context}
+	if requireReadiness && context != "release_verify" {
+		*gaps = append(*gaps, "release-ready requires context release_verify; got "+context)
+	}
+
+	requiredGates := countYAMLLinesWithValue(fileContents[".agent/release-required-gates.yaml"], "required_for_release", "true")
+	releaseUsableGates := countYAMLLinesWithValue(fileContents[".agent/release-required-gates.yaml"], "release_usable", "true")
+	blockedGates := requiredGates - releaseUsableGates
+	score := 0
+	if requiredGates > 0 {
+		score = releaseUsableGates * 100 / requiredGates
+	}
+	verdict := "ready"
+	if requiredGates == 0 {
+		verdict = "gap"
+		if requireReadiness {
+			*gaps = append(*gaps, ".agent/release-required-gates.yaml gates must include required release gates")
+		}
+	} else if blockedGates > 0 {
+		verdict = "not_ready"
+		if requireReadiness {
+			*gaps = append(*gaps, fmt.Sprintf("release-ready verdict not_ready: %d/%d required gates are not release_usable", blockedGates, requiredGates))
+		}
+	}
+
+	evidenceFields := countYAMLListItems(fileContents[".agent/release-required-gates.yaml"], "required_release_evidence")
+	if requireReadiness && evidenceFields == 0 {
+		*gaps = append(*gaps, ".agent/release-required-gates.yaml missing required_release_evidence items")
+	}
+	replayReady := strings.Contains(fileContents[".agent/evidence-replay.yaml"], "replay:") && strings.Contains(fileContents[".agent/evidence-replay.yaml"], "strict: true")
+	if requireReadiness && !replayReady {
+		*gaps = append(*gaps, ".agent/evidence-replay.yaml replay must be strict")
+	}
+
+	details = append(details,
+		"verdict="+verdict,
+		fmt.Sprintf("score=%d/100", score),
+		fmt.Sprintf("required_gates=%d", requiredGates),
+		fmt.Sprintf("release_usable_gates=%d", releaseUsableGates),
+		fmt.Sprintf("evidence_replay=strict:%t", replayReady),
+		fmt.Sprintf("required_evidence_fields=%d", evidenceFields),
+		"reasons=release-ready uses required gate release_usable state, strict evidence replay, and release_verify context",
+	)
+	return details
+}
+
+func countYAMLLinesWithValue(content string, key string, value string) int {
+	count := 0
+	for _, line := range strings.Split(content, "\n") {
+		field, got, ok := strings.Cut(strings.TrimSpace(stripInlineComment(line)), ":")
+		if ok && strings.TrimSpace(field) == key && strings.TrimSpace(got) == value {
+			count++
+		}
+	}
+	return count
+}
+
+func countYAMLListItems(content string, listName string) int {
+	count := 0
+	inList := false
+	for _, line := range strings.Split(content, "\n") {
+		clean := stripInlineComment(line)
+		trimmed := strings.TrimSpace(clean)
+		indent := len(clean) - len(strings.TrimLeft(clean, " "))
+		if !inList {
+			if trimmed == listName+":" {
+				inList = true
+			}
+			continue
+		}
+		if indent == 0 && trimmed != "" {
+			break
+		}
+		if strings.HasPrefix(trimmed, "- ") {
+			count++
+		}
+	}
+	return count
+}
+
+func stripInlineComment(line string) string {
+	if before, _, ok := strings.Cut(line, "#"); ok {
+		return before
+	}
+	return line
 }
 
 func plannedCommandMarkers(command string, path string) []string {
@@ -1077,6 +1331,7 @@ func validatePlannedCommandArgs(command string, args []string) error {
 	flags.Bool("json", false, "")
 	flags.String("repo", "", "")
 	flags.String("mode", "", "")
+	flags.String("input", "", "")
 	context := flags.String("context", "", "")
 	flags.String("profile", "", "")
 	flags.String("output", "", "")
@@ -1187,6 +1442,7 @@ var commandRegistryCommands = []string{
 	"command-registry",
 	"makefile-baseline",
 	"audit-goal",
+	"dashboard-generate",
 	"context-profile",
 	"context-profile-check",
 	"context-schema-check",
@@ -1333,6 +1589,7 @@ func appendAgentIndexGaps(path string, gaps *[]string) {
 			*gaps = append(*gaps, path+" missing file entry "+required)
 		}
 	}
+	appendUnclassifiedAgentFileGaps(filepath.Dir(path), path, present, gaps)
 }
 
 func parseAgentIndexEntries(text string) []agentIndexEntry {
@@ -1385,6 +1642,7 @@ func appendAgentIndexEnumGap(indexPath string, entry agentIndexEntry, field stri
 
 func requiredAgentIndexPaths() []string {
 	return []string{
+		".agent/index.yaml",
 		".agent/goal-runtime.md",
 		".agent/object-model.md",
 		".agent/state-machine.md",
@@ -1407,6 +1665,26 @@ func requiredAgentIndexPaths() []string {
 		".agent/release-template.md",
 		".agent/agent-teams.md",
 		".agent/retrospective.md",
+	}
+}
+
+func appendUnclassifiedAgentFileGaps(root string, indexPath string, present map[string]bool, gaps *[]string) {
+	err := filepath.WalkDir(root, func(path string, entry os.DirEntry, err error) error {
+		if err != nil {
+			*gaps = append(*gaps, "read "+filepath.ToSlash(path)+": "+err.Error())
+			return nil
+		}
+		if entry.IsDir() {
+			return nil
+		}
+		normalized := filepath.ToSlash(path)
+		if !present[normalized] {
+			*gaps = append(*gaps, indexPath+" missing file entry "+normalized)
+		}
+		return nil
+	})
+	if err != nil {
+		*gaps = append(*gaps, "read "+filepath.ToSlash(root)+": "+err.Error())
 	}
 }
 
