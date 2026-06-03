@@ -25,6 +25,9 @@ required_files=(
   "docs/standard/downstream-compatibility.md"
   "docs/downstream-sync-policy.md"
   "docs/scorecard.md"
+  ".agent/standard/goal-runtime-canonical.md"
+  ".agent/standard/goalkit-xlibgate-mapping.md"
+  ".agent/standard/audit-2026-06-03.md"
 )
 
 for file in "${required_files[@]}"; do

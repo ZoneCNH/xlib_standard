@@ -52,3 +52,8 @@
 3. **依赖标准 `goalkit` 二进制**（若未来真的需要独立内核，再创建 `tools/goalkit`）
 
 **当前阶段**：所有下游优先用方案 1。
+
+
+---
+
+> 本文件被 `scripts/check_docs.sh` 列为 required，删除会阻断 `make docs-check` / `make governance-check` / release pipeline。
