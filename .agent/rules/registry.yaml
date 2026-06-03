@@ -16,11 +16,11 @@
 version: 1
 generated_from: .worktree/goal-patch.md
 generated_at: 2026-06-03
-total_rules: 417
+total_rules: 419
 p0_count: 119
-p1_count: 298
+p1_count: 300
 active_count: 173
-indexed_count: 244
+indexed_count: 246
 
 rules:
   - id: RULE-BRANCH-001
@@ -2198,6 +2198,24 @@ rules:
     source_section: 221
     source_section_title: "Release Freeze Deepening 规则"
     source_line: 8681
+    enforced_by: ""
+    exit_code: 0
+    status: indexed
+  - id: RULE-FREEZE-RULE-001
+    level: P1
+    title: "规则体系必须进入冻结态"
+    source_section: 237
+    source_section_title: "Rule Freeze 规则"
+    source_line: 9153
+    enforced_by: ""
+    exit_code: 0
+    status: indexed
+  - id: RULE-FREEZE-RULE-002
+    level: P1
+    title: "冻结后的新增规则必须经过 Rule Change"
+    source_section: 237
+    source_section_title: "Rule Freeze 规则"
+    source_line: 9198
     enforced_by: ""
     exit_code: 0
     status: indexed

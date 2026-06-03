@@ -5,7 +5,7 @@
 ```
 .agent/rules/
 ├── iron-rules.md          # 7 条铁律 SSOT (P0 规则压缩)
-├── registry.yaml          # 417 条规则机器化索引 (P0=119, P1=298)
+├── registry.yaml          # 419 条规则机器化索引 (P0=119, P1=300)
 ├── README.md              # 本文件
 ├── goal-rules.md          # 域规则: Goal 对象模型
 ├── worktree-rules.md      # 域规则: Worktree-only
@@ -59,10 +59,10 @@ python3 scripts/extract_rules.py
 
 ## 当前覆盖率
 
-- 总规则数: 417
+- 总规则数: 419
 - P0 规则: 119
-- P1 规则: 298
+- P1 规则: 300
 - 已 active (有 enforced_by): 173 (41%)
-- 仅 indexed (待机器化): 244 (59%)
+- 仅 indexed (待机器化): 246 (59%)
 
 提高 active 比例是后续 Goal 的核心 KPI。

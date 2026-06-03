@@ -33,5 +33,5 @@
 
 ## 不在铁律中的内容
 
-非 P0 规则（治理、文档、自动化、度量等共 298 条）登记在 [`registry.yaml`](./registry.yaml)，按需启用。
+非 P0 规则（治理、文档、自动化、度量等共 300 条）登记在 [`registry.yaml`](./registry.yaml)，按需启用。
 具体分类规则见各 `*-rules.md`：[goal](./goal-rules.md) · [worktree](./worktree-rules.md) · [commit](./commit-rules.md) · [pr](./pr-rules.md) · [evidence](./evidence-rules.md) · [release](./release-rules.md) · [harness](./harness-rules.md) · [security](./security-rules.md) · [issue](./issue-rules.md) · [risk-decision](./risk-decision-rules.md) · [self-improving](./self-improving-rules.md)。

@@ -3,7 +3,8 @@
 
 源文档约定:
 - 一级章节: `# N. Title`
-- 规则定义: `## RULE-<DOMAIN>-NNN：<title>` (中文冒号或英文冒号)
+- 规则定义: `## RULE-<DOMAIN>-NNN：<title>` 或 `### RULE-<DOMAIN>-NNN：<title>`
+  (中文冒号或英文冒号; v1.8 §237 RULE-FREEZE-RULE-001/002 是 ### 级别)
 
 输出: .agent/rules/registry.yaml (字段见 schema 注释)
 """
@@ -217,8 +218,8 @@ ENFORCED_BY = {
     "TASK-AUTO": ("", 0),
 }
 
-DEFINITION_RE = re.compile(r"^##\s+(RULE-[A-Z-]+-\d+)[：:]\s*(.+)$")
-SECTION_RE = re.compile(r"^# (\d+)\. (.+)$")
+DEFINITION_RE = re.compile(r"^#{2,3}\s+(RULE-[A-Z-]+-\d+)[：:]\s*(.+)$")
+SECTION_RE = re.compile(r"^#{1,2} (\d+)\. (.+)$")
 
 
 def split_prefix(rid: str) -> str:
