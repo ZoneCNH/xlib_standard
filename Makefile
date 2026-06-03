@@ -100,6 +100,10 @@ security-debt:
 downstream-debt:
 	$(GOALCLI) downstream-debt
 
+.PHONY: downstream-sync-plan
+downstream-sync-plan: standard-impact-check
+	$(GOALCLI) downstream-sync-plan
+
 debt:
 	$(GOALCLI) debt --config .agent/debt/rules.yaml --exceptions .agent/debt/exceptions.yaml --dependency-purpose .agent/debt/dependency-purpose.yaml --mode enforce --min-score 9.8
 

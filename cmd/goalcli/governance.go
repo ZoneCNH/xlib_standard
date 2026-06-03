@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	projectReleaseVersion    = "v0.4.6"
+	projectReleaseVersion    = "v0.4.7"
 	governanceRuntimeVersion = "v2.9.3"
 )
 
@@ -407,7 +407,7 @@ func runMakefileBaseline(args []string, stdout io.Writer, stderr io.Writer) int 
 }
 
 func requiredMakefileTargets() []string {
-	requiredTargets := append([]string{"fmt", "vet", "lint", "test", "race", "boundary", "security", "contracts", "schema-check", "docs-check", "rules-verify", "evidence", "score-check", "main-guard", "worktree-guard", "worktree-check", "context-check", "spec-check", "design-check", "task-check", "pr-check", "evidence-check", "cli-contract", "issue-registry", "command-registry", "makefile-baseline", "audit-goal", "dashboard-generate", "governance-check", "p1-governance-check", "execution-context", "p2-runtime-check", "release-check", "release-final-check"}, contextRuntimeTargets()...)
+	requiredTargets := append([]string{"fmt", "vet", "lint", "test", "race", "boundary", "security", "contracts", "schema-check", "docs-check", "rules-verify", "downstream-sync-plan", "evidence", "score-check", "main-guard", "worktree-guard", "worktree-check", "context-check", "spec-check", "design-check", "task-check", "pr-check", "evidence-check", "cli-contract", "issue-registry", "command-registry", "makefile-baseline", "audit-goal", "dashboard-generate", "governance-check", "p1-governance-check", "execution-context", "p2-runtime-check", "release-check", "release-final-check"}, contextRuntimeTargets()...)
 	return append(requiredTargets, goalcliMakefileTargets()...)
 }
 
@@ -1515,6 +1515,7 @@ var commandRegistryCommands = []string{
 	"secrets",
 	"security",
 	"standard-impact-check",
+	"downstream-sync-plan",
 }
 
 func commandRegistryRequiredCommands() []string {
@@ -1603,7 +1604,7 @@ func appendAgentIndexGaps(path string, gaps *[]string) {
 func appendAgentIndexClassificationGaps(indexPath string, entries []agentIndexEntry, gaps *[]string) {
 	required := map[string]map[string]string{
 		".agent/generated-artifacts.yaml": {
-			"layer":      "evidence",
+			"layer":      "registry",
 			"authority":  "source_of_truth",
 			"mutability": "hand_written",
 		},
@@ -1666,7 +1667,7 @@ func appendGeneratedArtifactsGaps(path string, indexPath string, gaps *[]string)
 		if artifact.value == "" {
 			*gaps = append(*gaps, path+" contains artifact without path")
 		}
-		requireYAMLBlockValue(path, artifact.value, artifact.block, "classification", "generated_artifact", gaps)
+		requireYAMLBlockValue(path, artifact.value, artifact.block, "classification", expectedGeneratedArtifactClassification(artifact.value), gaps)
 		requireYAMLBlockValue(path, artifact.value, artifact.block, "source_control", "generated-only", gaps)
 		if !blockHasNonEmptyYAMLValue(artifact.block, "generated_by") {
 			*gaps = append(*gaps, path+" "+artifact.value+" missing generated_by")
@@ -1686,13 +1687,20 @@ func appendGeneratedArtifactsGaps(path string, indexPath string, gaps *[]string)
 	}
 	for _, entry := range parseAgentIndexEntries(string(indexContent)) {
 		if entry.path == path {
-			requireYAMLBlockValue(indexPath, path, entry.block, "layer", "evidence", gaps)
+			requireYAMLBlockValue(indexPath, path, entry.block, "layer", "registry", gaps)
 			requireYAMLBlockValue(indexPath, path, entry.block, "authority", "source_of_truth", gaps)
 			requireYAMLBlockValue(indexPath, path, entry.block, "mutability", "hand_written", gaps)
 			return
 		}
 	}
 	*gaps = append(*gaps, indexPath+" missing file entry "+path)
+}
+
+func expectedGeneratedArtifactClassification(path string) string {
+	if strings.HasPrefix(path, ".agent/rules/") {
+		return "validated_mirror"
+	}
+	return "generated_artifact"
 }
 
 func appendHarnessAliasGaps(path string, gaps *[]string) {

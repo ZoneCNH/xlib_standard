@@ -4,6 +4,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
+	"sort"
 	"strings"
 	"testing"
 )
@@ -416,6 +418,35 @@ func TestStandardImpactReportIncludesDecisionEvidence(t *testing.T) {
 	)
 }
 
+func TestStandardImpactDownstreamsMatchRegisteredTargets(t *testing.T) {
+	publicTargets := parseAdoptionStatusTargets(t)
+	matrixTargets := parseDownstreamMatrixTargets(t)
+	if diff := diffNameSets(publicTargets, matrixTargets); diff != "" {
+		t.Fatalf("downstream matrix targets differ from adoption status: %s", diff)
+	}
+
+	expectedImpactTargets := append([]string{}, publicTargets...)
+	expectedImpactTargets = append(expectedImpactTargets, "x.go")
+	expectedImpactTargets = uniqueSortedNames(expectedImpactTargets)
+
+	impactTargets := parseStandardImpactDownstreams(t)
+	if diff := diffNameSets(expectedImpactTargets, impactTargets); diff != "" {
+		t.Fatalf("standard impact downstream targets differ from registered targets plus x.go: %s", diff)
+	}
+
+	for _, privateBusinessTarget := range []string{
+		"market-data",
+		"market-engine",
+		"macro-data",
+		"macro-engine",
+		"regime-engine",
+	} {
+		if containsName(impactTargets, privateBusinessTarget) {
+			t.Fatalf("standard impact targets included private L3 business system %q", privateBusinessTarget)
+		}
+	}
+}
+
 func runStandardImpact(t *testing.T, changedFiles []string) string {
 	t.Helper()
 
@@ -463,6 +494,154 @@ func runStandardImpact(t *testing.T, changedFiles []string) string {
 		t.Fatalf("read report: %v", err)
 	}
 	return string(report)
+}
+
+func parseStandardImpactDownstreams(t *testing.T) []string {
+	t.Helper()
+
+	script, err := os.ReadFile("check_standard_impact.sh")
+	if err != nil {
+		t.Fatalf("read standard impact script: %v", err)
+	}
+
+	modulePattern := regexp.MustCompile(`"github\.com/ZoneCNH/([^"]+)"`)
+	var targets []string
+	inDownstreamArray := false
+	for _, line := range strings.Split(string(script), "\n") {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "downstreams=(" {
+			inDownstreamArray = true
+			continue
+		}
+		if inDownstreamArray && trimmed == ")" {
+			break
+		}
+		if !inDownstreamArray {
+			continue
+		}
+		match := modulePattern.FindStringSubmatch(trimmed)
+		if match == nil {
+			continue
+		}
+		targets = append(targets, match[1])
+	}
+	if len(targets) == 0 {
+		t.Fatalf("standard impact script has no downstream targets")
+	}
+	return uniqueSortedNames(targets)
+}
+
+func parseAdoptionStatusTargets(t *testing.T) []string {
+	t.Helper()
+
+	status, err := os.ReadFile(filepath.Join("..", ".agent", "downstream-adoption-status.yaml"))
+	if err != nil {
+		t.Fatalf("read downstream adoption status: %v", err)
+	}
+
+	var targets []string
+	inStandardTargets := false
+	for _, line := range strings.Split(string(status), "\n") {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "standard_target_libraries:" {
+			inStandardTargets = true
+			continue
+		}
+		if inStandardTargets && trimmed != "" && !strings.HasPrefix(line, " ") {
+			break
+		}
+		if !inStandardTargets || !strings.HasPrefix(trimmed, "- name: ") {
+			continue
+		}
+		targets = append(targets, strings.TrimSpace(strings.TrimPrefix(trimmed, "- name: ")))
+	}
+	if len(targets) == 0 {
+		t.Fatalf("downstream adoption status has no standard target libraries")
+	}
+	return uniqueSortedNames(targets)
+}
+
+func parseDownstreamMatrixTargets(t *testing.T) []string {
+	t.Helper()
+
+	matrix, err := os.ReadFile(filepath.Join("..", "docs", "downstream-matrix.md"))
+	if err != nil {
+		t.Fatalf("read downstream matrix: %v", err)
+	}
+
+	rowPattern := regexp.MustCompile("^\\| `[^`]+` \\| `github\\.com/ZoneCNH/([^`]+)` \\|")
+	var targets []string
+	for _, line := range strings.Split(string(matrix), "\n") {
+		match := rowPattern.FindStringSubmatch(line)
+		if match == nil {
+			continue
+		}
+		targets = append(targets, match[1])
+	}
+	if len(targets) == 0 {
+		t.Fatalf("downstream matrix has no target rows")
+	}
+	return uniqueSortedNames(targets)
+}
+
+func diffNameSets(want, got []string) string {
+	wantSet := nameSet(want)
+	gotSet := nameSet(got)
+
+	var missing []string
+	for name := range wantSet {
+		if !gotSet[name] {
+			missing = append(missing, name)
+		}
+	}
+	sort.Strings(missing)
+
+	var extra []string
+	for name := range gotSet {
+		if !wantSet[name] {
+			extra = append(extra, name)
+		}
+	}
+	sort.Strings(extra)
+
+	if len(missing) == 0 && len(extra) == 0 {
+		return ""
+	}
+	parts := make([]string, 0, 2)
+	if len(missing) > 0 {
+		parts = append(parts, "missing "+strings.Join(missing, ", "))
+	}
+	if len(extra) > 0 {
+		parts = append(parts, "extra "+strings.Join(extra, ", "))
+	}
+	return strings.Join(parts, "; ")
+}
+
+func uniqueSortedNames(names []string) []string {
+	keys := nameSet(names)
+	result := make([]string, 0, len(keys))
+	for name := range keys {
+		result = append(result, name)
+	}
+	sort.Strings(result)
+	return result
+}
+
+func nameSet(names []string) map[string]bool {
+	result := make(map[string]bool, len(names))
+	for _, name := range names {
+		result[name] = true
+	}
+	return result
+}
+
+func containsName(names []string, target string) bool {
+	for _, name := range names {
+		if name == target {
+			return true
+		}
+	}
+	return false
 }
 
 func writeFixtureFile(t *testing.T, repoDir, file string) {

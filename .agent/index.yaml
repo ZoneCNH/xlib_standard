@@ -50,6 +50,13 @@ files:
     owner: governance
     validator: issue-registry
     purpose: 治理 Issue 覆盖注册表。
+  - path: .agent/layer-governance.yaml
+    layer: policy
+    authority: source_of_truth
+    mutability: hand_written
+    owner: governance
+    validator: schema-check
+    purpose: 分层治理、依赖方向与公开/私有边界清单。
   - path: .agent/command-implementation-status.yaml
     layer: registry
     authority: validated_mirror
@@ -366,7 +373,7 @@ files:
     validator: docs-check
     purpose: gate 说明。
   - path: .agent/generated-artifacts.yaml
-    layer: evidence
+    layer: registry
     authority: source_of_truth
     mutability: hand_written
     owner: release

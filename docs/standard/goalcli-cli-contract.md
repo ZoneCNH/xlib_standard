@@ -58,6 +58,7 @@
 - `secrets`
 - `security`
 - `standard-impact-check`
+- `downstream-sync-plan`
 - `debt`
 - `architecture`
 - `domain`
@@ -70,6 +71,12 @@
 - `debt-evidence`
 - `debt-evidence-checksum-check`
 - `debt-evidence-hash`
+
+## 下游同步计划命令
+
+`goalcli downstream-sync-plan [--impact-report <path>] [--output <path>|-] [--workspace-root <path>] [--format markdown|json]` 读取 `release/standard-impact/latest.md` 的同步判定，默认生成 `release/downstream-sync/latest.md`，并在 stdout 输出符合 `contracts/goalcli-report.schema.json` 的 JSON report。传入 `--output -` 时才把 markdown/json 计划写入 stdout。
+
+该命令只生成本地同步计划和命令清单，不修改 downstream 仓库，不更新 `.agent/downstream-adoption-status.yaml` 或 `.agent/truth-state.yaml`，不得作为 proof-based adoption。计划必须列出 `kernel`、L1、L2 和 `x.go` 的 blocked/not_required 结论，并保留 `adoption_claim=not_claimed`。
 
 ## P1 commands
 
@@ -133,9 +140,9 @@ Goalcli MVA commands（`goal-acceptance`、`goal-delivery`、`goal-handover`、`
 
 ## Debt governance commands
 
-Debt governance commands are P0 release-blocking gates. `goalcli debt` runs the full debt scanner, while `architecture`, `domain`, `docs-drift`, `dependency-debt`, `security-debt`, `testing-debt`, `implementation-debt`, and `downstream-debt` run focused slices of the same policy. The scanner reuses existing local scripts for boundary, docs, dependency diff, and secret checks; scanner failures return non-zero and cannot be treated as passed evidence.
+Debt governance commands 是 P0 release-blocking gates。`goalcli debt` 运行完整 debt scanner，`architecture`、`domain`、`docs-drift`、`dependency-debt`、`security-debt`、`testing-debt`、`implementation-debt` 和 `downstream-debt` 运行同一策略的聚焦切片。scanner 复用本地 boundary、docs、dependency diff 和 secret checks；scanner 失败必须返回非 0，不能作为 passed evidence。
 
-`goalcli debt-evidence` writes generated evidence to `release/debt/latest.json`, `release/debt/latest.md`, and `release/debt/latest.json.sha256`. These latest evidence files are reproducible release artifacts and are intentionally ignored by git. P0 debt rules are not exceptable: policy files under `.agent/debt/` must not introduce P0 exception markers, and release verification must fail if debt status is not `passed`.
+`goalcli debt-evidence` 将生成的 evidence 写入 `release/debt/latest.json`、`release/debt/latest.md` 和 `release/debt/latest.json.sha256`。这些 latest evidence 文件是可复现 release artifacts，并且故意被 git 忽略。P0 debt rules 不允许例外：`.agent/debt/` 下的 policy 文件不得引入 P0 exception markers，且 release verification 必须在 debt status 不是 `passed` 时失败。
 
 ## Goalcli v0.1.0 MVA runtime commands
 

@@ -26,6 +26,7 @@ targets:
   - docs-check
   - rules-verify
   - downstream-debt
+  - downstream-sync-plan
   - debt-evidence-hash
   - debt-evidence-checksum-check
   - evidence

@@ -7,6 +7,7 @@
 - [基础库总标准](xlib-standard.md)：公共 API、配置、错误、健康检查、metrics、测试、安全和发布规则。
 - [仓库角色](repository-roles.md)：`xlib-standard`、`kernel`、各生成库和 `x.go` 的职责。
 - [分层](layering.md)：Standard、L0、L1、L2、应用组合层关系。
+- [分层治理规则](layer-governance-rules.md)：公开/私有仓库边界、P0/P1/P2 约束、下游采纳和迭代规则。
 - [模块边界](module-boundary.md)：允许/禁止内容、module path 和 `x.go` 边界。
 - [完成定义](dod.md)：基础库 DONE with evidence 的最低标准。
 - [Harness gate](harness-gates.md)：required、extended、generator、docs、score 和 final gate。

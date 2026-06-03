@@ -105,6 +105,7 @@ func TestGoalRuntimeSchemasAreValidJSON(t *testing.T) {
 		"goalcli-dashboard.schema.json",
 		"issue-registry.schema.json",
 		"command-registry.schema.json",
+		"layer-governance.schema.json",
 		"execution-context.schema.json",
 		"conformance-attestation.schema.json",
 		"policy.schema.json",

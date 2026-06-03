@@ -4,6 +4,23 @@
 
 暂无。
 
+## v0.4.7 - 2026-06-04
+
+### 新增
+
+- 新增 `goalcli downstream-sync-plan` 和 `make downstream-sync-plan`，生成本地 downstream 同步计划 Evidence，并明确 `adoption_claim=not_claimed`。
+- 新增 layer governance schema、规则文档和 ADR，锁定标准源、下游库与私有业务消费层的职责边界。
+
+### 治理
+
+- 将 downstream sync 计划纳入命令注册表、Makefile baseline、docs-check 和 generated-artifacts 管控。
+- 扩展 schema-check、standard-impact、debt evidence 和文档 gate，防止 layer governance 与下游同步证据漂移。
+- 将项目发布版本、release manifest 默认版本、`goalcli` 治理版本和 release preflight 示例同步到 `v0.4.7`。
+
+### 兼容性
+
+- 本版本不改变 `pkg/templatex` 公共 API 形状；`Version` 元数据同步到 `v0.4.7`。
+
 ## v0.4.6 - 2026-06-04
 
 ### 治理

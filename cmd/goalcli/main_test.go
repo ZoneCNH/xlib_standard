@@ -1168,7 +1168,7 @@ func TestRunGovernanceCommands(t *testing.T) {
 		}
 		if report.Command != "version" ||
 			report.Status != "passed" ||
-			!slicesContain(report.Details, "xlib-standard release v0.4.6") ||
+			!slicesContain(report.Details, "xlib-standard release v0.4.7") ||
 			!slicesContain(report.Details, "goalcli governance runtime v2.9.3") {
 			t.Fatalf("report = %#v; want version gate report", report)
 		}
@@ -1471,10 +1471,10 @@ func TestCommandRegistryRequiresFullCommandSurface(t *testing.T) {
 			t.Fatalf("read agent index: %v", err)
 		}
 		indexText := strings.Replace(string(index), "  - path: .agent/generated-artifacts.yaml\n"+
-			"    layer: evidence\n"+
+			"    layer: registry\n"+
 			"    authority: source_of_truth\n"+
 			"    mutability: hand_written\n", "  - path: .agent/generated-artifacts.yaml\n"+
-			"    layer: evidence\n"+
+			"    layer: registry\n"+
 			"    authority: validated_mirror\n"+
 			"    mutability: generated\n", 1)
 		writeTestFiles(t, root, map[string]string{
@@ -1541,7 +1541,7 @@ func TestCommandRegistryRequiresFullCommandSurface(t *testing.T) {
 			t.Fatalf("read generated artifacts: %v", err)
 		}
 		missingCoreRule := "  - path: .agent/rules/core-rules.md\n" +
-			"    classification: generated_artifact\n" +
+			"    classification: validated_mirror\n" +
 			"    source_control: generated-only\n" +
 			"    generated_by: \"goalcli rules-verify\"\n" +
 			"    validated_by: command-registry\n"
@@ -2862,7 +2862,7 @@ func validAgentIndexFixture() string {
 
 func testAgentIndexLayer(path string) string {
 	switch {
-	case path == ".agent/generated-artifacts.yaml" || strings.Contains(path, "evidence"):
+	case strings.Contains(path, "evidence"):
 		return "evidence"
 	case strings.HasPrefix(path, ".agent/rules/"):
 		return "policy"
@@ -2929,22 +2929,22 @@ artifacts:
     generated_by: "GOWORK=off make evidence"
     validated_by: release-evidence-check
   - path: .agent/rules/registry.yaml
-    classification: generated_artifact
+    classification: validated_mirror
     source_control: generated-only
     generated_by: "goalcli rules-verify"
     validated_by: command-registry
   - path: .agent/rules/agent-runtime-rules.md
-    classification: generated_artifact
+    classification: validated_mirror
     source_control: generated-only
     generated_by: "goalcli rules-verify"
     validated_by: command-registry
   - path: .agent/rules/core-rules.md
-    classification: generated_artifact
+    classification: validated_mirror
     source_control: generated-only
     generated_by: "goalcli rules-verify"
     validated_by: command-registry
   - path: .agent/rules/schema-registry-rules.md
-    classification: generated_artifact
+    classification: validated_mirror
     source_control: generated-only
     generated_by: "goalcli rules-verify"
     validated_by: command-registry

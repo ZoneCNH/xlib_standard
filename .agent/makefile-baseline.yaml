@@ -26,6 +26,7 @@ baseline_targets:
   docs-check: "$(GOALCLI) docs-check"
   rules-verify: "$(GOALCLI) rules-verify"
   downstream-debt: "$(GOALCLI) downstream-debt"
+  downstream-sync-plan: "$(GOALCLI) downstream-sync-plan"
   debt-evidence-hash: "$(GOALCLI) debt-evidence-hash"
   debt-evidence-checksum-check: "$(GOALCLI) debt-evidence-checksum-check"
   evidence: "$(GOALCLI) evidence"

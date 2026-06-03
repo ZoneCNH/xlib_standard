@@ -87,6 +87,8 @@ func run(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) int
 		return runDebtAlias("security", "warn", args[1:], stdout, stderr)
 	case "downstream-debt":
 		return runDebtAlias("downstream", "warn", args[1:], stdout, stderr)
+	case "downstream-sync-plan":
+		return runDownstreamSyncPlan(args[1:], stdout, stderr)
 	case "goal-acceptance", "goal-delivery", "goal-handover", "goal-downstream-adoption", "goal-certify", "goal-runtime-final":
 		return runGoalRuntimeCommand(args[0], args[1:], stdout, stderr)
 	case "minimal-kernel", "done-assertion", "agent-team-contract", "scope-lock", "pr-template", "acceptance-matrix", "runtime-health", "goal-runtime", "naming", "upgrade-standard", "conformance-profile", "downstream-registry", "self-healing-skeleton", "policy-schema", "github-settings", "toolchain", "evidence-artifacts", "install-runtime", "upgrade-runtime", "release-ready", "evidence-replay", "attest-conformance", "pack-standard", "pack-gate", "pack-evidence", "runtime-file-ownership", "downstream-baseline", "downstream-adoption", "autoresearch", "changelog", "github-governance", "governance-fixture-test", "supply-chain", "execution-context":
@@ -280,6 +282,7 @@ commands:
   downstream-baseline
   downstream-registry
   downstream-debt [debt args]
+  downstream-sync-plan [--impact-report <path>] [--output <path>|-] [--workspace-root <path>] [--format markdown|json]
   evidence
   evidence-artifacts
   evidence-check

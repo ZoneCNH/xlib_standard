@@ -51,6 +51,7 @@ groups:
       - testing-debt
       - implementation-debt
       - downstream-debt
+      - downstream-sync-plan
       - debt-evidence
       - debt-evidence-checksum-check
       - debt-evidence-hash

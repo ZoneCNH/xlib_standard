@@ -103,6 +103,9 @@ commands:
   - name: downstream-debt
     phase: P0
     target: downstream-debt
+  - name: downstream-sync-plan
+    phase: P0
+    target: downstream-sync-plan
   - name: debt-evidence
     phase: P0
     target: debt-evidence

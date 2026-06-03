@@ -347,6 +347,7 @@ var downstreamTargetLibraries = []string{
 	"postgresx",
 	"redisx",
 	"kafkax",
+	"natsx",
 	"taosx",
 	"ossx",
 	"clickhousex",

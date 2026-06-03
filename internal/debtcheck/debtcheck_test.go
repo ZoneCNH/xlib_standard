@@ -96,6 +96,7 @@ standard_target_libraries:
   - name: postgresx
   - name: redisx
   - name: kafkax
+  - name: natsx
   - name: taosx
   - name: ossx
   - name: clickhousex
@@ -239,6 +240,7 @@ standard_target_libraries:
   - name: postgresx
   - name: redisx
   - name: kafkax
+  - name: natsx
   - name: taosx
   - name: ossx
   - name: clickhousex
@@ -254,6 +256,7 @@ standard_target_libraries:
 | ` + "`postgresx`" + ` | not_adopted |
 | ` + "`redisx`" + ` | not_adopted |
 | ` + "`kafkax`" + ` | not_adopted |
+| ` + "`natsx`" + ` | not_adopted |
 | ` + "`taosx`" + ` | not_adopted |
 | ` + "`ossx`" + ` | not_adopted |
 | ` + "`clickhousex`" + ` | not_adopted |

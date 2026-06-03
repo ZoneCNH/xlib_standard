@@ -13,7 +13,7 @@
 | Generator | `scripts/render_template.sh` / `cmd/goalcli integration` | 把模板渲染为具体基础库 |
 | L0 代表下游 | `kernel` | 第一优先级同步目标，验证最小基础库形态 |
 | L1 基础库 | `configx`、`observex`、`testkitx` | 继承 L0 标准并提供基础能力 |
-| L2 基础库 | `postgresx`、`redisx`、`kafkax`、`taosx`、`ossx`、`clickhousex` | 在 L1 能力上提供具体基础设施适配 |
+| L2 基础库 | `postgresx`、`redisx`、`kafkax`、`taosx`、`ossx`、`clickhousex`、`natsx` | 在 L1 能力上提供具体基础设施适配 |
 | 组合层 | `x.go` | 仅作为消费方组合基础库，不反向影响 `xlib-standard` |
 
 ## 当前采纳状态口径
@@ -33,6 +33,14 @@
 `.agent/truth-state.yaml` 的 forbidden upgrades 是该口径的单一约束：`registered != adopted`、`baseline_scanned != adopted/implemented`、`patch_only != proof_based_adoption`、`not_run != passed`。
 
 `Context Runtime v4.0 profile` 是 context profile / registry bridge 的同步条目名称，不改写 Full Goal Runtime v3.1 的 `.agent/` 工件版本，也不替代 [docs/goal.md](goal/goal.md) v2.9.3 Complete 的治理主基线。
+
+## 同步计划生成
+
+`GOWORK=off make downstream-sync-plan` 是标准影响报告后的本地计划入口。该 target 先运行 `standard-impact-check` 生成 `release/standard-impact/latest.md`，再由 `goalcli downstream-sync-plan` 生成 `release/downstream-sync/latest.md`。两个 `latest` 文件都是可再生成 Evidence，默认不提交。
+
+当 `downstream_sync_required=true` 且 `downstream_release_decision=required` 时，计划按 `kernel`、L1、L2 的顺序列出 render、tidy、test、contracts、boundary、evidence 和 release-evidence-check 命令；`x.go` 只进入 consumer review，不写入标准源同步命令。当 impact 报告判定 `not_required` 时，计划只记录无需下游写入的结论。
+
+该计划不得更新 `.agent/downstream-adoption-status.yaml` 或 `.agent/truth-state.yaml`，也不得作为 proof-based adoption；只有实际下游仓库中的当前命令输出才能把 blocked/not_run 升级为 passed/adopted。
 
 ## 变更到同步动作映射
 
@@ -80,7 +88,7 @@ L1 同步不得引入 `x.go` 业务模型、生产密钥路径读取或应用 wi
 
 ## L2 基础库同步规则
 
-L2 基础库包括 `postgresx`、`redisx`、`kafkax`、`taosx`、`ossx` 和 `clickhousex`。L2 只在变更影响具体适配、contracts、release Evidence、security policy 或共享 gate 时同步。
+L2 基础库包括 `postgresx`、`redisx`、`kafkax`、`taosx`、`ossx`、`clickhousex` 和 `natsx`。L2 只在变更影响具体适配、contracts、release Evidence、security policy 或共享 gate 时同步。
 
 L2 同步优先级低于 `kernel` 和 L1；若 `release/standard-impact/latest.md` 未标记 L2 影响，可以只在 release note 中记录无需同步的原因。
 
@@ -89,6 +97,8 @@ L2 同步优先级低于 `kernel` 和 L1；若 `release/standard-impact/latest.m
 x.go 仅作为基础库消费方和应用组合层。它可以根据自身需要拉取 `kernel`、L1 或 L2 基础库的新版本，但不得反向要求 `xlib-standard` 引入业务模型、业务 repository、业务消息 schema、生产密钥读取或应用 wiring。
 
 当 `x.go` 暴露出基础库标准缺口时，应先在 `xlib-standard` 形成标准变更、ADR 或 Issue，再由标准源决定是否触发下游同步。不得把 `x.go` 的临时实现直接复制回 `xlib-standard`。
+
+L3 私有业务系统的接入、私有 CI、脱敏 Evidence 和升级步骤见 [L3 私有业务系统消费指南](private-business-consumer-guide.md)。
 
 ## PR 与发布要求
 

@@ -190,6 +190,8 @@ func validateRepoSchemaArtifacts() []schemaCheckItem {
 	checks = append(checks,
 		validateYAMLArtifactAgainstSchema(".agent/command-registry.yaml", "contracts/command-registry.schema.json"),
 		validateYAMLArtifactAgainstSchema(".agent/issue-registry.yaml", "contracts/issue-registry.schema.json"),
+		validateYAMLArtifactAgainstSchema(".agent/layer-governance.yaml", "contracts/layer-governance.schema.json"),
+		validateLayerGovernanceSemantics(".agent/layer-governance.yaml"),
 	)
 	return checks
 }
@@ -216,6 +218,232 @@ func validateYAMLArtifactAgainstSchema(artifactPath, schemaPath string) schemaCh
 	}
 	check.Details = []string{"artifact parsed", "required schema fields validated"}
 	return check
+}
+
+func validateLayerGovernanceSemantics(artifactPath string) schemaCheckItem {
+	check := schemaCheckItem{Name: "layer governance semantics", Artifact: artifactPath, Status: "passed"}
+	value, err := parseBaselineYAMLFile(artifactPath)
+	if err != nil {
+		check.Status = "failed"
+		check.Gaps = []string{err.Error()}
+		return check
+	}
+	gaps := layerGovernanceSemanticGaps(artifactPath, value)
+	if len(gaps) > 0 {
+		check.Status = "failed"
+		check.Gaps = gaps
+		return check
+	}
+	check.Details = []string{
+		"layer visibility and dependency direction validated",
+		"public and private repository boundaries validated",
+		"rule evidence coverage validated",
+	}
+	return check
+}
+
+func layerGovernanceSemanticGaps(artifactPath string, value map[string]any) []string {
+	var gaps []string
+	if got := schemaCheckStringField(value, "dependency_direction"); got != "L3>L2>L1>L0>Standard" {
+		gaps = append(gaps, fmt.Sprintf("%s dependency_direction = %q; want L3>L2>L1>L0>Standard", artifactPath, got))
+	}
+
+	layerSpecs := map[string]struct {
+		visibility string
+		repos      []string
+		deps       []string
+		forbids    []string
+	}{
+		"Standard": {
+			visibility: "public",
+			repos:      []string{"xlib-standard"},
+			deps:       []string{},
+			forbids:    []string{"business_semantics", "production_secrets"},
+		},
+		"L0": {
+			visibility: "public",
+			repos:      []string{"kernel"},
+			deps:       []string{"Standard"},
+			forbids:    []string{"l1_imports", "l2_imports", "l3_imports", "production_secrets"},
+		},
+		"L1": {
+			visibility: "public",
+			repos:      []string{"configx", "observex", "testkitx"},
+			deps:       []string{"L0", "Standard"},
+			forbids:    []string{"l2_imports", "l3_imports", "business_semantics", "production_secrets"},
+		},
+		"L2": {
+			visibility: "public",
+			repos:      []string{"redisx", "kafkax", "postgresx", "taosx", "ossx", "clickhousex", "natsx"},
+			deps:       []string{"L1", "L0", "Standard"},
+			forbids:    []string{"l3_imports", "business_repository", "business_schema", "production_secrets"},
+		},
+		"L3": {
+			visibility: "private",
+			repos:      []string{"x.go", "market-data", "market-engine", "macro-data", "macro-engine", "regime-engine"},
+			deps:       []string{"L2", "L1", "L0", "Standard"},
+			forbids:    []string{"public_release", "public_business_semantics", "committed_production_secrets"},
+		},
+	}
+	layerIDs := []string{"Standard", "L0", "L1", "L2", "L3"}
+	layers := schemaCheckMapList(value["layers"])
+	layersByID := map[string]map[string]any{}
+	for _, layer := range layers {
+		id := schemaCheckStringField(layer, "id")
+		if id == "" {
+			gaps = append(gaps, artifactPath+" layers contains item missing id")
+			continue
+		}
+		if _, exists := layersByID[id]; exists {
+			gaps = append(gaps, fmt.Sprintf("%s duplicate layer %s", artifactPath, id))
+			continue
+		}
+		layersByID[id] = layer
+	}
+	for id := range layersByID {
+		if _, ok := layerSpecs[id]; !ok {
+			gaps = append(gaps, fmt.Sprintf("%s unexpected layer %s", artifactPath, id))
+		}
+	}
+	privateRepos := schemaCheckStringSet(layerSpecs["L3"].repos)
+	for _, id := range layerIDs {
+		spec := layerSpecs[id]
+		layer, ok := layersByID[id]
+		if !ok {
+			gaps = append(gaps, fmt.Sprintf("%s missing required layer %s", artifactPath, id))
+			continue
+		}
+		if got := schemaCheckStringField(layer, "visibility"); got != spec.visibility {
+			gaps = append(gaps, fmt.Sprintf("%s %s visibility must be %s", artifactPath, id, spec.visibility))
+		}
+		repos := schemaCheckStringList(layer["repos"])
+		schemaCheckExactStringSetGaps(&gaps, artifactPath, id, "repos", repos, spec.repos)
+		schemaCheckExactStringSetGaps(&gaps, artifactPath, id, "may_depend_on", schemaCheckStringList(layer["may_depend_on"]), spec.deps)
+		schemaCheckRequiredStringSetGaps(&gaps, artifactPath, id, "forbids", schemaCheckStringList(layer["forbids"]), spec.forbids)
+		if id != "L3" {
+			for _, repo := range repos {
+				if privateRepos[repo] {
+					gaps = append(gaps, fmt.Sprintf("%s public layer %s must not include private repo %s", artifactPath, id, repo))
+				}
+			}
+		}
+	}
+
+	ruleEvidence := map[string][]string{
+		"LAYER-P0-PRIVATE-BOUNDARY":     {"docs-check", "schema-check", "boundary", "standard-impact-check"},
+		"LAYER-P0-DEPENDENCY-DIRECTION": {"schema-check", "boundary", "contracts"},
+		"LAYER-P1-DOWNSTREAM-UPDATE":    {"standard-impact-check", "downstream-sync-policy", "release-manifest"},
+		"LAYER-P2-ITERATION-EVIDENCE":   {"adr", "release-notes", "migration-guide"},
+	}
+	ruleLevels := map[string]string{
+		"LAYER-P0-PRIVATE-BOUNDARY":     "P0",
+		"LAYER-P0-DEPENDENCY-DIRECTION": "P0",
+		"LAYER-P1-DOWNSTREAM-UPDATE":    "P1",
+		"LAYER-P2-ITERATION-EVIDENCE":   "P2",
+	}
+	ruleIDs := []string{
+		"LAYER-P0-PRIVATE-BOUNDARY",
+		"LAYER-P0-DEPENDENCY-DIRECTION",
+		"LAYER-P1-DOWNSTREAM-UPDATE",
+		"LAYER-P2-ITERATION-EVIDENCE",
+	}
+	rulesByID := map[string]map[string]any{}
+	for _, rule := range schemaCheckMapList(value["rules"]) {
+		id := schemaCheckStringField(rule, "id")
+		if id == "" {
+			gaps = append(gaps, artifactPath+" rules contains item missing id")
+			continue
+		}
+		if _, exists := rulesByID[id]; exists {
+			gaps = append(gaps, fmt.Sprintf("%s duplicate rule %s", artifactPath, id))
+			continue
+		}
+		rulesByID[id] = rule
+	}
+	for id := range rulesByID {
+		if _, ok := ruleEvidence[id]; !ok {
+			gaps = append(gaps, fmt.Sprintf("%s unexpected rule %s", artifactPath, id))
+		}
+	}
+	for _, id := range ruleIDs {
+		rule, ok := rulesByID[id]
+		if !ok {
+			gaps = append(gaps, fmt.Sprintf("%s missing required rule %s", artifactPath, id))
+			continue
+		}
+		if got := schemaCheckStringField(rule, "level"); got != ruleLevels[id] {
+			gaps = append(gaps, fmt.Sprintf("%s %s level must be %s", artifactPath, id, ruleLevels[id]))
+		}
+		schemaCheckRequiredStringSetGaps(&gaps, artifactPath, id, "evidence", schemaCheckStringList(rule["evidence"]), ruleEvidence[id])
+	}
+	return gaps
+}
+
+func schemaCheckMapList(value any) []map[string]any {
+	items, ok := value.([]any)
+	if !ok {
+		return nil
+	}
+	maps := make([]map[string]any, 0, len(items))
+	for _, item := range items {
+		if typed, ok := item.(map[string]any); ok {
+			maps = append(maps, typed)
+		}
+	}
+	return maps
+}
+
+func schemaCheckStringField(value map[string]any, key string) string {
+	typed, _ := value[key].(string)
+	return typed
+}
+
+func schemaCheckStringList(value any) []string {
+	items, ok := value.([]any)
+	if !ok {
+		return nil
+	}
+	strings := make([]string, 0, len(items))
+	for _, item := range items {
+		if typed, ok := item.(string); ok {
+			strings = append(strings, typed)
+		}
+	}
+	return strings
+}
+
+func schemaCheckExactStringSetGaps(gaps *[]string, artifactPath, owner, field string, got, want []string) {
+	schemaCheckRequiredStringSetGaps(gaps, artifactPath, owner, field, got, want)
+	wantSet := schemaCheckStringSet(want)
+	for _, item := range sortedStringSetDifference(got, wantSet) {
+		*gaps = append(*gaps, fmt.Sprintf("%s %s %s unexpected %s", artifactPath, owner, field, item))
+	}
+}
+
+func schemaCheckRequiredStringSetGaps(gaps *[]string, artifactPath, owner, field string, got, want []string) {
+	gotSet := schemaCheckStringSet(got)
+	for _, item := range sortedStringSetDifference(want, gotSet) {
+		*gaps = append(*gaps, fmt.Sprintf("%s %s %s missing %s", artifactPath, owner, field, item))
+	}
+}
+
+func schemaCheckStringSet(items []string) map[string]bool {
+	set := make(map[string]bool, len(items))
+	for _, item := range items {
+		set[item] = true
+	}
+	return set
+}
+
+func sortedStringSetDifference(items []string, contains map[string]bool) []string {
+	var diff []string
+	for _, item := range items {
+		if !contains[item] {
+			diff = append(diff, item)
+		}
+	}
+	sort.Strings(diff)
+	return diff
 }
 
 func validateFixtureSchemas(fixtureDir string) []schemaCheckItem {

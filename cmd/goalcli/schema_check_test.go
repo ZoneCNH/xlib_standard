@@ -67,7 +67,7 @@ func TestSchemaCheckAllWritesRepoReport(t *testing.T) {
 	if got != 0 {
 		t.Fatalf("schema-check --all exit = %d, stderr %q, stdout:\n%s", got, stderr.String(), stdout.String())
 	}
-	for _, needle := range []string{`"status": "passed"`, ".agent/command-registry.yaml", ".agent/issue-registry.yaml"} {
+	for _, needle := range []string{`"status": "passed"`, ".agent/command-registry.yaml", ".agent/issue-registry.yaml", ".agent/layer-governance.yaml", "layer governance semantics"} {
 		if !strings.Contains(stdout.String(), needle) {
 			t.Fatalf("stdout missing %q in:\n%s", needle, stdout.String())
 		}
@@ -87,6 +87,53 @@ func TestSchemaValidateRequiresExactlyOneMode(t *testing.T) {
 	}
 	if !strings.Contains(stderr.String(), "requires exactly one of --all or --fixture") {
 		t.Fatalf("stderr = %q; want mode error", stderr.String())
+	}
+}
+
+func TestLayerGovernanceSemanticCheckAcceptsRepoFixture(t *testing.T) {
+	chdir(t, repoRoot(t))
+
+	check := validateLayerGovernanceSemantics(".agent/layer-governance.yaml")
+
+	if check.Status != "passed" {
+		t.Fatalf("layer governance semantics status = %s, gaps = %v", check.Status, check.Gaps)
+	}
+}
+
+func TestLayerGovernanceSemanticCheckRejectsBoundaryDrift(t *testing.T) {
+	chdir(t, repoRoot(t))
+	data, err := os.ReadFile(".agent/layer-governance.yaml")
+	if err != nil {
+		t.Fatalf("read layer governance fixture: %v", err)
+	}
+	text := string(data)
+	text = strings.Replace(text,
+		"repos: [redisx, kafkax, postgresx, taosx, ossx, clickhousex, natsx]",
+		"repos: [redisx, kafkax, postgresx, taosx, ossx, clickhousex, market-data]",
+		1,
+	)
+	text = strings.Replace(text,
+		"  - id: L3\n    visibility: private",
+		"  - id: L3\n    visibility: public",
+		1,
+	)
+	path := filepath.Join(t.TempDir(), "layer-governance.yaml")
+	writeSchemaCheckText(t, path, text)
+
+	check := validateLayerGovernanceSemantics(path)
+
+	if check.Status != "failed" {
+		t.Fatalf("layer governance semantics status = %s; want failed", check.Status)
+	}
+	combined := strings.Join(check.Gaps, "\n")
+	for _, needle := range []string{
+		"L2 repos missing natsx",
+		"public layer L2 must not include private repo market-data",
+		"L3 visibility must be private",
+	} {
+		if !strings.Contains(combined, needle) {
+			t.Fatalf("gaps missing %q in:\n%s", needle, combined)
+		}
 	}
 }
 
