@@ -55,6 +55,10 @@ standard-impact-check:
 docs-check:
 	$(XLIBGATE) docs-check
 
+.PHONY: rules-verify
+rules-verify:
+	python3 scripts/verify_rules.py
+
 .PHONY: debt architecture domain docs-drift dependency-debt security-debt testing-debt implementation-debt downstream-debt
 
 .PHONY: debt-evidence
@@ -289,7 +293,7 @@ context-standard-check: context-standard
 context-full-check: context-full
 
 .PHONY: ci
-ci: doctor-hooks-local fmt vet lint test race boundary architecture domain security security-debt contracts governance-check debt score
+ci: doctor-hooks-local fmt vet lint test race boundary architecture domain security security-debt contracts governance-check debt score rules-verify
 
 .PHONY: ci-extended
 ci-extended: ci property golden fuzz-smoke docs-drift

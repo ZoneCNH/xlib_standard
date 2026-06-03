@@ -62,7 +62,10 @@ python3 scripts/extract_rules.py
 - 总规则数: 419
 - P0 规则: 119
 - P1 规则: 300
-- 已 active (有 enforced_by): 173 (41%)
-- 仅 indexed (待机器化): 246 (59%)
+- 已 active (有 enforced_by): 168 (40%)
+- 仅 indexed (待机器化): 251 (60%)
 
-提高 active 比例是后续 Goal 的核心 KPI。
+`make rules-verify` 强制断言: 任何 `status: active` 的规则其 `enforced_by` 命令必须真实存在
+(xlibgate 子命令 / Makefile target / .githooks / scripts), 否则 CI 失败。
+
+提高 active 比例是后续 Goal 的核心 KPI。当前已知 P0 gap 见 [`iron-rules.md` 的 "已知 P0 Gap" 章节](./iron-rules.md#已知-p0-gap)。
