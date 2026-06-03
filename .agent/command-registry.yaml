@@ -190,6 +190,21 @@ commands:
   - name: goal-runtime
     phase: P1
     target: p1-governance-check
+  - name: goal-acceptance
+    phase: P1
+    target: p1-governance-check
+  - name: goal-delivery
+    phase: P1
+    target: p1-governance-check
+  - name: goal-handover
+    phase: P1
+    target: p1-governance-check
+  - name: goal-downstream
+    phase: P1
+    target: p1-governance-check
+  - name: goal-certify
+    phase: P1
+    target: p1-governance-check
   - name: naming
     phase: P1
     target: p1-governance-check

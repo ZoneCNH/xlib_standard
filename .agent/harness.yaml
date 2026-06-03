@@ -124,6 +124,45 @@ final_gates:
     command: "xlibgate score --min 9.8"
   - id: kernel_downstream
     command: "GOWORK=off make integration DOWNSTREAM=kernel"
+goalkit_mva_gates:
+  schema_version: "0.1.0-mva"
+  status: dry_run_ready
+  completion_claim: "G12-G16 are executable xlibgate/Makefile dry-run gates; this is not a full goalkit v0.1.0 completion claim."
+  authority_paths:
+    root_plan: ".worktree/goalkit-v0.1.0-plan.md"
+    team_context: ".omx/context/goalkit-v0.1.0-team-20260603T005302Z.md"
+    harness: ".agent/harness.yaml"
+  gates:
+    - id: G12_ACCEPTANCE
+      xlibgate_command: goal-acceptance
+      make_target: goal-acceptance
+      command: "GOWORK=off make goal-acceptance"
+      evidence_path: "release/evidence/goalkit/acceptance_report.md"
+      purpose: "acceptance matrix and gate wiring dry-run"
+    - id: G13_HARNESS_RUNTIME
+      xlibgate_command: goal-delivery
+      make_target: goal-delivery
+      command: "GOWORK=off make goal-delivery"
+      evidence_path: "release/evidence/goalkit/harness_runtime.md"
+      purpose: "harness runtime delivery dry-run"
+    - id: G14_EVIDENCE_LEDGER
+      xlibgate_command: goal-handover
+      make_target: goal-handover
+      command: "GOWORK=off make goal-handover"
+      evidence_path: "release/evidence/goalkit/evidence_ledger.md"
+      purpose: "handover and evidence ledger dry-run"
+    - id: G15_AUTHORITY_MAP
+      xlibgate_command: goal-downstream
+      make_target: goal-downstream
+      command: "GOWORK=off make goal-downstream"
+      evidence_path: "release/evidence/goalkit/authority_map.md"
+      purpose: "downstream authority map dry-run"
+    - id: G16_NO_FALSE_COMPLETION
+      xlibgate_command: goal-certify
+      make_target: goal-certify
+      command: "GOWORK=off make goal-certify"
+      evidence_path: "release/evidence/goalkit/no_false_completion.md"
+      purpose: "certify no false completion claim; status remains dry_run_ready"
 evidence:
   manifest: "release/manifest/latest.json"
   checksum: "release/manifest/latest.json.sha256"

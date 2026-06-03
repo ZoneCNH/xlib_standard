@@ -68,6 +68,11 @@
 - `acceptance-matrix`
 - `runtime-health`
 - `goal-runtime`
+- `goal-acceptance`
+- `goal-delivery`
+- `goal-handover`
+- `goal-downstream`
+- `goal-certify`
 - `naming`
 - `upgrade-standard --dry-run --repo <path>`
 - `conformance-profile`
@@ -104,6 +109,16 @@ Debt governance commands are P0 release-blocking gates. `xlibgate debt` runs the
 
 `xlibgate debt-evidence` writes generated evidence to `release/debt/latest.json`, `release/debt/latest.md`, and `release/debt/latest.json.sha256`. These latest evidence files are reproducible release artifacts and are intentionally ignored by git. P0 debt rules are not exceptable: policy files under `.agent/debt/` must not introduce P0 exception markers, and release verification must fail if debt status is not `passed`.
 
+## Goalkit v0.1.0 MVA dry-run commands
+
+The goalkit MVA commands are P1 local dry-run gates backed by `.agent/harness.yaml`; they make command, Makefile, and harness coverage executable without claiming that goalkit v0.1.0 is fully complete.
+
+- `goal-acceptance` verifies `G12_ACCEPTANCE`.
+- `goal-delivery` verifies `G13_HARNESS_RUNTIME`.
+- `goal-handover` verifies `G14_EVIDENCE_LEDGER`.
+- `goal-downstream` verifies `G15_AUTHORITY_MAP`.
+- `goal-certify` verifies `G16_NO_FALSE_COMPLETION` and preserves the no-false-completion claim.
+
 ## 执行约束
 
 - `--dry-run` 只能执行本地 contract、manifest 或 patch planning 检查。
@@ -116,7 +131,7 @@ Debt governance commands are P0 release-blocking gates. `xlibgate debt` runs the
 
 `issue-registry` 不只是文件存在检查。它必须校验 `.agent/issue-registry.yaml` 中每个条目都具备非空 `title`、`command` 和 `evidence`，`status` 必须为 `implemented`，ID 必须匹配 `P0|P1|P2|CTX-###`、全局唯一，并且每个前缀从 `001` 连续编号。`context-profile-check` 复用该 registry 语义，不能用空文件或非连续 ID 作为通过证据。
 
-planned command 的 dry-run 也必须读取对应文件并检查语义 marker。当前强制 marker 包括：`agent-team-contract` 的 `schema_version:`、`roles:`、`rule:`；`acceptance-matrix` 的 `schema_version:`、`acceptance:`；`runtime-health` 的 `schema_version:`、`checks:`、`toolchain`；`execution-context` 的 `schema_version:`、`contexts:`、`local_write`、`ci_pull_request`、`release_verify`。这些命令不得退化为单纯路径存在检查。
+planned command 的 dry-run 也必须读取对应文件并检查语义 marker。当前强制 marker 包括：`agent-team-contract` 的 `schema_version:`、`roles:`、`rule:`；`acceptance-matrix` 的 `schema_version:`、`acceptance:`；`runtime-health` 的 `schema_version:`、`checks:`、`toolchain`；goalkit MVA 命令在 `.agent/harness.yaml` 中的 `goalkit_mva_gates:`、对应 `G12_ACCEPTANCE`/`G13_HARNESS_RUNTIME`/`G14_EVIDENCE_LEDGER`/`G15_AUTHORITY_MAP`/`G16_NO_FALSE_COMPLETION` 与命令名；`execution-context` 的 `schema_version:`、`contexts:`、`local_write`、`ci_pull_request`、`release_verify`。这些命令不得退化为单纯路径存在检查。
 
 ## Context Runtime v4 命令
 

@@ -56,6 +56,11 @@ targets:
   - context-full-check
   - governance-check
   - p1-governance-check
+  - goal-acceptance
+  - goal-delivery
+  - goal-handover
+  - goal-downstream
+  - goal-certify
   - execution-context
   - p2-runtime-check
   - release-check
