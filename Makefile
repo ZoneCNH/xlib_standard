@@ -204,25 +204,9 @@ makefile-baseline:
 agent-team-contract scope-lock pr-template acceptance-matrix runtime-health upgrade-standard conformance-profile downstream-registry self-healing-skeleton goal-runtime github-governance supply-chain changelog governance-fixture-test autoresearch policy-schema github-settings toolchain evidence-artifacts naming:
 	$(XLIBGATE) $@ --dry-run --verify
 
-.PHONY: goal-acceptance
-goal-acceptance:
-	$(XLIBGATE) $@ --dry-run --verify
-
-.PHONY: goal-delivery
-goal-delivery:
-	$(XLIBGATE) $@ --dry-run --verify
-
-.PHONY: goal-handover
-goal-handover:
-	$(XLIBGATE) $@ --dry-run --verify
-
-.PHONY: goal-downstream
-goal-downstream:
-	$(XLIBGATE) $@ --dry-run --verify
-
-.PHONY: goal-certify
-goal-certify:
-	$(XLIBGATE) $@ --dry-run --verify
+.PHONY: goal-acceptance goal-delivery goal-handover goal-downstream-adoption goal-certify goal-runtime-final
+goal-acceptance goal-delivery goal-handover goal-downstream-adoption goal-certify goal-runtime-final: require-gowork-off
+	$(XLIBGATE) $@ --goal-id "$${GOAL_ID:?set GOAL_ID}" --mode "$${GOAL_RUNTIME_MODE:-FULL}" --json
 
 .PHONY: install-runtime upgrade-runtime release-ready evidence-replay attest-conformance pack-standard pack-gate pack-evidence downstream-baseline downstream-adoption runtime-file-ownership
 install-runtime upgrade-runtime release-ready evidence-replay attest-conformance pack-standard pack-gate pack-evidence downstream-baseline downstream-adoption runtime-file-ownership:
