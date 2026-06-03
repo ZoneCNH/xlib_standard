@@ -3,7 +3,7 @@
 > 生成日期：2026-06-02
 > 分析范围：全仓库代码、测试、CI、治理体系、治理文件结构
 > 当前版本：v0.3.7 | 质量评分：10/10（阈值 9.8）
-> 口径说明：本文的 `v0.3.7` 是项目发布/分析快照版本；当前治理主基线以 [docs/goal.md](goal.md) v2.9.3 Complete 和 [.agent/traceability-matrix.md](../.agent/traceability-matrix.md) 为准。
+> 口径说明：本文的 `v0.3.7` 是项目发布/分析快照版本；当前治理主基线以 [docs/goal.md](goal/goal.md) v2.9.3 Complete 和 [.agent/traceability-matrix.md](../.agent/traceability-matrix.md) 为准。
 
 ---
 
@@ -137,14 +137,16 @@ golangci-lint 启用 14 个 linter（errorlint、govet、staticcheck、ineffassi
 
 ## 六、CI/CD
 
-4 个 GitHub Actions workflow：
+6 个 GitHub Actions workflow：
 
-| Workflow          | 触发           | 职责                                         |
-| ----------------- | -------------- | -------------------------------------------- |
-| `ci.yml`          | PR + push main | 完整 release-check + score + evidence upload |
-| `integration.yml` | PR + push main | 模板渲染集成测试                             |
-| `release.yml`     | tag push       | 发布验证                                     |
-| `security.yml`    | 定时 + push    | govulncheck + secret scan                    |
+| Workflow              | 触发           | 职责                                                                  |
+| --------------------- | -------------- | --------------------------------------------------------------------- |
+| `ci.yml`              | PR + push main | 完整 release-check + score + evidence upload                          |
+| `integration.yml`     | 手动           | 模板渲染集成测试；PR/main 由 `ci.yml` 的 `release-check` 覆盖          |
+| `release.yml`         | tag push       | 发布验证                                                              |
+| `security.yml`        | 手动           | `govulncheck` + secret scan；PR/main 由 `ci.yml` 的 `release-check` 覆盖 |
+| `goal-gates.yml`      | 手动           | 旧 Goal Gates 诊断入口；PR/main 由 `ci.yml` 的 `release-check` 覆盖    |
+| `worktree-guard.yml`  | PR main        | 轻量来源分支守卫                                                      |
 
 第三方 Action 全部固定为 40 位 commit SHA，govulncheck 固定为 `v1.3.0`。
 
@@ -197,7 +199,7 @@ golangci-lint 启用 14 个 linter（errorlint、govet、staticcheck、ineffassi
 | **代码质量**     | 9.5  | 20%  | 1.90   | 零外部依赖、错误模型完整、mutex 保护、函数选项模式  |
 | **测试覆盖**     | 9.5  | 15%  | 1.43   | 12 包全通过、100% 覆盖率、6 层测试策略              |
 | **安全基线**     | 9.5  | 10%  | 0.95   | secret scan + govulncheck + GOWORK=off + 无外部依赖 |
-| **CI/CD**        | 9.0  | 10%  | 0.90   | 4 workflow、SHA pinning、固定工具版本               |
+| **CI/CD**        | 9.0  | 10%  | 0.90   | 6 workflow、SHA pinning、固定工具版本               |
 | **文档体系**     | 9.0  | 10%  | 0.90   | 50+ 文档、标准层/设计层/运营层分层清晰              |
 | **治理密度**     | 8.5  | 10%  | 0.85   | 60+ 命令、P0/P1/P2 分层、context profile DAG        |
 | **治理深度**     | 6.0  | 10%  | 0.60   | 30 个 planned command 仅检查文件存在、无实质验证    |

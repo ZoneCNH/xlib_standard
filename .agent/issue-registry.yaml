@@ -272,6 +272,11 @@ issues:
     status: implemented
     command: release-check-extended
     evidence: [release-check-extended, p2-runtime-check]
+  - id: P2-016
+    title: goalkit v0.1.0 MVA 本地证据门
+    status: implemented
+    command: goal-runtime-final
+    evidence: [goal-acceptance, goal-delivery, goal-handover, goal-downstream-adoption, goal-certify, goal-runtime-final]
   - id: CTX-001
     title: Context Runtime v4 profile registry bridge
     status: implemented
