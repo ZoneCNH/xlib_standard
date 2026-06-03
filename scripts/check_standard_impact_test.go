@@ -534,7 +534,7 @@ func parseStandardImpactDownstreams(t *testing.T) []string {
 func parseAdoptionStatusTargets(t *testing.T) []string {
 	t.Helper()
 
-	status, err := os.ReadFile(filepath.Join("..", ".agent", "downstream-adoption-status.yaml"))
+	status, err := os.ReadFile(filepath.Join("..", ".agent", "registries", "downstream-adoption-status.yaml"))
 	if err != nil {
 		t.Fatalf("read downstream adoption status: %v", err)
 	}
