@@ -818,9 +818,9 @@ scripts/github/verify_settings.sh
 P1 最小基线：
 
 ```text
-govulncheck (XLIB_ENABLE_VULNCHECK=1 only)
 golangci-lint
 secret scan / gitleaks equivalent
+optional govulncheck when XLIB_ENABLE_VULNCHECK=1
 actions pinning policy
 permissions least privilege
 go.mod / go.sum drift check

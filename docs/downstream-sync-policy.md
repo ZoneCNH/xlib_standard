@@ -52,7 +52,7 @@
 | Harness gate、Makefile、CI 或 `.agent/harness.yaml` 变更 | 同步下游 gate 文档和 CI 入口；强制 gate 不得在下游降级为可选 | `GOWORK=off make release-check` 或对应下游 gate 输出 |
 | Evidence protocol、release manifest 字段或 artifact 规则变更 | 更新下游 Evidence 生成、校验和发布模板；manifest 字段变化必须标记同步需求 | manifest 校验、checksum、CI artifact |
 | Context Runtime v4.0 profile、registry bridge、`.agent/context/*` 或 `templates/context-consumer/*` 变更 | 同步下游 context profile 入口、legacy alias、registry 引用和运行时证据；profile wrapper/registry bridge 按当前 gate 事实同步，物理 `.agent/context/*` 或 `templates/context-consumer/*` 未落地前不得宣称下游可消费这些文件 | `context_runtime` / `governance_registry` / `repository_rules` / `downstream_context` taxonomy，`governance_runtime` manifest Evidence |
-| 依赖或安全策略变更 | 判断是否影响所有基础库；安全变更默认触发下游同步 | 可选 `govulncheck`、secret scan、依赖清单 |
+| 依赖或安全策略变更 | 判断是否影响所有基础库；安全变更默认触发下游同步 | 可选 `govulncheck`（`XLIB_ENABLE_VULNCHECK=1`）、secret scan、依赖清单 |
 | 命名、仓库角色或默认下游变更 | 当前主叙事必须使用 `xlib-standard` 和 `kernel`；`corekit` 只用于中性路径 smoke/integration 语境；旧名只能保留在迁移文档语境 | `docs-check` 命名残留断言 |
 
 `downstream_release_decision` 的 allowed values 只能是 `required` 或 `not_required`。当标准影响报告判定需要同步下游时使用 `required`，否则使用 `not_required`。

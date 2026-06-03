@@ -25,7 +25,10 @@
 
 `GOWORK=off make security` 必须委托 `goalcli security`。默认只执行密钥扫描，避免默认 gate 访问漏洞库；当且仅当 `XLIB_ENABLE_VULNCHECK=1` 时，必须先执行漏洞扫描（`govulncheck ./...`），再执行密钥扫描。
 
-未设置 opt-in 时缺少 `govulncheck` 不得阻断默认 security gate；设置 `XLIB_ENABLE_VULNCHECK=1` 后缺少或失败的 `govulncheck` 必须失败，不能跳过。secret scan 发现疑似凭据时必须阻断。
+- 默认：密钥扫描（使用 `scripts/check_secrets.sh`）
+- 可选：设置 `XLIB_ENABLE_VULNCHECK=1` 时先运行漏洞扫描（使用 `govulncheck`）
+
+默认缺少 `govulncheck` 不得导致 `make security` 失败或访问漏洞库；启用漏洞扫描后缺少 `govulncheck` 必须失败，不能跳过。secret scan 发现疑似凭据时必须阻断。
 
 Secret scan 会排除 `.git`、`.omc`、`.omx`、`.worktree` 和 `vendor` 等本地或第三方目录，避免把 Agent 运行态、OMX 兼容状态、OMX/team 临时工作区或 vendored 依赖误判为源码凭据。该排除只用于降低误报，不代表这些目录可以提交真实凭据；任何进入 git 历史、manifest、Issue、PR 或日志的 secret 都必须视为违规。
 

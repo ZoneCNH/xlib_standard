@@ -47,8 +47,8 @@
 - [Harness gate](docs/standard/harness-gates.md)：required、extended、generator、docs、score 和 final gate 命令。
 - [Evidence 协议](docs/standard/evidence-protocol.md)：`DONE with evidence:` 和 release manifest 要求。
 - [测试策略](docs/testing.md)：单元、示例 smoke、release quality 和 release manifest fixture 隔离要求。
-- [安全与密钥策略](docs/standard/security-and-secret-policy.md)：默认 secret scan、`XLIB_ENABLE_VULNCHECK=1` 时的 `govulncheck` 和 Agent runtime 目录排除边界。
-- [供应链与 Evidence](docs/supply-chain.md)：workflow Action SHA pinning、opt-in `govulncheck` 固定版本、release manifest 和 CI artifact 对齐。
+- [安全与密钥策略](docs/standard/security-and-secret-policy.md)：默认 secret scan、`XLIB_ENABLE_VULNCHECK=1` 下的 `govulncheck` 和 Agent runtime 目录排除边界。
+- [供应链与 Evidence](docs/supply-chain.md)：workflow Action SHA pinning、可选 `govulncheck` 固定版本、release manifest 和 CI artifact 对齐。
 - [Release Scorecard](docs/scorecard.md)：`goalcli score --min 9.8` 的评分维度、阈值和语义边界。
 - [发布](docs/release.md)：`release-check`、manifest 字段和 Evidence 规则。
 - [独立审计 2026-06-02](docs/independent-audit-20260602.md)：独立审计发现、修复状态和剩余验证缺口。
