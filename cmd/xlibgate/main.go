@@ -105,6 +105,8 @@ func run(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) int
 		return runExternal(stdin, stdout, stderr, "./scripts/check_secrets.sh")
 	case "standard-impact-check":
 		return runExternal(stdin, stdout, stderr, "./scripts/check_standard_impact.sh")
+	case "traceability-check":
+		return runTraceabilityCheck(args[1:], stdout, stderr)
 	case "help", "-h", "--help":
 		write(stdout, usage)
 		return 0
@@ -254,6 +256,7 @@ commands:
   supply-chain
   toolchain
   testing-debt [debt args]
+  traceability-check [--matrix .agent/traceability-matrix.md] [--json]
   upgrade-runtime [--dry-run]
   upgrade-standard [--dry-run]
   version [--json]
