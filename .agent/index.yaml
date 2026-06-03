@@ -947,19 +947,3 @@ files:
     owner: governance
     validator: governance-check
     purpose: Issue 59 Phase 3/4 .agent 物理分类迁移清单、路径引用扫描与兼容例外。
-
-  - path: .agent/research/phase0-baseline-report.md
-    layer: documentation
-    authority: source_of_truth
-    mutability: hand_written
-    owner: governance
-    validator: docs-check
-    purpose: Phase 0 基线报告。
-
-  - path: .agent/rules/enforcement-normalization.yaml
-    layer: policy
-    authority: source_of_truth
-    mutability: hand_written
-    owner: governance
-    validator: governance-check
-    purpose: 规则 enforced_by 字段归一化映射表。
