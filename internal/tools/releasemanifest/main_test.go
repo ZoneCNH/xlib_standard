@@ -1537,7 +1537,7 @@ func writeFixtureDebtPolicy(t *testing.T, repo string) {
 	t.Helper()
 	files := map[string]string{
 		".agent/policies/debt/rules.yaml":              "schema_version: debt-rules/v1\nprofile: fixture\n",
-		".agent/registries/debt/rule-registry.yaml":      "schema_version: debt-rule-registry/v1\nrules: []\n",
+		".agent/registries/debt/rule-registry.yaml":    "schema_version: debt-rule-registry/v1\nrules: []\n",
 		".agent/policies/debt/exceptions.yaml":         "schema_version: debt-exceptions/v1\nexceptions: []\n",
 		".agent/policies/debt/dependency-purpose.yaml": "schema_version: debt-dependency-purpose/v1\npurposes: []\n",
 	}

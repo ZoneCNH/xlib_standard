@@ -21,7 +21,7 @@ const (
 
 var protectedDownstreamSyncPlanOutputPaths = map[string]struct{}{
 	".agent/registries/downstream-adoption-status.yaml": {},
-	".agent/evidence/truth-state.yaml":                {},
+	".agent/evidence/truth-state.yaml":                  {},
 }
 
 var downstreamImpactCategories = []string{

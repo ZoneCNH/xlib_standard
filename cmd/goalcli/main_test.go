@@ -2378,6 +2378,32 @@ func TestReleaseReadyVerifyRequiresReleaseContext(t *testing.T) {
 	}
 }
 
+func TestReleaseReadyDryRunVerifyReportsDecisionWithoutRequiringReadiness(t *testing.T) {
+	chdir(t, filepath.Join("..", ".."))
+
+	var stdout, stderr bytes.Buffer
+	got := run([]string{"release-ready", "--dry-run", "--verify"}, strings.NewReader(""), &stdout, &stderr)
+	if got != 0 {
+		t.Fatalf("release-ready dry-run verify exit = %d, stderr %q, stdout %q; want 0", got, stderr.String(), stdout.String())
+	}
+	var report gateReport
+	if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
+		t.Fatalf("stdout is not gateReport JSON: %v; stdout %q", err, stdout.String())
+	}
+	for _, want := range []string{
+		"context=release_verify",
+		"verdict=not_ready",
+		"local dry-run verifier satisfied manifest coverage",
+	} {
+		if !detailsContainSubstring(report.Details, want) {
+			t.Fatalf("details = %#v; want %q", report.Details, want)
+		}
+	}
+	if gapsContainSubstring(report.Gaps, "release-ready verdict not_ready") {
+		t.Fatalf("gaps = %#v; dry-run verify should report but not require release readiness", report.Gaps)
+	}
+}
+
 func TestGoalcliMVAGoalCommandsRequireHarnessMarkers(t *testing.T) {
 	tests := []struct {
 		command string
