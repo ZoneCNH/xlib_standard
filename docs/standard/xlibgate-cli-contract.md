@@ -43,6 +43,7 @@
 - `release-evidence-hash`
 - `release-final-check`
 - `render-check`
+- `rules-consistency-check`
 - `score`
 - `secrets`
 - `security`

@@ -13,7 +13,7 @@
 2. **不恢复上下文，不允许设计** —— 任何 Goal 必须先扫描仓库、文档、CI、已有规则 (RULE-CORE-002 / RULE-CONTEXT-001)。
 3. **没有 Acceptance Criteria 的需求，不允许实现** —— Requirement → AC → Test → Evidence 不能断链 (RULE-CORE-003 / RULE-SPEC-003)。
 4. **所有变更必须可追踪** —— Goal → Req → AC → Task → Issue → Commit → PR → Evidence → Release 闭环 (RULE-CORE-004 / RULE-TRACE-001 / RULE-TRACE-002)。
-5. **main 只做基线，所有开发必须 worktree** —— 禁止 main 直接 push、直接合未通过 Gate 的 PR (RULE-WORKTREE-001 / RULE-MAIN-SYNC-001 / RULE-MERGE-001)。
+5. **main 只做基线，所有开发必须 worktree** —— 禁止 main 直接 push、直接合未通过 Gate 的 PR；同时禁止 secret 进入代码/文档/Evidence/Release (RULE-WORKTREE-001 / RULE-MAIN-SYNC-001 / RULE-MERGE-001 / RULE-SECRET-001)。
 6. **Harness Gate 是机器裁判，失败必须阻断** —— P0 Gate 不可豁免；本地 Gate 与 CI Gate 必须一致 (RULE-CORE-005 / RULE-HARNESS-003 / RULE-WAIVER-002 / RULE-GATE-CONSISTENCY-001)。
 7. **重复问题必须升级为 Rule / Harness / Prompt Patch** —— Retrospective 不能只是总结，必须产出可执行 Patch (RULE-CORE-006 / RULE-RETRO-003 / RULE-SI-001)。
 

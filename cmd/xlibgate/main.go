@@ -99,6 +99,8 @@ func run(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) int
 		return runExternal(stdin, stdout, stderr, "make", "release-final-check")
 	case "render-check":
 		return runExternal(stdin, stdout, stderr, "./scripts/check_rendered_template.sh", args[1:]...)
+	case "rules-consistency-check":
+		return runRulesConsistencyCheck(args[1:], stdout, stderr)
 	case "score":
 		return runScore(args[1:], stdout, stderr)
 	case "secrets", "security":
@@ -242,6 +244,7 @@ commands:
   release-final-check
   release-ready
   render-check <rendered-dir>
+  rules-consistency-check
   runtime-file-ownership
   runtime-health
   scope-lock
