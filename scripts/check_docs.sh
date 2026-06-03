@@ -190,18 +190,26 @@ require_text "Makefile" '$(GOALCLI) release-evidence-checksum-check'
 require_text "scripts/run_fuzz_smoke.sh" 'fuzz_time="${FUZZ_SMOKE_TIME:-10s}"'
 require_text ".github/workflows/ci.yml" "make release-check"
 require_text ".github/workflows/ci.yml" "release/manifest/latest.json.sha256"
+require_text ".github/workflows/ci.yml" 'XLIB_ENABLE_VULNCHECK: ${{ vars.XLIB_ENABLE_VULNCHECK }}'
+require_text ".github/workflows/ci.yml" "env.XLIB_ENABLE_VULNCHECK == '1'"
 require_text ".github/workflows/release.yml" "make release-final-check"
 require_text ".github/workflows/release.yml" "release/manifest/latest.json.sha256"
 require_text ".github/workflows/release.yml" "ARTIFACT_URL"
+require_text ".github/workflows/release.yml" 'XLIB_ENABLE_VULNCHECK: ${{ vars.XLIB_ENABLE_VULNCHECK }}'
+require_text ".github/workflows/release.yml" "env.XLIB_ENABLE_VULNCHECK == '1'"
 require_text ".github/workflows/release.yml" "contents: write"
 require_text ".github/workflows/release.yml" "gh release create"
 require_text ".github/workflows/release.yml" "gh release edit"
 require_text ".github/workflows/release.yml" "gh release view"
 require_text ".github/workflows/release.yml" "--verify-tag"
+require_text ".github/workflows/security.yml" 'XLIB_ENABLE_VULNCHECK: ${{ vars.XLIB_ENABLE_VULNCHECK }}'
+require_text ".github/workflows/security.yml" "env.XLIB_ENABLE_VULNCHECK == '1'"
 require_text ".github/workflows/release-auto-patch.yml" "branches: [main]"
 require_text ".github/workflows/release-auto-patch.yml" "contents: write"
 require_text ".github/workflows/release-auto-patch.yml" "fetch-depth: 0"
 require_text ".github/workflows/release-auto-patch.yml" "release-auto-patch-main"
+require_text ".github/workflows/release-auto-patch.yml" 'XLIB_ENABLE_VULNCHECK: ${{ vars.XLIB_ENABLE_VULNCHECK }}'
+require_text ".github/workflows/release-auto-patch.yml" "env.XLIB_ENABLE_VULNCHECK == '1'"
 require_text ".github/workflows/release-auto-patch.yml" "git tag --points-at"
 require_text ".github/workflows/release-auto-patch.yml" "already_released=true"
 require_text ".github/workflows/release-auto-patch.yml" "git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname"

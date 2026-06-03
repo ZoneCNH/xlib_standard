@@ -19,6 +19,11 @@ const (
 	defaultDownstreamSyncPlan     = "release/downstream-sync/latest.md"
 )
 
+var protectedDownstreamSyncPlanOutputPaths = map[string]struct{}{
+	".agent/downstream-adoption-status.yaml": {},
+	".agent/truth-state.yaml":                {},
+}
+
 var downstreamImpactCategories = []string{
 	"contracts",
 	"context_runtime",
@@ -100,6 +105,10 @@ func runDownstreamSyncPlan(args []string, stdout io.Writer, stderr io.Writer) in
 		write(stderr, "ERROR: unsupported downstream-sync-plan format %q\n", *format)
 		return 2
 	}
+	if err := validateDownstreamSyncPlanOutputPath(*outputPath, *workspaceRoot); err != nil {
+		write(stderr, "ERROR: invalid downstream sync plan output: %v\n", err)
+		return emitReport(stdout, "downstream-sync-plan", "failed", nil, []string{err.Error()})
+	}
 
 	impact, err := parseDownstreamImpactReport(*impactReportPath)
 	if err != nil {
@@ -144,6 +153,61 @@ func runDownstreamSyncPlan(args []string, stdout io.Writer, stderr io.Writer) in
 		fmt.Sprintf("target_count=%d", len(plan.Targets)),
 		"adoption_claim=not_claimed",
 	}, nil)
+}
+
+func validateDownstreamSyncPlanOutputPath(outputPath string, workspaceRoot string) error {
+	outputPath = strings.TrimSpace(outputPath)
+	if outputPath == "-" {
+		return nil
+	}
+	if outputPath == "" {
+		return errors.New("output path must not be empty")
+	}
+	if filepath.IsAbs(outputPath) {
+		return fmt.Errorf("output path must be repository-relative or -: %s", outputPath)
+	}
+	rawSlash := filepath.ToSlash(outputPath)
+	for _, segment := range strings.Split(rawSlash, "/") {
+		if segment == ".." {
+			return fmt.Errorf("output path must not contain parent traversal: %s", outputPath)
+		}
+	}
+
+	cleaned := filepath.Clean(outputPath)
+	slash := filepath.ToSlash(cleaned)
+	if slash == "." {
+		return errors.New("output path must reference a file")
+	}
+	if _, ok := protectedDownstreamSyncPlanOutputPaths[slash]; ok {
+		return fmt.Errorf("output path must not target adoption truth file: %s", slash)
+	}
+	if isWithinDownstreamWorkspace(slash, workspaceRoot) {
+		return fmt.Errorf("output path must not be inside downstream workspace root: %s", slash)
+	}
+	if info, err := os.Stat(cleaned); err == nil && info.IsDir() {
+		return fmt.Errorf("output path must reference a file, got directory: %s", slash)
+	} else if err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("check output path: %w", err)
+	}
+	return nil
+}
+
+func isWithinDownstreamWorkspace(outputSlash string, workspaceRoot string) bool {
+	workspaceRoot = strings.TrimSpace(workspaceRoot)
+	if workspaceRoot == "" || workspaceRoot == "." || filepath.IsAbs(workspaceRoot) {
+		return false
+	}
+	rawWorkspaceSlash := filepath.ToSlash(workspaceRoot)
+	for _, segment := range strings.Split(rawWorkspaceSlash, "/") {
+		if segment == ".." {
+			return false
+		}
+	}
+	workspaceSlash := filepath.ToSlash(filepath.Clean(workspaceRoot))
+	if workspaceSlash == "." {
+		return false
+	}
+	return outputSlash == workspaceSlash || strings.HasPrefix(outputSlash, workspaceSlash+"/")
 }
 
 func parseDownstreamImpactReport(path string) (downstreamImpactReport, error) {

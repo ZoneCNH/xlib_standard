@@ -349,11 +349,14 @@ func TestRunSecurityDefaultsToSecretsOnly(t *testing.T) {
 	if calls := readText(t, callLog); calls != "check_secrets.sh\n" {
 		t.Fatalf("security calls = %q; want secret scan only by default", calls)
 	}
+	if got := stderr.String(); !strings.Contains(got, "govulncheck suspended") || !strings.Contains(got, enableVulncheckEnv) {
+		t.Fatalf("security stderr = %q; want suspended govulncheck notice with %s", got, enableVulncheckEnv)
+	}
 }
 
 func TestRunSecurityRunsOptInVulnerabilityScanBeforeSecrets(t *testing.T) {
 	_, callLog := setupSecurityFixture(t)
-	t.Setenv("XLIB_ENABLE_VULNCHECK", "1")
+	t.Setenv(enableVulncheckEnv, "1")
 	var stdout, stderr bytes.Buffer
 
 	got := run([]string{"security"}, strings.NewReader(""), &stdout, &stderr)
@@ -368,7 +371,7 @@ func TestRunSecurityRunsOptInVulnerabilityScanBeforeSecrets(t *testing.T) {
 
 func TestRunSecurityStopsWhenOptInVulnerabilityScanFails(t *testing.T) {
 	_, callLog := setupSecurityFixture(t)
-	t.Setenv("XLIB_ENABLE_VULNCHECK", "1")
+	t.Setenv(enableVulncheckEnv, "1")
 	t.Setenv("GOVULNCHECK_EXIT", "7")
 	var stdout, stderr bytes.Buffer
 
