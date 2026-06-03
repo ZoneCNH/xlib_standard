@@ -25,8 +25,8 @@ jobs:
           cache: true
           cache-dependency-path: go.sum
 
-      - name: Install govulncheck (optional)
-        if: ${{ env.XLIB_ENABLE_VULNCHECK == '1' }}
+      - name: Install govulncheck
+        if: ${{ vars.XLIB_ENABLE_VULNCHECK == '1' }}
         run: go install golang.org/x/vuln/cmd/govulncheck@v1.3.0
 
       - name: Security

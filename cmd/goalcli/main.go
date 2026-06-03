@@ -136,11 +136,13 @@ func run(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) int
 	case "secret":
 		return runSecretCommand(args[1:], stdin, stdout, stderr)
 	case "security":
-		commands := []externalCommand{{name: "./scripts/check_secrets.sh"}}
 		if os.Getenv("XLIB_ENABLE_VULNCHECK") == "1" {
-			commands = append([]externalCommand{{name: "govulncheck", args: []string{"./..."}}}, commands...)
+			return runExternalSequence(stdin, stdout, stderr,
+				externalCommand{name: "govulncheck", args: []string{"./..."}},
+				externalCommand{name: "./scripts/check_secrets.sh"},
+			)
 		}
-		return runExternalSequence(stdin, stdout, stderr, commands...)
+		return runExternal(stdin, stdout, stderr, "./scripts/check_secrets.sh")
 	case "standard-impact-check":
 		return runExternal(stdin, stdout, stderr, "./scripts/check_standard_impact.sh")
 	case "self-improving-check", "retro-check":
