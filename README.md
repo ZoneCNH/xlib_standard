@@ -2,7 +2,7 @@
 
 `xlib-standard` 是基础库标准与交付运行时仓库，承担五类职责：**Standard Source**、**Go Reference Template**、**Generator**、**Harness** 和 **Evidence Runtime**。它把基础库的公共 API、配置、错误、健康检查、metrics、测试、release Evidence、Goal Runtime 和下游生成规则放在同一套可验证工件中维护。
 
-旧名 `baselib-template` 和示例名 `foundationx` 只允许出现在迁移文档语境中；新的默认下游集成目标是 `kernel`，生成库包括 `configx`、`observex`、`testkitx`、`postgresx`、`redisx`、`kafkax`、`taosx`、`ossx` 和 `clickhousex`。
+旧名 `baselib-template` 和示例名 `foundationx` 只允许出现在迁移文档语境中；新的默认下游集成目标是 `kernel`，生成库包括 `configx`、`observex`、`testkitx`、`postgresx`、`redisx`、`kafkax`、`natsx`、`taosx`、`ossx` 和 `clickhousex`。
 
 标准源仓库 URL 为 [`xlib-standard`](https://github.com/ZoneCNH/xlib-standard)。本仓库不再把标准源与模板实现拆成两个角色：标准文本、模板、generator、Harness gate 和 Evidence runtime 必须一起通过 release gate 验证。
 
@@ -11,7 +11,7 @@
 - **Standard Source**：维护基础库 P0 标准、仓库角色、分层、模块边界、DoD、安全、release 和 Evidence 协议。
 - **Go Reference Template**：提供可编译参考包 `pkg/templatex`、内部辅助、examples、contracts 和 testkit，用于证明标准可落地。
 - **Generator**：通过 [docs/generation.md](docs/generation.md) 与 `scripts/render_template.sh` 渲染具体基础库 module path、package name、README、docs 和 contracts。
-- **Harness**：通过 Makefile、scripts、CI 和 [.agent/harness.yaml](.agent/harness.yaml) 固化 required、extended、docs、boundary、integration、score 和 final gate。
+- **Harness**：通过 Makefile、scripts、CI 和 [.agent/harness/harness.yaml](.agent/harness/harness.yaml) 固化 required、extended、docs、boundary、integration、score 和 final gate。
 - **Evidence Runtime**：通过 [docs/standard/evidence-protocol.md](docs/standard/evidence-protocol.md)、[docs/release.md](docs/release.md)、[.agent](.agent/) 和 `release/manifest/latest.json` 记录可追溯完成状态。
 
 ## 非目标
@@ -47,18 +47,18 @@
 - [Harness gate](docs/standard/harness-gates.md)：required、extended、generator、docs、score 和 final gate 命令。
 - [Evidence 协议](docs/standard/evidence-protocol.md)：`DONE with evidence:` 和 release manifest 要求。
 - [测试策略](docs/testing.md)：单元、示例 smoke、release quality 和 release manifest fixture 隔离要求。
-- [安全与密钥策略](docs/standard/security-and-secret-policy.md)：`govulncheck`、secret scan 和 Agent runtime 目录排除边界。
-- [供应链与 Evidence](docs/supply-chain.md)：workflow Action SHA pinning、固定 `govulncheck` 版本、release manifest 和 CI artifact 对齐。
+- [安全与密钥策略](docs/standard/security-and-secret-policy.md)：secret scan、可选 `govulncheck` 和 Agent runtime 目录排除边界。
+- [供应链与 Evidence](docs/supply-chain.md)：workflow Action SHA pinning、可选 `govulncheck` 固定版本、release manifest 和 CI artifact 对齐。
 - [Release Scorecard](docs/scorecard.md)：`goalcli score --min 9.8` 的评分维度、阈值和语义边界。
 - [发布](docs/release.md)：`release-check`、manifest 字段和 Evidence 规则。
 - [独立审计 2026-06-02](docs/independent-audit-20260602.md)：独立审计发现、修复状态和剩余验证缺口。
-- [项目分析快照 2026-06-02](docs/project-analysis-20260602.md)：`v0.3.7` 发布/分析快照；当前治理主基线仍以 [目标文档](docs/goal/goal.md) v2.9.3 Complete 和 [.agent/traceability-matrix.md](.agent/traceability-matrix.md) 为准。
+- [项目分析快照 2026-06-02](docs/project-analysis-20260602.md)：`v0.3.7` 发布/分析快照；当前治理主基线仍以 [目标文档](docs/goal/goal.md) v2.9.3 Complete 和 [.agent/traceability/traceability-matrix.md](.agent/traceability/traceability-matrix.md) 为准。
 - [结构性问题清单 2026-06-02](docs/structural-issues-20260602.md)：记录架构、治理和交付风险的结构化问题清单。
-- [.agent 真相状态文件](.agent/truth-state.yaml)：汇总当前治理、命令实现、release gate、Evidence 可用性和下游采纳状态口径。
+- [.agent 真相状态文件](.agent/evidence/truth-state.yaml)：汇总当前治理、命令实现、release gate、Evidence 可用性和下游采纳状态口径。
 
 ## 命令
 
-本地运行完整 gate 前需要安装 `golangci-lint` 和 `govulncheck`；CI 会显式安装这两个工具。缺少任一工具时，`make lint` 或 `make security` 必须失败，不允许把必需 gate 记录为跳过。
+本地运行完整 gate 前默认需要安装 `golangci-lint`；`make security` 默认只运行 secret scan，不访问漏洞库。只有显式设置 `XLIB_ENABLE_VULNCHECK=1` 时才需要安装 `govulncheck` 并在 security gate 中追加漏洞扫描。缺少默认必需工具或启用漏洞扫描时缺少 `govulncheck`，相关 gate 必须失败，不允许把必需 gate 记录为跳过。
 
 ### 首次 clone 必跑
 
@@ -82,13 +82,13 @@ GOWORK=off make standard-impact-check
 GOWORK=off make docs-check
 XLIB_CONTEXT=release_verify GOWORK=off make release-check
 XLIB_CONTEXT=release_verify GOWORK=off make release-final-check
-XLIB_CONTEXT=release_verify GOWORK=off make release-preflight VERSION=v0.4.6
+XLIB_CONTEXT=release_verify GOWORK=off make release-preflight VERSION=v0.4.7
 make evidence
 ```
 
 `release-check` 和 `release-check-extended` 已依赖 `dependency-check`、`standard-impact-check` 和 `docs-check`，用于在生成 Evidence 前确认依赖漂移自动化、标准影响报告、标准文档入口、下游同步策略、链接、模板占位符、当前命名、关键文本和 release manifest 协议没有漂移。`dependency-check` 读取 `renovate.json`、`.github/dependabot.yml` 和 `go.mod`；`standard-impact-check` 生成 `release/standard-impact/latest.md`，并把 `downstream_sync_required`、`downstream_release_decision`（只允许 `required` / `not_required`）和 `repository_rules_release_decision`（只允许 `audit_required` / `not_required`）结论交给 release manifest。`docs-check` 是结构性 gate，不替代人工语义审查。
 
-Release gate 还必须执行 `GOWORK=off go run ./cmd/goalcli score --min 9.8`。GitHub Actions workflow 引用的第三方 Action 必须固定为 40 位 commit SHA 并保留来源 tag 注释；CI、Release Check 和 Security workflow 安装 `govulncheck` 时使用固定基线 `golang.org/x/vuln/cmd/govulncheck@v1.3.0`，不得用 `@latest` 作为发布门禁配置。
+Release gate 还必须执行 `GOWORK=off go run ./cmd/goalcli score --min 9.8`。GitHub Actions workflow 引用的第三方 Action 必须固定为 40 位 commit SHA 并保留来源 tag 注释；CI、Release Check 和 Security workflow 仅在 `XLIB_ENABLE_VULNCHECK=1` 时安装 `govulncheck`，且必须使用固定基线 `golang.org/x/vuln/cmd/govulncheck@v1.3.0`，不得用 `@latest` 作为发布门禁配置。
 
 生成 `kernel` 示例：
 
@@ -111,7 +111,7 @@ XLIB_CONTEXT=release_verify GOWORK=off make release-check
 
 完成需要 release manifest 和 CI Evidence。`release/manifest/latest.json` 是生成产物，不提交到源码历史；对应的 `release/manifest/latest.json.sha256` 也是生成产物，两者都必须保持在 `.gitignore` 中。manifest 会记录 module、commit、tree SHA、源码摘要、contract 指纹、`dependencies`、`tools`、生成时间、工作区状态、gate 结果、`standard_impact`、`downstream_sync_required`、`generator_evidence`、`score`、`workflow` 和这两个 Evidence artifact；其中 `standard_impact.downstream_release_decision` 只能使用 `required` 或 `not_required`，`standard_impact.repository_rules_release_decision` 只能使用 `audit_required` 或 `not_required`。`release-check` 会生成并校验 checksum，CI 会上传两者作为 artifact。`make release-evidence-check` 会验证 manifest 与当前仓库事实一致，`make release-final-check` 会额外要求工作区为 `clean`。Release manifest 测试必须在临时 fixture 仓库中构造所需 `.omc` state，不得依赖当前工作区的 Agent 运行态文件。最终完成声明必须包含 `DONE with evidence:`。
 
-Full Goal Runtime v3.1 位于 [.agent](.agent/)，其中 [goal-runtime](.agent/goal-runtime.md)、[object-model](.agent/object-model.md)、[state-machine](.agent/state-machine.md)、[traceability-matrix](.agent/traceability-matrix.md)、[harness](.agent/harness.yaml)、[evidence-protocol](.agent/evidence-protocol.md)、[release-template](.agent/release-template.md)、[retrospective-template](.agent/retrospective-template.md)、[risk-register](.agent/risk-register.md)、[decision-log](.agent/decision-log.md)、[rollback-protocol](.agent/rollback-protocol.md) 和 patch 文档用于把标准、执行、评审、发布和复盘连接到同一套 Evidence 协议。
+Full Goal Runtime v3.1 位于 [.agent](.agent/)，其中 [goal-runtime](.agent/runtime/goal-runtime.md)、[object-model](.agent/runtime/object-model.md)、[state-machine](.agent/runtime/state-machine.md)、[traceability-matrix](.agent/traceability/traceability-matrix.md)、[harness](.agent/harness/harness.yaml)、[evidence-protocol](.agent/evidence/evidence-protocol.md)、[release-template](.agent/release/release-template.md)、[retrospective-template](.agent/docs/retrospective-template.md)、[risk-register](.agent/traceability/risk-register.md)、[decision-log](.agent/traceability/decision-log.md)、[rollback-protocol](.agent/runtime/rollback-protocol.md) 和 patch 文档用于把标准、执行、评审、发布和复盘连接到同一套 Evidence 协议。
 
 ## Smoke 覆盖
 

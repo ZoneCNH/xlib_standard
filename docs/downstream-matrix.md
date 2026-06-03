@@ -4,7 +4,7 @@
 
 ## 当前状态口径
 
-本矩阵是目标库登记表，不等于下游已采纳证据。当前采纳状态以 [.agent/downstream-adoption-status.yaml](../.agent/downstream-adoption-status.yaml) 为准；所有 standard target libraries 当前为 `not_adopted` / `not_run` 时，release Evidence 必须记录未覆盖原因或 blocked owner。
+本矩阵是目标库登记表，不等于下游已采纳证据。当前采纳状态以 [.agent/registries/downstream-adoption-status.yaml](../.agent/registries/downstream-adoption-status.yaml) 为准；所有 standard target libraries 当前为 `not_adopted` / `not_run` 时，release Evidence 必须记录未覆盖原因或 blocked owner。
 
 | 库 | module path | package | layer | adoption_status | evidence_state | owner/blocker | 允许依赖 | 禁止依赖 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -15,6 +15,7 @@
 | `postgresx` | `github.com/ZoneCNH/postgresx` | `postgresx` | L2 | `not_adopted` | `not_run` | release owner 记录未覆盖原因 | `kernel`、`configx`、`observex` | 业务 repository、应用 transaction 编排 |
 | `redisx` | `github.com/ZoneCNH/redisx` | `redisx` | L2 | `not_adopted` | `not_run` | release owner 记录未覆盖原因 | `kernel`、`configx`、`observex` | 业务 key 语义、应用缓存策略 |
 | `kafkax` | `github.com/ZoneCNH/kafkax` | `kafkax` | L2 | `not_adopted` | `not_run` | release owner 记录未覆盖原因 | `kernel`、`configx`、`observex` | 业务 topic 设计、业务消息 schema |
+| `natsx` | `github.com/ZoneCNH/natsx` | `natsx` | L2 | `not_adopted` | `not_run` | release owner 记录未覆盖原因 | `kernel`、`configx`、`observex` | 业务 subject 设计、业务消息 schema |
 | `taosx` | `github.com/ZoneCNH/taosx` | `taosx` | L2 | `not_adopted` | `not_run` | release owner 记录未覆盖原因 | `kernel`、`configx`、`observex` | 业务指标模型、应用时序策略 |
 | `ossx` | `github.com/ZoneCNH/ossx` | `ossx` | L2 | `not_adopted` | `not_run` | release owner 记录未覆盖原因 | `kernel`、`configx`、`observex` | 业务文件生命周期策略 |
 | `clickhousex` | `github.com/ZoneCNH/clickhousex` | `clickhousex` | L2 | `not_adopted` | `not_run` | release owner 记录未覆盖原因 | `kernel`、`configx`、`observex` | 产品报表语义、业务查询模型 |
