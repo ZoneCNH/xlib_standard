@@ -1,0 +1,305 @@
+#!/usr/bin/env python3
+"""Extract all RULE-* definitions from goal-patch.md into a machine-readable registry.yaml.
+
+源文档约定:
+- 一级章节: `# N. Title`
+- 规则定义: `## RULE-<DOMAIN>-NNN：<title>` (中文冒号或英文冒号)
+
+输出: .agent/rules/registry.yaml (字段见 schema 注释)
+"""
+from __future__ import annotations
+
+import re
+import sys
+from datetime import date
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+# goal-patch.md 在 main worktree 的 .worktree/ 目录, 不在本 worktree
+SRC = Path("/home/xlib-standard/.worktree/goal-patch.md")
+DST = ROOT / ".agent" / "rules" / "registry.yaml"
+
+# ---- 分级策略 (基于 id 前缀关键词) ----
+P0_PREFIXES = {
+    "CORE", "WORKTREE", "WORKTREE-AUTO", "WORKTREE-CLEAN",
+    "HARNESS", "HARNESS-TEST",
+    "SECURITY", "SECRET", "SECRET-CHECK",
+    "EVIDENCE", "EVIDENCE-ANTI-FAKE", "EVIDENCE-ALG", "EVID-ALG",
+    "TRACE", "TRACE-ALG",
+    "RELEASE", "RELEASE-AUTO", "RELEASE-CHECK", "RELEASE-CHANNEL", "REL-ARTIFACT",
+    "MERGE", "MAIN-SYNC",
+    "BRANCH", "BRANCH-PROTECTION",
+    "COMMIT", "COMMIT-AUTO", "COMMIT-EVID",
+    "DOD", "DOR",
+    "PR", "PR-AUTO", "PR-CHECK", "PR-LIFECYCLE", "PR-SYNC",
+    "ISSUE", "ISSUE-AUTO", "ISSUE-LIFECYCLE",
+    "ROLLBACK",
+    "STATE", "STATE-GATE",
+    "GATE-CONSISTENCY",
+    "HUMAN",
+    "GHA", "GHA-WORKFLOW",
+    "MAKE",
+    "SUPPLY",
+    "STOP", "BLOCKER",
+    "WAIVER", "VIOLATION",
+}
+
+# ---- enforced_by 映射: id 前缀 -> xlibgate 子命令 ----
+ENFORCED_BY = {
+    "CORE-001": ("xlibgate evidence-check", 8),
+    "CORE-002": ("xlibgate context-fast-check", 1),
+    "CORE-003": ("xlibgate acceptance-matrix", 1),
+    "CORE-004": ("xlibgate traceability-check", 9),
+    "CORE-005": ("xlibgate governance-check", 1),
+    "CORE-006": ("", 0),  # Self-improving: no direct command yet
+    "WORKTREE": ("xlibgate worktree-guard", 5),
+    "WORKTREE-AUTO": ("xlibgate worktree-guard", 5),
+    "WORKTREE-CLEAN": ("xlibgate worktree-guard", 5),
+    "HARNESS": ("xlibgate governance-check", 1),
+    "HARNESS-TEST": ("xlibgate governance-fixture-test", 1),
+    "SECURITY": ("scripts/check_secrets.sh", 7),
+    "SECRET": ("scripts/check_secrets.sh", 7),
+    "SECRET-CHECK": ("scripts/check_secrets.sh", 7),
+    "EVIDENCE": ("xlibgate evidence-check", 8),
+    "EVIDENCE-ANTI-FAKE": ("xlibgate evidence-check", 8),
+    "EVID-ALG": ("xlibgate evidence-check", 8),
+    "EVIDENCE-ALG": ("xlibgate evidence-check", 8),
+    "TRACE": ("xlibgate traceability-check", 9),
+    "TRACE-ALG": ("xlibgate traceability-check", 9),
+    "RELEASE": ("xlibgate release-evidence-check", 10),
+    "RELEASE-AUTO": ("xlibgate release-final-check", 10),
+    "RELEASE-CHECK": ("xlibgate release-evidence-check", 10),
+    "RELEASE-CHANNEL": ("xlibgate release-final-check", 10),
+    "REL-ARTIFACT": ("xlibgate release-evidence-check", 10),
+    "MERGE": ("xlibgate pr-check", 1),
+    "MAIN-SYNC": ("xlibgate main-guard", 5),
+    "BRANCH": ("xlibgate worktree-guard", 5),
+    "BRANCH-PROTECTION": ("xlibgate github-settings", 1),
+    "COMMIT": ("git-hooks/pre-commit", 1),
+    "COMMIT-AUTO": ("git-hooks/pre-commit", 1),
+    "COMMIT-EVID": ("xlibgate evidence-check", 8),
+    "DOD": ("xlibgate done-assertion", 1),
+    "DOR": ("xlibgate goal-acceptance", 1),
+    "PR": ("xlibgate pr-template", 1),
+    "PR-AUTO": ("xlibgate pr-template", 1),
+    "PR-CHECK": ("xlibgate pr-template", 1),
+    "PR-LIFECYCLE": ("xlibgate pr-template", 1),
+    "PR-SYNC": ("xlibgate pr-template", 1),
+    "ISSUE": ("xlibgate issue-registry", 1),
+    "ISSUE-AUTO": ("xlibgate issue-registry", 1),
+    "ISSUE-LIFECYCLE": ("xlibgate issue-registry", 1),
+    "ROLLBACK": ("xlibgate release-final-check", 10),
+    "STATE": ("xlibgate goal-runtime", 1),
+    "STATE-GATE": ("xlibgate goal-runtime", 1),
+    "GATE-CONSISTENCY": ("xlibgate makefile-baseline", 1),
+    "MAKE": ("xlibgate makefile-baseline", 1),
+    "GHA": ("xlibgate github-governance", 1),
+    "GHA-WORKFLOW": ("xlibgate github-governance", 1),
+    "HUMAN": ("", 0),
+    "SUPPLY": ("xlibgate dependency-check", 1),
+    "STOP": ("", 0),
+    "WAIVER": ("", 0),
+    "VIOLATION": ("", 0),
+    # 非 P0 但常用
+    "BOUNDARY": ("xlibgate boundary", 1),
+    "DEBT": ("xlibgate debt", 1),
+    "DOC": ("xlibgate docs-check", 1),
+    "DEPENDENCY": ("xlibgate dependency-check", 1),
+    "DOWNSTREAM": ("xlibgate downstream-adoption", 1),
+    "DOWNSTREAM-SYNC": ("xlibgate downstream-registry", 1),
+    "DOWNSTREAM-GATE": ("xlibgate downstream-adoption", 1),
+    "ADOPTION-GATE": ("xlibgate downstream-adoption", 1),
+    "AGENT-TEAM": ("xlibgate agent-team-contract", 1),
+    "GOAL": ("xlibgate goal-runtime", 1),
+    "GOALPACK": ("xlibgate pack-gate", 1),
+    "GOALKIT": ("xlibgate", 1),
+    "GOALKIT-EXIT": ("xlibgate", 1),
+    "GOALKIT-CONFIG": ("xlibgate", 1),
+    "GOALKIT-ARCH": ("xlibgate", 1),
+    "REGISTRY": ("xlibgate command-registry", 1),
+    "CHECKER": ("xlibgate", 1),
+    "SCORE": ("xlibgate score", 1),
+    "SCORE-V14": ("xlibgate score", 1),
+    "AUDIT": ("xlibgate goal-certify", 1),
+    "AUDIT-CHECK": ("xlibgate goal-certify", 1),
+    "RETRO": ("", 0),
+    "RETRO-CHECK": ("", 0),
+    "SI": ("", 0),
+    "SCHEMA": ("xlibgate policy-schema", 6),
+    "SCHEMA-MIN": ("xlibgate policy-schema", 6),
+    "CONTRACT": ("xlibgate contracts", 1),
+    "CONTRACTS": ("xlibgate contracts", 1),
+    "CLI-CONTRACT": ("xlibgate cli-contract", 1),
+    "DRIFT": ("xlibgate docs-drift", 1),
+    "DEPRECATION": ("", 0),
+    "TEMPLATE": ("", 0),
+    "HOOKS": ("xlibgate doctor-hooks", 1),
+    "REPORT": ("", 0),
+    "METRIC": ("", 0),
+    "CHANGE": ("", 0),
+    "CHANGELOG": ("xlibgate changelog", 1),
+    "FILE": ("", 0),
+    "ANTI-CARGO": ("", 0),
+    "ANTI-FRAGILE": ("", 0),
+    "AR": ("xlibgate autoresearch", 1),
+    "RESEARCH": ("xlibgate autoresearch", 1),
+    "FACTORY": ("", 0),
+    "ID": ("", 0),
+    "OBJECT": ("", 0),
+    "MODE": ("", 0),
+    "MODE-GATE": ("", 0),
+    "CLASS": ("", 0),
+    "PRIORITY": ("", 0),
+    "CODE": ("", 0),
+    "SIMPLICITY": ("", 0),
+    "ORDER": ("", 0),
+    "DESIGN": ("", 0),
+    "TASK": ("", 0),
+    "RISK": ("", 0),
+    "DECISION": ("", 0),
+    "CONTEXT": ("xlibgate context-fast-check", 1),
+    "CONTEXT-COMPRESSION": ("", 0),
+    "CI": ("xlibgate fast", 1),
+    "VERSION": ("", 0),
+    "RUNTIME-COMPAT": ("", 0),
+    "DEPENDENCY-SCAN": ("xlibgate dependency-check", 1),
+    "MILESTONE": ("", 0),
+    "LABEL": ("", 0),
+    "REVIEW": ("xlibgate pr-template", 1),
+    "REVIEW-BOT": ("", 0),
+    "PR-BOT": ("", 0),
+    "HANDOFF": ("xlibgate goal-handover", 1),
+    "REPO-LAYOUT": ("", 0),
+    "ROOT": ("", 0),
+    "RUNBOOK": ("", 0),
+    "REPAIR": ("", 0),
+    "AGENT": ("", 0),
+    "AGENT-AUTH": ("", 0),
+    "AGENT-MEMORY": ("", 0),
+    "CONCURRENCY": ("", 0),
+    "FAILURE": ("", 0),
+    "BATCH": ("", 0),
+    "AUDIT-LEVEL": ("xlibgate goal-certify", 1),
+    "ADOPTION-SCORE": ("xlibgate downstream-adoption", 1),
+    "AUTO-SAFETY": ("", 0),
+    "ARCHIVE": ("", 0),
+    "GOLDEN": ("", 0),
+    "SPEC": ("", 0),
+    "XSTACK": ("", 0),
+    "XGO": ("", 0),
+    "TASK-AUTO": ("", 0),
+}
+
+DEFINITION_RE = re.compile(r"^##\s+(RULE-[A-Z-]+-\d+)[：:]\s*(.+)$")
+SECTION_RE = re.compile(r"^# (\d+)\. (.+)$")
+
+
+def split_prefix(rid: str) -> str:
+    """RULE-FOO-BAR-001 -> FOO-BAR"""
+    parts = rid.split("-")
+    return "-".join(parts[1:-1])
+
+
+def classify(rid: str) -> str:
+    prefix = split_prefix(rid)
+    return "P0" if prefix in P0_PREFIXES else "P1"
+
+
+def lookup_enforced(rid: str) -> tuple[str, int]:
+    """完整 id 优先 (RULE-CORE-001)，否则 fallback 到前缀"""
+    short = rid.removeprefix("RULE-")
+    if short in ENFORCED_BY:
+        return ENFORCED_BY[short]
+    prefix = split_prefix(rid)
+    return ENFORCED_BY.get(prefix, ("", 0))
+
+
+def main() -> int:
+    text = SRC.read_text(encoding="utf-8")
+    lines = text.split("\n")
+    rules: dict[str, dict] = {}
+    cur_section_num = ""
+    cur_section_title = ""
+    for i, line in enumerate(lines, 1):
+        m_sec = SECTION_RE.match(line)
+        if m_sec:
+            cur_section_num = m_sec.group(1)
+            cur_section_title = m_sec.group(2).strip()
+            continue
+        m = DEFINITION_RE.match(line)
+        if not m:
+            continue
+        rid = m.group(1)
+        title = m.group(2).strip()
+        if rid in rules:
+            # 重复定义: 记录到 duplicate_at
+            rules[rid].setdefault("duplicate_at", []).append(i)
+            continue
+        enforced_by, exit_code = lookup_enforced(rid)
+        status = "active" if enforced_by else "indexed"
+        rules[rid] = {
+            "id": rid,
+            "level": classify(rid),
+            "title": title,
+            "source_section": cur_section_num,
+            "source_section_title": cur_section_title,
+            "source_line": i,
+            "enforced_by": enforced_by,
+            "exit_code": exit_code,
+            "status": status,
+        }
+
+    # ---- 序列化为 YAML (手写以保证字段顺序 + 注释) ----
+    out: list[str] = []
+    out.append("# .agent/rules/registry.yaml")
+    out.append("# 自动从 .worktree/goal-patch.md 提取生成。")
+    out.append("# 重新生成: python3 scripts/extract_rules.py")
+    out.append("# 字段语义:")
+    out.append("#   id                   - 唯一规则 ID")
+    out.append("#   level                - P0 (release-blocking) / P1 (governance) / P2 (advisory)")
+    out.append("#   title                - 规则一句话标题 (来源: ## 行)")
+    out.append("#   source_section       - goal-patch.md 一级章节编号")
+    out.append("#   source_section_title - 章节标题")
+    out.append("#   source_line          - 定义所在行号")
+    out.append("#   enforced_by          - 实际执行该规则的命令 (空=尚未机器化)")
+    out.append("#   exit_code            - 违规时该命令应返回的标准退出码")
+    out.append("#   status               - active (有 enforced_by) / indexed (仅登记) / deprecated")
+    out.append("#   duplicate_at         - 该 id 在源文档中被二次定义的行号 (若有)")
+    out.append("")
+    out.append("version: 1")
+    out.append(f"generated_from: .worktree/goal-patch.md")
+    out.append(f"generated_at: {date.today().isoformat()}")
+    out.append(f"total_rules: {len(rules)}")
+    p0 = sum(1 for r in rules.values() if r["level"] == "P0")
+    p1 = sum(1 for r in rules.values() if r["level"] == "P1")
+    active = sum(1 for r in rules.values() if r["status"] == "active")
+    out.append(f"p0_count: {p0}")
+    out.append(f"p1_count: {p1}")
+    out.append(f"active_count: {active}")
+    out.append(f"indexed_count: {len(rules) - active}")
+    out.append("")
+    out.append("rules:")
+    # 排序: P0 优先, 同级按 id
+    for r in sorted(rules.values(), key=lambda x: (0 if x["level"] == "P0" else 1, x["id"])):
+        out.append(f"  - id: {r['id']}")
+        out.append(f"    level: {r['level']}")
+        # title 用 YAML block scalar 避免转义中文冒号
+        title_escaped = r["title"].replace('"', '\\"')
+        out.append(f'    title: "{title_escaped}"')
+        out.append(f"    source_section: {r['source_section']}")
+        sec_title_escaped = r["source_section_title"].replace('"', '\\"')
+        out.append(f'    source_section_title: "{sec_title_escaped}"')
+        out.append(f"    source_line: {r['source_line']}")
+        out.append(f'    enforced_by: "{r["enforced_by"]}"')
+        out.append(f"    exit_code: {r['exit_code']}")
+        out.append(f"    status: {r['status']}")
+        if "duplicate_at" in r:
+            out.append(f"    duplicate_at: {r['duplicate_at']}")
+
+    DST.write_text("\n".join(out) + "\n", encoding="utf-8")
+    print(f"wrote {DST} ({len(rules)} rules, P0={p0}, P1={p1}, active={active})")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
