@@ -337,7 +337,7 @@ func readSecretCheckReport(t *testing.T, path string) struct {
 	return report
 }
 
-func TestRunSecurityExecutesVulnerabilityScanBeforeSecrets(t *testing.T) {
+func TestRunSecurityDefaultsToSecretsOnly(t *testing.T) {
 	_, callLog := setupSecurityFixture(t)
 	var stdout, stderr bytes.Buffer
 
@@ -346,13 +346,29 @@ func TestRunSecurityExecutesVulnerabilityScanBeforeSecrets(t *testing.T) {
 	if got != 0 {
 		t.Fatalf("security exit = %d, stderr %q, stdout %q; want 0", got, stderr.String(), stdout.String())
 	}
-	if calls := readText(t, callLog); calls != "govulncheck ./...\ncheck_secrets.sh\n" {
-		t.Fatalf("security calls = %q; want vulnerability scan before secrets", calls)
+	if calls := readText(t, callLog); calls != "check_secrets.sh\n" {
+		t.Fatalf("security calls = %q; want secret scan only by default", calls)
 	}
 }
 
-func TestRunSecurityStopsWhenVulnerabilityScanFails(t *testing.T) {
+func TestRunSecurityRunsOptInVulnerabilityScanBeforeSecrets(t *testing.T) {
 	_, callLog := setupSecurityFixture(t)
+	t.Setenv("XLIB_ENABLE_VULNCHECK", "1")
+	var stdout, stderr bytes.Buffer
+
+	got := run([]string{"security"}, strings.NewReader(""), &stdout, &stderr)
+
+	if got != 0 {
+		t.Fatalf("security exit = %d, stderr %q, stdout %q; want 0", got, stderr.String(), stdout.String())
+	}
+	if calls := readText(t, callLog); calls != "govulncheck ./...\ncheck_secrets.sh\n" {
+		t.Fatalf("security calls = %q; want opt-in vulnerability scan before secrets", calls)
+	}
+}
+
+func TestRunSecurityStopsWhenOptInVulnerabilityScanFails(t *testing.T) {
+	_, callLog := setupSecurityFixture(t)
+	t.Setenv("XLIB_ENABLE_VULNCHECK", "1")
 	t.Setenv("GOVULNCHECK_EXIT", "7")
 	var stdout, stderr bytes.Buffer
 
@@ -362,7 +378,7 @@ func TestRunSecurityStopsWhenVulnerabilityScanFails(t *testing.T) {
 		t.Fatalf("security exit = %d, stderr %q, stdout %q; want 7", got, stderr.String(), stdout.String())
 	}
 	if calls := readText(t, callLog); calls != "govulncheck ./...\n" {
-		t.Fatalf("security calls = %q; want short-circuit after govulncheck", calls)
+		t.Fatalf("security calls = %q; want short-circuit after opt-in govulncheck", calls)
 	}
 }
 

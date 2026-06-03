@@ -13,6 +13,8 @@ concurrency:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    env:
+      XLIB_ENABLE_VULNCHECK: ${{ vars.XLIB_ENABLE_VULNCHECK }}
 
     steps:
       - name: Checkout
@@ -33,6 +35,8 @@ jobs:
         run: go install golang.org/x/vuln/cmd/govulncheck@v1.3.0
 
       - name: Release Check
+        env:
+          XLIB_ENABLE_VULNCHECK: ${{ vars.XLIB_ENABLE_VULNCHECK }}
         run: |
           export WORKFLOW_RUN_ID="${{ github.run_id }}"
           export ARTIFACT_NAME="release-manifest-${{ github.run_id }}"

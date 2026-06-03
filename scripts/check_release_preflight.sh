@@ -56,7 +56,12 @@ if ! grep -Eq "^## \\[?$version\\]?( |$)" CHANGELOG.md; then
   exit 1
 fi
 
-for tool in golangci-lint govulncheck; do
+required_tools=(golangci-lint)
+if [[ "${XLIB_ENABLE_VULNCHECK:-}" == "1" ]]; then
+  required_tools+=(govulncheck)
+fi
+
+for tool in "${required_tools[@]}"; do
   if ! command -v "$tool" >/dev/null 2>&1; then
     echo "ERROR: $tool not installed"
     exit 1

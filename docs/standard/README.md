@@ -25,7 +25,7 @@
 - [下游同步策略](../downstream-sync-policy.md)：标准变更到 `kernel`、L1/L2 基础库和 `x.go` 的同步规则。
 - [x.go 集成边界](../xgo-integration-boundary.md)：调用方密钥路径和组合边界。
 - [测试策略](../testing.md)：单元、示例 smoke、release quality 和 release manifest fixture 隔离要求。
-- [供应链与 Evidence](../supply-chain.md)：workflow Action SHA pinning、固定 `govulncheck` 版本、manifest 校验和 CI artifact 对齐。
+- [供应链与 Evidence](../supply-chain.md)：workflow Action SHA pinning、opt-in `govulncheck` 固定版本、manifest 校验和 CI artifact 对齐。
 - [Release Scorecard](../scorecard.md)：`goalcli score --min 9.8` 的评分维度、阈值和语义边界。
 - [独立审计 2026-06-02](../independent-audit-20260602.md)：审计发现、修复状态和剩余远端验证缺口。
 - [迁移指南](../migration/baselib-template-to-xlib-standard.md)：旧名迁移规则。
