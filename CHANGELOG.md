@@ -4,6 +4,23 @@
 
 暂无。
 
+## v0.4.5 - 2026-06-03
+
+### 修复
+
+- 修正 README、downstream sync policy 和项目分析文档中的 `docs/goal.md` 迁移后链接，统一指向 `docs/goal/goal.md`。
+- 移除 `xlibgate` 测试中不再使用的 helper，保持测试文件无死代码。
+
+### 治理
+
+- 为 CI、Goal Gate、Integration、Release、Security 和 Worktree Guard workflow 增加 concurrency 控制。
+- 将 GitHub Actions Go 安装统一为读取 `go.mod` 的 `go-version-file`，并启用 `setup-go` 内建 module cache。
+- 将项目发布版本、release manifest 默认版本、xlibgate 治理版本和 release preflight 示例同步到 `v0.4.5`。
+
+### 兼容性
+
+- 本版本不改变 `pkg/templatex` 公共 API，仅更新版本元数据、CI 治理和文档链接。
+
 ## v0.4.3 - 2026-06-03
 
 ### 修复

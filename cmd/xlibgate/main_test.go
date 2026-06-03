@@ -841,7 +841,7 @@ func TestRunGovernanceCommands(t *testing.T) {
 		}
 		if report.Command != "version" ||
 			report.Status != "passed" ||
-			!slicesContain(report.Details, "xlib-standard release v0.4.3") ||
+			!slicesContain(report.Details, "xlib-standard release v0.4.5") ||
 			!slicesContain(report.Details, "xlibgate governance runtime v2.9.3") {
 			t.Fatalf("report = %#v; want version gate report", report)
 		}
@@ -1633,21 +1633,28 @@ func TestContextReleaseRejectsForbiddenReleaseReferences(t *testing.T) {
 	}
 }
 
-func TestCIWorkflowGoalGovernanceUsesExplicitContext(t *testing.T) {
+func TestCIWorkflowReleaseCheckUsesExplicitContext(t *testing.T) {
 	content, err := os.ReadFile(filepath.Join(repoRoot(t), ".github", "workflows", "ci.yml"))
 	if err != nil {
 		t.Fatalf("read ci workflow: %v", err)
 	}
 	text := string(content)
 
-	want := "GOWORK=off XLIB_CONTEXT=ci_pull_request make governance-check p1-governance-check p2-runtime-check"
+	want := "GOWORK=off XLIB_CONTEXT=ci_pull_request make release-check"
 	if !strings.Contains(text, want) {
 		t.Fatalf("ci workflow missing %q", want)
 	}
 
-	bare := "\n        run: GOWORK=off make governance-check p1-governance-check p2-runtime-check"
-	if strings.Contains(text, bare) {
-		t.Fatalf("ci workflow contains bare goal governance run without XLIB_CONTEXT")
+	for _, target := range []string{"governance-check", "p1-governance-check", "p2-runtime-check"} {
+		for _, line := range strings.Split(text, "\n") {
+			trimmed := strings.TrimSpace(line)
+			if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+				continue
+			}
+			if strings.Contains(trimmed, "make "+target) {
+				t.Fatalf("ci workflow runs duplicate %s outside release-check: %q", target, trimmed)
+			}
+		}
 	}
 }
 
@@ -1929,15 +1936,6 @@ func latestChangelogVersion(t *testing.T, text string) string {
 func slicesContain(values []string, want string) bool {
 	for _, value := range values {
 		if value == want {
-			return true
-		}
-	}
-	return false
-}
-
-func containsSubstring(values []string, want string) bool {
-	for _, value := range values {
-		if strings.Contains(value, want) {
 			return true
 		}
 	}

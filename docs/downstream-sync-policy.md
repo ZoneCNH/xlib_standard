@@ -32,7 +32,7 @@
 
 `.agent/truth-state.yaml` 的 forbidden upgrades 是该口径的单一约束：`registered != adopted`、`baseline_scanned != adopted/implemented`、`patch_only != proof_based_adoption`、`not_run != passed`。
 
-`Context Runtime v4.0 profile` 是 context profile / registry bridge 的同步条目名称，不改写 Full Goal Runtime v3.1 的 `.agent/` 工件版本，也不替代 [docs/goal.md](goal.md) v2.9.3 Complete 的治理主基线。
+`Context Runtime v4.0 profile` 是 context profile / registry bridge 的同步条目名称，不改写 Full Goal Runtime v3.1 的 `.agent/` 工件版本，也不替代 [docs/goal.md](goal/goal.md) v2.9.3 Complete 的治理主基线。
 
 ## 变更到同步动作映射
 
