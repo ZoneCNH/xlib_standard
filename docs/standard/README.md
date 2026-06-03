@@ -18,6 +18,8 @@
 
 ## 当前 v3.1 补充入口
 
+- [Goal Runtime Canonical 标准](../../.agent/standard/goal-runtime-canonical.md)：Goal Runtime 唯一权威规格（8 条铁律 + 9 层架构 + v0.1.0 五主线），原始演进合集见 `.agent/inbox/`。
+- [goalkit ↔ xlibgate 命名合约](../../.agent/standard/goalkit-xlibgate-mapping.md)：合约-实现分离声明，`goalkit` 是标准合约名，`xlibgate` 是本仓库实现。
 - [下游矩阵](../downstream-matrix.md)：`kernel` 与目标基础库的 module/package/layer/dependency 矩阵。
 - [下游同步策略](../downstream-sync-policy.md)：标准变更到 `kernel`、L1/L2 基础库和 `x.go` 的同步规则。
 - [x.go 集成边界](../xgo-integration-boundary.md)：调用方密钥路径和组合边界。
