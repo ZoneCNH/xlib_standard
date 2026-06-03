@@ -102,3 +102,8 @@
 ## 7. 评分（沿用现有）
 
 `xlibgate score --min 9.8` 不变。
+
+
+---
+
+> 本文件被 `scripts/check_docs.sh` 列为 required，删除会阻断 `make docs-check` / `make governance-check` / release pipeline。
