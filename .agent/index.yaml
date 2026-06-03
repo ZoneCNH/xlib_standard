@@ -366,12 +366,12 @@ files:
     validator: docs-check
     purpose: gate 说明。
   - path: .agent/generated-artifacts.yaml
-    layer: registry
-    authority: validated_mirror
-    mutability: generated
+    layer: evidence
+    authority: source_of_truth
+    mutability: hand_written
     owner: release
     validator: release-check
-    purpose: 生成 artifact 镜像。
+    purpose: 生成 artifact 注册表。
   - path: .agent/github-governance.yaml
     layer: policy
     authority: source_of_truth
@@ -640,11 +640,11 @@ files:
     purpose: 规则目录说明。
   - path: .agent/rules/agent-runtime-rules.md
     layer: policy
-    authority: source_of_truth
-    mutability: hand_written
+    authority: validated_mirror
+    mutability: generated
     owner: governance
-    validator: docs-check
-    purpose: Agent runtime 规则。
+    validator: rules-verify
+    purpose: 从 .agent/rules/registry.yaml 渲染的 Agent runtime 规则镜像。
   - path: .agent/rules/commit-rules.md
     layer: policy
     authority: source_of_truth
@@ -654,11 +654,11 @@ files:
     purpose: commit 规则。
   - path: .agent/rules/core-rules.md
     layer: policy
-    authority: source_of_truth
-    mutability: hand_written
+    authority: validated_mirror
+    mutability: generated
     owner: governance
-    validator: docs-check
-    purpose: 核心规则。
+    validator: rules-verify
+    purpose: 从 .agent/rules/registry.yaml 渲染的核心规则镜像。
   - path: .agent/rules/evidence-rules.md
     layer: policy
     authority: source_of_truth
@@ -703,11 +703,11 @@ files:
     purpose: PR 规则。
   - path: .agent/rules/registry.yaml
     layer: registry
-    authority: source_of_truth
-    mutability: hand_written
+    authority: validated_mirror
+    mutability: generated
     owner: governance
-    validator: governance-check
-    purpose: 规则注册表。
+    validator: rules-verify
+    purpose: 从 .worktree/goal-patch.md 生成的规则机器索引。
   - path: .agent/rules/release-rules.md
     layer: policy
     authority: source_of_truth
@@ -724,11 +724,11 @@ files:
     purpose: 风险与决策规则。
   - path: .agent/rules/schema-registry-rules.md
     layer: policy
-    authority: source_of_truth
-    mutability: hand_written
+    authority: validated_mirror
+    mutability: generated
     owner: governance
-    validator: docs-check
-    purpose: schema 注册规则。
+    validator: rules-verify
+    purpose: 从 .agent/rules/registry.yaml 渲染的 schema 注册规则镜像。
   - path: .agent/rules/security-rules.md
     layer: policy
     authority: source_of_truth

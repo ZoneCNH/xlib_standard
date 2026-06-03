@@ -1429,6 +1429,194 @@ func TestCommandRegistryRequiresFullCommandSurface(t *testing.T) {
 			t.Fatalf("stdout = %q; want invalid layer gap", stdout.String())
 		}
 	})
+
+	t.Run("rejects generated agent file missing artifact registration", func(t *testing.T) {
+		root := t.TempDir()
+		writeValidAgentIndexFixture(t, root)
+		indexPath := filepath.Join(root, ".agent", "index.yaml")
+		index, err := os.ReadFile(indexPath)
+		if err != nil {
+			t.Fatalf("read agent index: %v", err)
+		}
+		index = append(index, []byte("  - path: .agent/generated-scan.yaml\n"+
+			"    layer: evidence\n"+
+			"    authority: validated_mirror\n"+
+			"    mutability: generated\n"+
+			"    owner: governance\n"+
+			"    validator: command-registry\n"+
+			"    purpose: generated fixture\n")...)
+		writeTestFiles(t, root, map[string]string{
+			".agent/index.yaml":            string(index),
+			".agent/generated-scan.yaml":   "generated\n",
+			".agent/command-registry.yaml": commandRegistryFixture(""),
+		})
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		got := run([]string{"command-registry"}, strings.NewReader(""), &stdout, &stderr)
+		if got != 1 {
+			t.Fatalf("command-registry unregistered generated artifact exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+		}
+		if !strings.Contains(stdout.String(), ".agent/index.yaml .agent/generated-scan.yaml mutability generated requires .agent/generated-artifacts.yaml entry") {
+			t.Fatalf("stdout = %q; want generated artifact registration gap", stdout.String())
+		}
+	})
+
+	t.Run("rejects generated artifact registry classified as generated output", func(t *testing.T) {
+		root := t.TempDir()
+		writeValidAgentIndexFixture(t, root)
+		indexPath := filepath.Join(root, ".agent", "index.yaml")
+		index, err := os.ReadFile(indexPath)
+		if err != nil {
+			t.Fatalf("read agent index: %v", err)
+		}
+		indexText := strings.Replace(string(index), "  - path: .agent/generated-artifacts.yaml\n"+
+			"    layer: evidence\n"+
+			"    authority: source_of_truth\n"+
+			"    mutability: hand_written\n", "  - path: .agent/generated-artifacts.yaml\n"+
+			"    layer: evidence\n"+
+			"    authority: validated_mirror\n"+
+			"    mutability: generated\n", 1)
+		writeTestFiles(t, root, map[string]string{
+			".agent/index.yaml":            indexText,
+			".agent/command-registry.yaml": commandRegistryFixture(""),
+		})
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		got := run([]string{"command-registry"}, strings.NewReader(""), &stdout, &stderr)
+		if got != 1 {
+			t.Fatalf("command-registry generated registry classification exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+		}
+		if !strings.Contains(stdout.String(), ".agent/generated-artifacts.yaml must be indexed as source_of_truth") {
+			t.Fatalf("stdout = %q; want generated-artifacts source_of_truth gap", stdout.String())
+		}
+		if !strings.Contains(stdout.String(), ".agent/generated-artifacts.yaml must be indexed as hand_written") {
+			t.Fatalf("stdout = %q; want generated-artifacts hand_written gap", stdout.String())
+		}
+	})
+
+	t.Run("rejects generated rule mirror classified as source authority", func(t *testing.T) {
+		root := t.TempDir()
+		writeValidAgentIndexFixture(t, root)
+		indexPath := filepath.Join(root, ".agent", "index.yaml")
+		index, err := os.ReadFile(indexPath)
+		if err != nil {
+			t.Fatalf("read agent index: %v", err)
+		}
+		indexText := strings.Replace(string(index), "  - path: .agent/rules/registry.yaml\n"+
+			"    layer: policy\n"+
+			"    authority: validated_mirror\n"+
+			"    mutability: generated\n", "  - path: .agent/rules/registry.yaml\n"+
+			"    layer: policy\n"+
+			"    authority: source_of_truth\n"+
+			"    mutability: hand_written\n", 1)
+		writeTestFiles(t, root, map[string]string{
+			".agent/index.yaml":            indexText,
+			".agent/command-registry.yaml": commandRegistryFixture(""),
+		})
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		got := run([]string{"command-registry"}, strings.NewReader(""), &stdout, &stderr)
+		if got != 1 {
+			t.Fatalf("command-registry generated rule classification exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+		}
+		for _, want := range []string{
+			".agent/index.yaml .agent/rules/registry.yaml must classify authority as validated_mirror",
+			".agent/index.yaml .agent/rules/registry.yaml must classify mutability as generated",
+		} {
+			if !strings.Contains(stdout.String(), want) {
+				t.Fatalf("stdout = %q; want %q", stdout.String(), want)
+			}
+		}
+	})
+
+	t.Run("rejects generated rule mirror missing artifact registration", func(t *testing.T) {
+		root := t.TempDir()
+		writeValidAgentIndexFixture(t, root)
+		artifactsPath := filepath.Join(root, ".agent", "generated-artifacts.yaml")
+		artifacts, err := os.ReadFile(artifactsPath)
+		if err != nil {
+			t.Fatalf("read generated artifacts: %v", err)
+		}
+		missingCoreRule := "  - path: .agent/rules/core-rules.md\n" +
+			"    classification: generated_artifact\n" +
+			"    source_control: generated-only\n" +
+			"    generated_by: \"goalcli rules-verify\"\n" +
+			"    validated_by: command-registry\n"
+		writeTestFiles(t, root, map[string]string{
+			".agent/generated-artifacts.yaml": strings.Replace(string(artifacts), missingCoreRule, "", 1),
+			".agent/command-registry.yaml":    commandRegistryFixture(""),
+		})
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		got := run([]string{"command-registry"}, strings.NewReader(""), &stdout, &stderr)
+		if got != 1 {
+			t.Fatalf("command-registry missing generated rule artifact exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+		}
+		if !strings.Contains(stdout.String(), ".agent/index.yaml .agent/rules/core-rules.md mutability generated requires .agent/generated-artifacts.yaml entry") {
+			t.Fatalf("stdout = %q; want generated rule artifact registration gap", stdout.String())
+		}
+	})
+
+	t.Run("rejects rules registry unknown enforcer", func(t *testing.T) {
+		root := t.TempDir()
+		writeValidAgentIndexFixture(t, root)
+		writeTestFiles(t, root, map[string]string{
+			".agent/command-registry.yaml": commandRegistryFixture(""),
+			".agent/rules/registry.yaml":   validRulesRegistryFixture("goalcli ghost-command"),
+		})
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		got := run([]string{"command-registry"}, strings.NewReader(""), &stdout, &stderr)
+		if got != 1 {
+			t.Fatalf("command-registry unknown rule enforcer exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+		}
+		if !strings.Contains(stdout.String(), ".agent/rules/registry.yaml RULE-TEST-001 enforced_by goalcli ghost-command is not tied to a known goalcli command, Makefile target, script, or hook") {
+			t.Fatalf("stdout = %q; want unknown rule enforcer gap", stdout.String())
+		}
+	})
+
+	t.Run("rejects harness alias without semantic role", func(t *testing.T) {
+		root := t.TempDir()
+		writeValidAgentIndexFixture(t, root)
+		writeTestFiles(t, root, map[string]string{
+			".agent/command-registry.yaml": commandRegistryFixture(""),
+			".agent/harness.yaml":          strings.Replace(validHarnessAliasFixture(), "    semantic_role: \"fixture\"\n", "", 1),
+		})
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		got := run([]string{"command-registry"}, strings.NewReader(""), &stdout, &stderr)
+		if got != 1 {
+			t.Fatalf("command-registry missing harness alias semantic role exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+		}
+		if !strings.Contains(stdout.String(), ".agent/harness.yaml governance_chain missing semantic_role") {
+			t.Fatalf("stdout = %q; want harness alias semantic_role gap", stdout.String())
+		}
+	})
+
+	t.Run("requires harness gate link semantics", func(t *testing.T) {
+		root := t.TempDir()
+		writeValidAgentIndexFixture(t, root)
+		writeTestFiles(t, root, map[string]string{
+			".agent/command-registry.yaml": commandRegistryFixture(""),
+			".agent/harness.yaml":          "required_gates: []\n",
+		})
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		got := run([]string{"command-registry"}, strings.NewReader(""), &stdout, &stderr)
+		if got != 1 {
+			t.Fatalf("command-registry harness semantics exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+		}
+		if !strings.Contains(stdout.String(), ".agent/harness.yaml missing gate_link_semantics:") {
+			t.Fatalf("stdout = %q; want harness gate_link_semantics gap", stdout.String())
+		}
+	})
 }
 
 func TestIssueRegistryRequiresDynamicContract(t *testing.T) {
@@ -2629,10 +2817,19 @@ func commandRegistryFixture(extra string) string {
 func writeValidAgentIndexFixture(t *testing.T, root string) {
 	t.Helper()
 	files := map[string]string{
-		".agent/index.yaml": validAgentIndexFixture(),
+		".agent/generated-artifacts.yaml":       validGeneratedArtifactsFixture(),
+		".agent/harness.yaml":                   validHarnessAliasFixture(),
+		".agent/index.yaml":                     validAgentIndexFixture(),
+		".agent/rules/registry.yaml":            validRulesRegistryFixture("goalcli version"),
+		".agent/rules/agent-runtime-rules.md":   "fixture\n",
+		".agent/rules/core-rules.md":            "fixture\n",
+		".agent/rules/schema-registry-rules.md": "fixture\n",
 	}
 	for _, path := range requiredAgentIndexPaths() {
-		if path == ".agent/index.yaml" || path == ".agent/command-registry.yaml" {
+		if _, ok := files[path]; ok {
+			continue
+		}
+		if path == ".agent/command-registry.yaml" {
 			continue
 		}
 		files[path] = "fixture\n"
@@ -2650,8 +2847,12 @@ func validAgentIndexFixture() string {
 		b.WriteString("    layer: ")
 		b.WriteString(testAgentIndexLayer(path))
 		b.WriteString("\n")
-		b.WriteString("    authority: source_of_truth\n")
-		b.WriteString("    mutability: hand_written\n")
+		b.WriteString("    authority: ")
+		b.WriteString(testAgentIndexAuthority(path))
+		b.WriteString("\n")
+		b.WriteString("    mutability: ")
+		b.WriteString(testAgentIndexMutability(path))
+		b.WriteString("\n")
 		b.WriteString("    owner: governance\n")
 		b.WriteString("    validator: command-registry\n")
 		b.WriteString("    purpose: fixture\n")
@@ -2661,12 +2862,15 @@ func validAgentIndexFixture() string {
 
 func testAgentIndexLayer(path string) string {
 	switch {
-	case strings.Contains(path, "evidence"):
+	case path == ".agent/generated-artifacts.yaml" || strings.Contains(path, "evidence"):
 		return "evidence"
+	case strings.HasPrefix(path, ".agent/rules/"):
+		return "policy"
 	case path == ".agent/command-registry.yaml" ||
 		path == ".agent/index.yaml" ||
 		path == ".agent/issue-registry.yaml" ||
 		path == ".agent/command-implementation-status.yaml" ||
+		path == ".agent/generated-artifacts.yaml" ||
 		path == ".agent/makefile-target-registry.yaml" ||
 		path == ".agent/makefile-baseline.yaml":
 		return "registry"
@@ -2687,6 +2891,124 @@ func testAgentIndexLayer(path string) string {
 	default:
 		return "runtime_contract"
 	}
+}
+
+func testAgentIndexAuthority(path string) string {
+	switch path {
+	case ".agent/rules/registry.yaml", ".agent/rules/agent-runtime-rules.md", ".agent/rules/core-rules.md", ".agent/rules/schema-registry-rules.md":
+		return "validated_mirror"
+	default:
+		return "source_of_truth"
+	}
+}
+
+func testAgentIndexMutability(path string) string {
+	switch path {
+	case ".agent/rules/registry.yaml", ".agent/rules/agent-runtime-rules.md", ".agent/rules/core-rules.md", ".agent/rules/schema-registry-rules.md":
+		return "generated"
+	default:
+		return "hand_written"
+	}
+}
+
+func validGeneratedArtifactsFixture() string {
+	return `schema_version: "1.0"
+classification:
+  artifact_class: generated_artifact_inventory
+  authority: source_of_truth
+  validated_by: release-evidence-check
+artifacts:
+  - path: release/manifest/latest.json
+    classification: generated_artifact
+    source_control: generated-only
+    generated_by: "GOWORK=off make evidence"
+    validated_by: release-evidence-check
+  - path: release/manifest/latest.json.sha256
+    classification: generated_artifact
+    source_control: generated-only
+    generated_by: "GOWORK=off make evidence"
+    validated_by: release-evidence-check
+  - path: .agent/rules/registry.yaml
+    classification: generated_artifact
+    source_control: generated-only
+    generated_by: "goalcli rules-verify"
+    validated_by: command-registry
+  - path: .agent/rules/agent-runtime-rules.md
+    classification: generated_artifact
+    source_control: generated-only
+    generated_by: "goalcli rules-verify"
+    validated_by: command-registry
+  - path: .agent/rules/core-rules.md
+    classification: generated_artifact
+    source_control: generated-only
+    generated_by: "goalcli rules-verify"
+    validated_by: command-registry
+  - path: .agent/rules/schema-registry-rules.md
+    classification: generated_artifact
+    source_control: generated-only
+    generated_by: "goalcli rules-verify"
+    validated_by: command-registry
+`
+}
+
+func validHarnessAliasFixture() string {
+	return `schema_version: "2.9.3"
+required_gates:
+  - id: governance_check
+    command: "GOWORK=off make governance-check"
+    purpose: "fixture"
+  - id: p1_governance_check
+    command: "GOWORK=off make p1-governance-check"
+    purpose: "fixture"
+  - id: p2_runtime_check
+    command: "GOWORK=off make p2-runtime-check"
+    purpose: "fixture"
+  - id: governance_chain
+    command: "GOWORK=off make governance-check"
+    purpose: "fixture"
+    alias_of: governance_check
+    semantic_role: "fixture"
+  - id: p1_governance_chain
+    command: "GOWORK=off make p1-governance-check"
+    purpose: "fixture"
+    alias_of: p1_governance_check
+    semantic_role: "fixture"
+  - id: p2_runtime_chain
+    command: "GOWORK=off make p2-runtime-check"
+    purpose: "fixture"
+    alias_of: p2_runtime_check
+    semantic_role: "fixture"
+  - id: governance_release_scope
+    command: "GOWORK=off make governance-check"
+    purpose: "fixture"
+    alias_of: governance_check
+    semantic_role: "fixture"
+  - id: p1_governance_release_scope
+    command: "GOWORK=off make p1-governance-check"
+    purpose: "fixture"
+    alias_of: p1_governance_check
+    semantic_role: "fixture"
+  - id: p2_runtime_release_scope
+    command: "GOWORK=off make p2-runtime-check"
+    purpose: "fixture"
+    alias_of: p2_runtime_check
+    semantic_role: "fixture"
+gate_link_semantics:
+  duplicate_command_links: aliases
+  duplicate_entries_do_not_create_new_authorities: true
+  authority_source: required_gates[].id
+`
+}
+
+func validRulesRegistryFixture(enforcedBy string) string {
+	return `generated_from: .worktree/goal-patch.md
+rules:
+  - id: RULE-TEST-001
+    status: active
+    enforced_by: ` + enforcedBy + `
+  - id: RULE-TEST-002
+    status: indexed
+`
 }
 
 func issueRegistryFixture(ids ...string) string {
@@ -2967,4 +3289,67 @@ func TestRulesConsistencyCheckDetectsDriftAndUnregistered(t *testing.T) {
 	if !strings.Contains(out, "漂移：") {
 		t.Errorf("want drift gap; stdout=%q", out)
 	}
+}
+
+func TestRulesConsistencyCheckValidatesEnforcedByReferences(t *testing.T) {
+	writeFixture := func(t *testing.T, root string, registry string) {
+		t.Helper()
+		canonical := "## 1. 八条铁律\n| ID | 铁律 | 实现 |\n|---|---|---|\n" +
+			"| RULE-CORE-001 | x | y |\n\n## 2. 其他\n"
+		iron := "## 七律\n1. (RULE-CORE-001).\n"
+		writeTestFiles(t, root, map[string]string{
+			".agent/standard/goal-runtime-canonical.md": canonical,
+			".agent/rules/iron-rules.md":                iron,
+			".agent/rules/registry.yaml":                registry,
+			".agent/makefile-target-registry.yaml":      "targets:\n  - governance-check\n",
+			".githooks/pre-commit":                      "#!/bin/sh\n",
+		})
+	}
+
+	t.Run("accepts canonical goalcli make and hook enforcers", func(t *testing.T) {
+		root := t.TempDir()
+		writeFixture(t, root, "rules:\n"+
+			"  - id: RULE-CORE-001\n    enforced_by: goalcli evidence-check\n"+
+			"  - id: RULE-EVIDENCE-001\n    enforced_by: make governance-check\n"+
+			"  - id: RULE-MERGE-001\n    enforced_by: .githooks/pre-commit\n")
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		got := runRulesConsistencyCheck(nil, &stdout, &stderr)
+		if got != 0 {
+			t.Fatalf("got exit=%d stderr=%q stdout=%q; want 0", got, stderr.String(), stdout.String())
+		}
+	})
+
+	t.Run("rejects unknown goalcli enforcer", func(t *testing.T) {
+		root := t.TempDir()
+		writeFixture(t, root, "rules:\n"+
+			"  - id: RULE-CORE-001\n    enforced_by: goalcli ghost-command\n")
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		got := runRulesConsistencyCheck(nil, &stdout, &stderr)
+		if got != 1 {
+			t.Fatalf("got exit=%d stderr=%q stdout=%q; want 1", got, stderr.String(), stdout.String())
+		}
+		if !strings.Contains(stdout.String(), ".agent/rules/registry.yaml enforced_by goalcli ghost-command references unknown goalcli command ghost-command") {
+			t.Fatalf("stdout = %q; want unknown goalcli enforcer gap", stdout.String())
+		}
+	})
+
+	t.Run("rejects unknown make enforcer target", func(t *testing.T) {
+		root := t.TempDir()
+		writeFixture(t, root, "rules:\n"+
+			"  - id: RULE-CORE-001\n    enforced_by: make missing-target\n")
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		got := runRulesConsistencyCheck(nil, &stdout, &stderr)
+		if got != 1 {
+			t.Fatalf("got exit=%d stderr=%q stdout=%q; want 1", got, stderr.String(), stdout.String())
+		}
+		if !strings.Contains(stdout.String(), ".agent/rules/registry.yaml enforced_by make missing-target references unknown make target missing-target") {
+			t.Fatalf("stdout = %q; want unknown make enforcer gap", stdout.String())
+		}
+	})
 }

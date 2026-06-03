@@ -379,11 +379,16 @@ func runCommandRegistry(args []string, stdout io.Writer, stderr io.Writer) int {
 	})
 	appendYAMLListDuplicateGaps(".agent/command-registry.yaml", "name", "command", &gaps)
 	appendAgentIndexGaps(".agent/index.yaml", &gaps)
+	appendGeneratedArtifactClassificationGaps(".agent/index.yaml", ".agent/generated-artifacts.yaml", &gaps)
+	appendGeneratedArtifactsGaps(".agent/generated-artifacts.yaml", ".agent/index.yaml", &gaps)
+	appendHarnessAliasGaps(".agent/harness.yaml", &gaps)
+	appendHarnessGateLinkSemanticsGaps(".agent/harness.yaml", &gaps)
+	appendRulesEnforcedByGaps(".agent/rules/registry.yaml", &gaps)
 	if len(gaps) > 0 {
 		write(stderr, "ERROR: command-registry found %d gap(s)\n", len(gaps))
 		return emitReport(stdout, "command-registry", "failed", nil, gaps)
 	}
-	return emitReport(stdout, "command-registry", "passed", []string{"command registry entries are complete and unique", ".agent/index.yaml control-plane classification satisfied"}, nil)
+	return emitReport(stdout, "command-registry", "passed", []string{"command registry entries are complete and unique", ".agent/index.yaml control-plane classification satisfied", ".agent generated-artifact and harness gate-link contracts satisfied"}, nil)
 }
 
 func runMakefileBaseline(args []string, stdout io.Writer, stderr io.Writer) int {
@@ -1591,7 +1596,185 @@ func appendAgentIndexGaps(path string, gaps *[]string) {
 			*gaps = append(*gaps, path+" missing file entry "+required)
 		}
 	}
+	appendAgentIndexClassificationGaps(path, entries, gaps)
 	appendUnclassifiedAgentFileGaps(filepath.Dir(path), path, present, gaps)
+}
+
+func appendAgentIndexClassificationGaps(indexPath string, entries []agentIndexEntry, gaps *[]string) {
+	required := map[string]map[string]string{
+		".agent/generated-artifacts.yaml": {
+			"layer":      "evidence",
+			"authority":  "source_of_truth",
+			"mutability": "hand_written",
+		},
+		".agent/rules/registry.yaml": {
+			"authority":  "validated_mirror",
+			"mutability": "generated",
+		},
+		".agent/rules/agent-runtime-rules.md": {
+			"authority":  "validated_mirror",
+			"mutability": "generated",
+		},
+		".agent/rules/core-rules.md": {
+			"authority":  "validated_mirror",
+			"mutability": "generated",
+		},
+		".agent/rules/schema-registry-rules.md": {
+			"authority":  "validated_mirror",
+			"mutability": "generated",
+		},
+	}
+	for _, entry := range entries {
+		fields, ok := required[entry.path]
+		if !ok {
+			continue
+		}
+		for field, want := range fields {
+			got, ok := blockYAMLValue(entry.block, field)
+			if !ok || got != want {
+				*gaps = append(*gaps, fmt.Sprintf("%s %s must classify %s as %s", indexPath, entry.path, field, want))
+			}
+		}
+	}
+}
+
+func appendGeneratedArtifactsGaps(path string, indexPath string, gaps *[]string) {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		*gaps = append(*gaps, "missing "+path)
+		return
+	}
+	text := string(content)
+	for _, needle := range []string{"schema_version:", "classification:", "artifacts:"} {
+		if !strings.Contains(text, needle) {
+			*gaps = append(*gaps, path+" missing "+needle)
+		}
+	}
+	for _, field := range []string{"artifact_class", "authority", "validated_by"} {
+		if !blockHasNonEmptyYAMLValue(text, field) {
+			*gaps = append(*gaps, path+" classification missing "+field)
+		}
+	}
+
+	artifacts := parseYAMLSequenceBlocks(text, "artifacts", "path")
+	if len(artifacts) == 0 {
+		*gaps = append(*gaps, path+" must define generated artifact entries")
+		return
+	}
+	validators := knownValidationRefs()
+	for _, artifact := range artifacts {
+		if artifact.value == "" {
+			*gaps = append(*gaps, path+" contains artifact without path")
+		}
+		requireYAMLBlockValue(path, artifact.value, artifact.block, "classification", "generated_artifact", gaps)
+		requireYAMLBlockValue(path, artifact.value, artifact.block, "source_control", "generated-only", gaps)
+		if !blockHasNonEmptyYAMLValue(artifact.block, "generated_by") {
+			*gaps = append(*gaps, path+" "+artifact.value+" missing generated_by")
+		}
+		validator, ok := blockYAMLValue(artifact.block, "validated_by")
+		if !ok || validator == "" {
+			*gaps = append(*gaps, path+" "+artifact.value+" missing validated_by")
+		} else if !validators[validator] {
+			*gaps = append(*gaps, path+" "+artifact.value+" validated_by "+validator+" is not a known goalcli or Makefile gate")
+		}
+	}
+
+	indexContent, err := os.ReadFile(indexPath)
+	if err != nil {
+		*gaps = append(*gaps, "missing "+indexPath)
+		return
+	}
+	for _, entry := range parseAgentIndexEntries(string(indexContent)) {
+		if entry.path == path {
+			requireYAMLBlockValue(indexPath, path, entry.block, "layer", "evidence", gaps)
+			requireYAMLBlockValue(indexPath, path, entry.block, "authority", "source_of_truth", gaps)
+			requireYAMLBlockValue(indexPath, path, entry.block, "mutability", "hand_written", gaps)
+			return
+		}
+	}
+	*gaps = append(*gaps, indexPath+" missing file entry "+path)
+}
+
+func appendHarnessAliasGaps(path string, gaps *[]string) {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		*gaps = append(*gaps, "missing "+path)
+		return
+	}
+	entries := parseYAMLSequenceBlocks(string(content), "required_gates", "id")
+	if len(entries) == 0 {
+		*gaps = append(*gaps, path+" must define required_gates")
+		return
+	}
+	byID := map[string]yamlSequenceBlock{}
+	for _, entry := range entries {
+		byID[entry.value] = entry
+	}
+	requiredAliases := map[string]string{
+		"governance_chain":            "governance_check",
+		"governance_release_scope":    "governance_check",
+		"p1_governance_chain":         "p1_governance_check",
+		"p1_governance_release_scope": "p1_governance_check",
+		"p2_runtime_chain":            "p2_runtime_check",
+		"p2_runtime_release_scope":    "p2_runtime_check",
+	}
+	for alias, target := range requiredAliases {
+		entry, ok := byID[alias]
+		if !ok {
+			*gaps = append(*gaps, path+" missing required gate alias "+alias)
+			continue
+		}
+		if _, ok := byID[target]; !ok {
+			*gaps = append(*gaps, path+" "+alias+" alias_of missing target "+target)
+		}
+		requireYAMLBlockValue(path, alias, entry.block, "alias_of", target, gaps)
+		if !blockHasNonEmptyYAMLValue(entry.block, "semantic_role") {
+			*gaps = append(*gaps, path+" "+alias+" missing semantic_role")
+		}
+	}
+}
+
+func appendRulesEnforcedByGaps(path string, gaps *[]string) {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		*gaps = append(*gaps, "missing "+path)
+		return
+	}
+	text := string(content)
+	for _, needle := range []string{"generated_from:", "rules:"} {
+		if !strings.Contains(text, needle) {
+			*gaps = append(*gaps, path+" missing "+needle)
+		}
+	}
+	rules := parseYAMLSequenceBlocks(text, "rules", "id")
+	if len(rules) == 0 {
+		*gaps = append(*gaps, path+" must define rules")
+		return
+	}
+	commandNames := knownGoalcliCommandRefs()
+	makeTargets := knownMakeTargetRefs()
+	for _, rule := range rules {
+		status, _ := blockYAMLValue(rule.block, "status")
+		enforcedBy, _ := blockYAMLValue(rule.block, "enforced_by")
+		switch status {
+		case "active":
+			if enforcedBy == "" {
+				*gaps = append(*gaps, path+" "+rule.value+" active rule missing enforced_by")
+				continue
+			}
+			if !knownEnforcementRef(enforcedBy, commandNames, makeTargets) {
+				*gaps = append(*gaps, path+" "+rule.value+" enforced_by "+enforcedBy+" is not tied to a known goalcli command, Makefile target, script, or hook")
+			}
+		case "indexed":
+			if enforcedBy != "" {
+				*gaps = append(*gaps, path+" "+rule.value+" indexed rule must not set enforced_by")
+			}
+		case "deprecated":
+			continue
+		default:
+			*gaps = append(*gaps, path+" "+rule.value+" invalid status "+status)
+		}
+	}
 }
 
 func parseAgentIndexEntries(text string) []agentIndexEntry {
@@ -1651,6 +1834,7 @@ func requiredAgentIndexPaths() []string {
 		".agent/harness.yaml",
 		".agent/command-registry.yaml",
 		".agent/issue-registry.yaml",
+		".agent/generated-artifacts.yaml",
 		".agent/command-implementation-status.yaml",
 		".agent/makefile-target-registry.yaml",
 		".agent/makefile-baseline.yaml",
@@ -1666,6 +1850,10 @@ func requiredAgentIndexPaths() []string {
 		".agent/rollback-protocol.md",
 		".agent/release-template.md",
 		".agent/agent-teams.md",
+		".agent/rules/registry.yaml",
+		".agent/rules/agent-runtime-rules.md",
+		".agent/rules/core-rules.md",
+		".agent/rules/schema-registry-rules.md",
 		".agent/retrospective.md",
 	}
 }
@@ -1674,7 +1862,7 @@ func appendUnclassifiedAgentFileGaps(root string, indexPath string, present map[
 	err := filepath.WalkDir(root, func(path string, entry os.DirEntry, err error) error {
 		if err != nil {
 			*gaps = append(*gaps, "read "+filepath.ToSlash(path)+": "+err.Error())
-			return nil
+			return err
 		}
 		if entry.IsDir() {
 			return nil
@@ -1687,6 +1875,91 @@ func appendUnclassifiedAgentFileGaps(root string, indexPath string, present map[
 	})
 	if err != nil {
 		*gaps = append(*gaps, "read "+filepath.ToSlash(root)+": "+err.Error())
+	}
+}
+
+func appendGeneratedArtifactClassificationGaps(indexPath string, artifactsPath string, gaps *[]string) {
+	content, err := os.ReadFile(indexPath)
+	if err != nil {
+		return
+	}
+	entries := parseAgentIndexEntries(string(content))
+	byPath := make(map[string]agentIndexEntry, len(entries))
+	var generatedAgentPaths []string
+	for _, entry := range entries {
+		byPath[entry.path] = entry
+		if strings.HasPrefix(entry.path, ".agent/") {
+			mutability, _ := blockYAMLValue(entry.block, "mutability")
+			if mutability == "generated" {
+				generatedAgentPaths = append(generatedAgentPaths, entry.path)
+			}
+		}
+	}
+
+	if registry, ok := byPath[artifactsPath]; ok {
+		authority, _ := blockYAMLValue(registry.block, "authority")
+		if authority != "source_of_truth" {
+			*gaps = append(*gaps, artifactsPath+" must be indexed as source_of_truth")
+		}
+		mutability, _ := blockYAMLValue(registry.block, "mutability")
+		if mutability != "hand_written" {
+			*gaps = append(*gaps, artifactsPath+" must be indexed as hand_written")
+		}
+	}
+
+	artifactPaths, err := yamlListScalarValues(artifactsPath, "path")
+	if err != nil {
+		if len(generatedAgentPaths) > 0 {
+			*gaps = append(*gaps, "missing "+artifactsPath+" for generated .agent files")
+		}
+		return
+	}
+	registered := scalarSet(artifactPaths...)
+	for _, path := range generatedAgentPaths {
+		if path == artifactsPath {
+			continue
+		}
+		if !registered[path] {
+			*gaps = append(*gaps, indexPath+" "+path+" mutability generated requires "+artifactsPath+" entry")
+		}
+	}
+	for _, path := range artifactPaths {
+		if !strings.HasPrefix(path, ".agent/") {
+			continue
+		}
+		entry, ok := byPath[path]
+		if !ok {
+			*gaps = append(*gaps, artifactsPath+" references unindexed agent artifact "+path)
+			continue
+		}
+		mutability, _ := blockYAMLValue(entry.block, "mutability")
+		if mutability != "generated" {
+			*gaps = append(*gaps, artifactsPath+" "+path+" must be indexed with mutability generated")
+		}
+		authority, _ := blockYAMLValue(entry.block, "authority")
+		if authority == "source_of_truth" {
+			*gaps = append(*gaps, artifactsPath+" "+path+" generated artifact must not be source_of_truth")
+		}
+	}
+}
+
+func appendHarnessGateLinkSemanticsGaps(path string, gaps *[]string) {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		*gaps = append(*gaps, "missing "+path)
+		return
+	}
+	text := string(content)
+	required := []string{
+		"gate_link_semantics:",
+		"duplicate_command_links: aliases",
+		"duplicate_entries_do_not_create_new_authorities: true",
+		"authority_source: required_gates[].id",
+	}
+	for _, needle := range required {
+		if !strings.Contains(text, needle) {
+			*gaps = append(*gaps, path+" missing "+needle)
+		}
 	}
 }
 
@@ -1805,6 +2078,133 @@ func blockHasEvidence(block string) bool {
 		return true
 	}
 	return blockHasYAMLListItem(block, "evidence")
+}
+
+type yamlSequenceBlock struct {
+	value string
+	block string
+}
+
+func parseYAMLSequenceBlocks(text string, section string, key string) []yamlSequenceBlock {
+	var entries []yamlSequenceBlock
+	lines := strings.Split(text, "\n")
+	inSection := false
+	prefix := "- " + key + ":"
+	var current *yamlSequenceBlock
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if !inSection {
+			if trimmed == section+":" && line == trimmed {
+				inSection = true
+			}
+			continue
+		}
+		if isTopLevelYAMLKey(line) {
+			break
+		}
+		if strings.HasPrefix(trimmed, prefix) {
+			if current != nil {
+				entries = append(entries, *current)
+			}
+			current = &yamlSequenceBlock{value: trimYAMLScalar(strings.TrimSpace(strings.TrimPrefix(trimmed, prefix)))}
+		}
+		if current != nil {
+			current.block += line + "\n"
+		}
+	}
+	if current != nil {
+		entries = append(entries, *current)
+	}
+	return entries
+}
+
+func requireYAMLBlockValue(path string, label string, block string, field string, want string, gaps *[]string) {
+	got, ok := blockYAMLValue(block, field)
+	if !ok || got != want {
+		*gaps = append(*gaps, fmt.Sprintf("%s %s must set %s: %s", path, label, field, want))
+	}
+}
+
+func knownValidationRefs() map[string]bool {
+	refs := knownMakeTargetRefs()
+	for command := range knownGoalcliCommandRefs() {
+		refs[command] = true
+	}
+	return refs
+}
+
+func knownGoalcliCommandRefs() map[string]bool {
+	refs := scalarSet(commandRegistryRequiredCommands()...)
+	for _, entry := range parseYAMLSequenceFileBlocks(".agent/command-registry.yaml", "commands", "name") {
+		if entry.value != "" {
+			refs[entry.value] = true
+		}
+	}
+	return refs
+}
+
+func knownMakeTargetRefs() map[string]bool {
+	refs := scalarSet(requiredMakefileTargets()...)
+	for _, target := range makefileTargets("Makefile") {
+		refs[target] = true
+	}
+	return refs
+}
+
+func parseYAMLSequenceFileBlocks(path string, section string, key string) []yamlSequenceBlock {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return nil
+	}
+	return parseYAMLSequenceBlocks(string(content), section, key)
+}
+
+func makefileTargets(path string) []string {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return nil
+	}
+	var targets []string
+	for _, line := range strings.Split(string(content), "\n") {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") || strings.HasPrefix(trimmed, ".") || strings.HasPrefix(line, "\t") {
+			continue
+		}
+		if i := strings.Index(trimmed, ":"); i > 0 {
+			name := strings.TrimSpace(trimmed[:i])
+			if name != "" && !strings.ContainsAny(name, " \t$") {
+				targets = append(targets, name)
+			}
+		}
+	}
+	return targets
+}
+
+func knownEnforcementRef(ref string, commandNames map[string]bool, makeTargets map[string]bool) bool {
+	ref = strings.TrimSpace(ref)
+	if ref == "" {
+		return false
+	}
+	if ref == "goalcli" {
+		info, err := os.Stat("cmd/goalcli/main.go")
+		return err == nil && !info.IsDir()
+	}
+	if strings.HasPrefix(ref, "goalcli ") {
+		fields := strings.Fields(ref)
+		return len(fields) >= 2 && (commandNames[fields[1]] || makeTargets[fields[1]])
+	}
+	if strings.HasPrefix(ref, "make ") {
+		fields := strings.Fields(ref)
+		if len(fields) < 2 {
+			return false
+		}
+		return makeTargets[fields[len(fields)-1]]
+	}
+	if strings.HasPrefix(ref, "scripts/") || strings.HasPrefix(ref, ".githooks/") {
+		info, err := os.Stat(ref)
+		return err == nil && !info.IsDir()
+	}
+	return commandNames[ref] || makeTargets[ref]
 }
 
 func blockHasNonEmptyYAMLValue(block string, key string) bool {
@@ -2103,6 +2503,7 @@ func runRulesConsistencyCheck(args []string, stdout io.Writer, stderr io.Writer)
 			gaps = append(gaps, fmt.Sprintf("漂移：%s 引用 %s 但 %s 未引用", canonicalPath, id, ironPath))
 		}
 	}
+	appendRulesRegistryEnforcedByGaps(registryPath, string(registry), &gaps)
 
 	if len(gaps) > 0 {
 		write(stderr, "ERROR: rules-consistency-check found %d gap(s)\n", len(gaps))
@@ -2160,4 +2561,100 @@ func extractRegistryRuleIDs(text string) map[string]bool {
 		out[m[1]] = true
 	}
 	return out
+}
+
+func appendRulesRegistryEnforcedByGaps(registryPath string, registryText string, gaps *[]string) {
+	for _, ref := range extractRegistryEnforcedByValues(registryText) {
+		if ref == "goalcli" {
+			continue
+		}
+		fields := strings.Fields(ref)
+		if len(fields) == 0 {
+			continue
+		}
+		if fields[0] == "goalcli" {
+			if len(fields) < 2 {
+				*gaps = append(*gaps, registryPath+" enforced_by "+ref+" is missing a goalcli command")
+				continue
+			}
+			command := fields[1]
+			if !rulesRegistryGoalCLICommands()[command] {
+				*gaps = append(*gaps, registryPath+" enforced_by "+ref+" references unknown goalcli command "+command)
+			}
+			continue
+		}
+		if target, ok := parseMakeEnforcerTarget(fields); ok {
+			if !rulesRegistryMakeTargets()[target] {
+				*gaps = append(*gaps, registryPath+" enforced_by "+ref+" references unknown make target "+target)
+			}
+			continue
+		}
+		if strings.HasPrefix(ref, ".githooks/") {
+			info, err := os.Stat(ref)
+			if err != nil || info.IsDir() {
+				*gaps = append(*gaps, registryPath+" enforced_by "+ref+" references missing hook")
+			}
+			continue
+		}
+		*gaps = append(*gaps, registryPath+" enforced_by "+ref+" is not a supported gate reference")
+	}
+}
+
+func extractRegistryEnforcedByValues(text string) []string {
+	re := regexp.MustCompile(`(?m)^\s*enforced_by:\s*(.+)$`)
+	var values []string
+	for _, match := range re.FindAllStringSubmatch(text, -1) {
+		value := trimYAMLScalar(match[1])
+		if value != "" && value != "[]" {
+			values = append(values, value)
+		}
+	}
+	return values
+}
+
+func rulesRegistryGoalCLICommands() map[string]bool {
+	commands := scalarSet(commandRegistryRequiredCommands()...)
+	if registered, err := yamlListScalarValues(".agent/command-registry.yaml", "name"); err == nil {
+		for _, command := range registered {
+			commands[command] = true
+		}
+	}
+	for _, command := range []string{
+		"rules-consistency-check",
+		"self-improving-check",
+		"retro-check",
+		"traceability-check",
+		"debt-evidence",
+		"debt-evidence-checksum-check",
+		"debt-evidence-hash",
+	} {
+		commands[command] = true
+	}
+	return commands
+}
+
+func rulesRegistryMakeTargets() map[string]bool {
+	targets := scalarSet(requiredMakefileTargets()...)
+	if values, err := yamlSequenceValuesInSection(".agent/makefile-target-registry.yaml", "targets"); err == nil {
+		for _, target := range values {
+			targets[target] = true
+		}
+	}
+	return targets
+}
+
+func parseMakeEnforcerTarget(fields []string) (string, bool) {
+	for i, field := range fields {
+		if field != "make" {
+			continue
+		}
+		for _, candidate := range fields[i+1:] {
+			if candidate == "" || strings.HasPrefix(candidate, "-") || strings.Contains(candidate, "=") {
+				continue
+			}
+			return candidate, true
+		}
+		return "", false
+	}
+	return "", false
 }
