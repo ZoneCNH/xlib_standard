@@ -90,6 +90,7 @@ out_dir="$out_abs"
     --exclude='./.git' \
     --exclude='./.omx' \
     --exclude='./.worktree' \
+    --exclude='./.agent/inbox' \
     --exclude='./docs/adr' \
     --exclude='./docs/goal.md' \
     --exclude='./tmp' \

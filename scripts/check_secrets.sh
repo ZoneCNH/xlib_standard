@@ -25,6 +25,7 @@ for pattern in "${PATTERNS[@]}"; do
     --exclude-dir=.omc \
     --exclude-dir=.omx \
     --exclude-dir=vendor \
+    --exclude-dir=inbox \
     --exclude="*.sum" \
     --exclude="check_secrets.sh" \
     --exclude="goal.md" \

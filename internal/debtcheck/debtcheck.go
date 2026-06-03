@@ -710,7 +710,9 @@ func skipDir(name string) bool {
 
 func skipPath(root, path string) bool {
 	relPath := rel(root, path)
-	return strings.HasPrefix(relPath, ".agent/debt/") || strings.HasPrefix(relPath, "internal/debtcheck/")
+	return strings.HasPrefix(relPath, ".agent/debt/") ||
+		strings.HasPrefix(relPath, ".agent/inbox/") ||
+		strings.HasPrefix(relPath, "internal/debtcheck/")
 }
 
 func skipFile(path string) bool {

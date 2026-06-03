@@ -360,3 +360,14 @@ pr-check: worktree-check lint test
 retro-check:
 	@echo "retro-check: 验证 Retrospective 存在..."
 	@echo "retro-check: 通过（语义检查由 Agent 执行）。"
+
+install-hooks:
+	@git config core.hooksPath .githooks
+	@echo "✅ git hooks 已启用（core.hooksPath=.githooks）"
+
+doctor-hooks:
+	@[ "$$(git config --get core.hooksPath)" = ".githooks" ] || { \
+	  echo "ERROR: core.hooksPath 未指向 .githooks，请运行 make install-hooks"; \
+	  exit 1; \
+	}
+	@echo "✅ hooks 配置正确"
