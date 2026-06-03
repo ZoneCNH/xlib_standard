@@ -63,8 +63,7 @@ CI Check
 “禁止 main 开发”
 不能只写在文档里
 必须落到：
-- scripts/harness/no-main-dev.sh
-- make worktree-check
+- goalcli worktree-check --context local_write
 - .githooks/pre-commit
 - .githooks/pre-push
 - GitHub branch protection
@@ -83,8 +82,7 @@ title: No main development
 severity: P0
 domain: worktree
 enforced_by:
-  - make worktree-check
-  - scripts/harness/no-main-dev.sh
+  - goalcli worktree-check --context local_write
   - .githooks/pre-commit
   - .github/workflows/worktree-guard.yml
 evidence:
@@ -341,7 +339,7 @@ Gate false positive > 10% → 需要调参
 
 ## §83 goalcli 命令契约规则
 
-### **[P1]** `RULE-GOALCLI-001`：goalcli 必须是 Goal Runtime 的唯一执行入口之一
+### **[P1]** `RULE-GOALCLI-001`：goalcli 必须是 Goal Runtime 的唯一机器执行入口
 
 <sub>level: P1 · status: active · enforced_by: `goalcli` · exit: 1 · source: §83 L3644</sub>
 
@@ -810,7 +808,7 @@ reports/worktree-check.txt
 ```bash
 git status
 git branch --show-current
-make worktree-check
+goalcli worktree-check --context local_write
 make schema-check
 goalcli goal status --goal <GOAL-ID>
 goalcli task status --task <TASK-ID>

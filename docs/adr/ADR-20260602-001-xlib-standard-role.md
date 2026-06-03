@@ -32,4 +32,4 @@ Full Goal Runtime v3.1 要求一个仓库同时提供标准文本、可编译 Go
 - README 五类职责章节。
 - `docs/standard/module-boundary.md` 允许内容与禁止内容。
 - `docs/standard/repository-roles.md` 角色表。
-- `.agent/traceability-matrix.md` 中 REQ-001 追踪项。
+- `.agent/traceability/traceability-matrix.md` 中 REQ-001 追踪项。
