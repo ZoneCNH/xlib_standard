@@ -3,7 +3,7 @@
 > 生成日期：2026-06-02
 > 分析范围：全仓库代码、测试、CI、治理体系、治理文件结构
 > 当前版本：v0.3.7 | 质量评分：10/10（阈值 9.8）
-> 口径说明：本文的 `v0.3.7` 是项目发布/分析快照版本；当前治理主基线以 [docs/goal.md](goal.md) v2.9.3 Complete 和 [.agent/traceability-matrix.md](../.agent/traceability-matrix.md) 为准。
+> 口径说明：本文的 `v0.3.7` 是项目发布/分析快照版本；当前治理主基线以 [docs/goal.md](goal/goal.md) v2.9.3 Complete 和 [.agent/traceability-matrix.md](../.agent/traceability-matrix.md) 为准。
 
 ---
 

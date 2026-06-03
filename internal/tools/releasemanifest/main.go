@@ -312,7 +312,7 @@ func buildManifest() (Manifest, error) {
 
 	return Manifest{
 		Module:                 module,
-		Version:                envDefault("VERSION", "v0.4.3"),
+		Version:                envDefault("VERSION", "v0.4.5"),
 		Commit:                 runTrimmedDefault("unknown", "git", "rev-parse", "HEAD"),
 		TreeSHA:                runTrimmedDefault("unknown", "git", "rev-parse", "HEAD^{tree}"),
 		SourceDigest:           sourceDigest,

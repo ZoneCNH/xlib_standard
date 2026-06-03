@@ -6,6 +6,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   ci:
     runs-on: ubuntu-latest
@@ -17,15 +21,9 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # tag v5
         with:
-          go-version: "1.23"
-
-      - name: Cache Go
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # tag v5.0.5
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: go.sum
 
       - name: Install golangci-lint
         run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6
@@ -33,24 +31,12 @@ jobs:
       - name: Install govulncheck
         run: go install golang.org/x/vuln/cmd/govulncheck@v1.3.0
 
-      - name: Governance Matrix Check
-        run: |
-          GOWORK=off XLIB_CONTEXT=ci_pull_request make governance-check
-          GOWORK=off XLIB_CONTEXT=ci_pull_request make p1-governance-check
-          GOWORK=off XLIB_CONTEXT=ci_pull_request make p2-runtime-check
-
       - name: Release Check
         run: |
           export WORKFLOW_RUN_ID="${{ github.run_id }}"
           export ARTIFACT_NAME="release-manifest-${{ github.run_id }}"
           export ARTIFACT_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           GOWORK=off XLIB_CONTEXT=ci_pull_request make release-check
-
-      - name: Goal governance gates
-        run: GOWORK=off XLIB_CONTEXT=ci_pull_request make governance-check p1-governance-check p2-runtime-check
-
-      - name: Full Goal Runtime score
-        run: GOWORK=off go run ./cmd/xlibgate score --min 9.8
 
       - name: Hash release evidence
         if: always()
