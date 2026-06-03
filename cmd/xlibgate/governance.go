@@ -75,7 +75,27 @@ func runDoctor(args []string, stdout io.Writer, stderr io.Writer) int {
 		write(stderr, "ERROR: doctor found %d gap(s)\n", len(gaps))
 		return emitReport(stdout, "doctor", "failed", nil, gaps)
 	}
-	return emitReport(stdout, "doctor", "passed", []string{"required governance files are present"}, nil)
+	details := []string{"required governance files are present"}
+	details = append(details, hooksStatusDetail())
+	return emitReport(stdout, "doctor", "passed", details, nil)
+}
+
+// hooksStatusDetail 返回 git hooks 启用状态作为 informational details。
+// 不影响 doctor 的 pass/fail：CI 环境无须本地 hooks；本地环境若未启用，
+// 提示运行 make install-hooks。对应 .agent/standard/goal-runtime-canonical.md
+// 中的 RULE-WORKTREE-001 / RULE-SECRET-001 本地防线。
+func hooksStatusDetail() string {
+	if !fileExists(".githooks/pre-commit") {
+		return "hooks: .githooks/pre-commit 不存在（仓库可能未初始化 hooks 目录）"
+	}
+	current := strings.TrimSpace(gitOutput("config", "--get", "core.hooksPath"))
+	if current == ".githooks" {
+		return "hooks: ✅ core.hooksPath=.githooks 已启用"
+	}
+	if current == "" {
+		return "hooks: ⚠️  core.hooksPath 未设置，运行 make install-hooks 启用本地 P0 防线"
+	}
+	return "hooks: ⚠️  core.hooksPath=" + current + "（非 .githooks），本地 P0 防线未启用"
 }
 
 func runMainGuard(args []string, stdout io.Writer, stderr io.Writer) int {

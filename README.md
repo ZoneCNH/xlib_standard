@@ -60,6 +60,20 @@
 
 本地运行完整 gate 前需要安装 `golangci-lint` 和 `govulncheck`；CI 会显式安装这两个工具。缺少任一工具时，`make lint` 或 `make security` 必须失败，不允许把必需 gate 记录为跳过。
 
+### 首次 clone 必跑
+
+新协作者 clone 仓库后必须立即执行：
+
+```bash
+make install-hooks   # 启用 .githooks 本地 P0 防线（RULE-WORKTREE-001 + RULE-SECRET-001）
+make doctor-hooks    # 验证 core.hooksPath=.githooks 已生效
+make sync-main       # 拉取并 fast-forward 本地 main（RULE-MAIN-SYNC-002）
+```
+
+`make install-hooks` 把 `git config core.hooksPath` 指向仓库内的 `.githooks/` 目录。**未启用 hooks 时，`pre-commit` 与 `pre-push` 不会被 Git 调用，本地 P0 防线（禁止在 main commit、secret 提前拦截）形同虚设。** 此外，`go run ./cmd/xlibgate doctor` 会在 details 中报告当前 hooks 启用状态，配合 `make doctor-hooks` 形成自检闭环。
+
+### 标准 gate
+
 ```bash
 make ci
 make ci-extended
