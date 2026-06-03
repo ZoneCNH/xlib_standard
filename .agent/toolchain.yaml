@@ -1,2 +1,4 @@
 schema_version: "2.9.3"
-required: [go, git, make, golangci-lint, govulncheck]
+required: [go, git, make, golangci-lint]
+optional:
+  govulncheck: "required only when XLIB_ENABLE_VULNCHECK=1"

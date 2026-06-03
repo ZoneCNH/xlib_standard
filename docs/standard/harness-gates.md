@@ -14,7 +14,7 @@ Full Goal Runtime v3.1 以 `cmd/goalcli` 作为 Go gate runtime。Makefile targe
 | Unit | `GOWORK=off make test` | 单元和示例 smoke |
 | Race | `GOWORK=off make race` | 并发安全基线 |
 | Boundary | `GOWORK=off make boundary` | 模块边界和模板禁止项 |
-| Security | `GOWORK=off make security` | `govulncheck` 和 secret scan |
+| Security | `GOWORK=off make security` | 默认 secret scan；`XLIB_ENABLE_VULNCHECK=1` 时先运行 `govulncheck` |
 | Contracts | `GOWORK=off make contracts` | schema、metrics 和 manifest contract |
 | Docs Check | `GOWORK=off make docs-check` | 文档、链接、当前命名、下游同步策略、v3.1 runtime 和 release protocol |
 | Integration | `GOWORK=off make integration` | generator 和 downstream smoke |

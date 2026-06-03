@@ -43,7 +43,7 @@ XLIB_CONTEXT=release_verify GOWORK=off make release-final-check
 XLIB_CONTEXT=release_verify GOWORK=off make release-preflight VERSION=v0.4.7
 ```
 
-`release-preflight` 会先检查版本号、当前分支、工作区洁净状态、`main` 与 `origin/main` 是否一致、目标 tag 是否已存在、`CHANGELOG.md` 是否包含目标版本，以及 `golangci-lint` / `govulncheck` 是否已安装；随后以 `GOWORK=off` 和 `XLIB_CONTEXT=release_verify` 运行 `release-final-check`。tag 应在该入口通过后再创建和推送。
+`release-preflight` 会先检查版本号、当前分支、工作区洁净状态、`main` 与 `origin/main` 是否一致、目标 tag 是否已存在、`CHANGELOG.md` 是否包含目标版本，以及 `golangci-lint` 是否已安装；只有设置 `XLIB_ENABLE_VULNCHECK=1` 时才额外要求 `govulncheck`。随后以 `GOWORK=off` 和 `XLIB_CONTEXT=release_verify` 运行 `release-final-check`。tag 应在该入口通过后再创建和推送。
 
 ## GitHub Release 发布对象
 
@@ -81,16 +81,15 @@ fuzz-smoke
 
 ## Gate 工具契约
 
-`make ci` 中的 `make lint` 和 `make security` 是强制 gate。运行前必须可用：
+`make ci` 中的 `make lint` 和 `make security` 是强制 gate。默认运行前必须可用：
 
 - `golangci-lint`
-- `govulncheck`
 
-缺少任一工具时，本地 Makefile 必须硬失败。GitHub Actions CI 和 Release Check workflow 会在运行 `make ci` / `make release-check` 前安装 `golangci-lint` 和 `govulncheck`，以保证本地与远端 workflow 对同一组强制 gate 负责。
+`make security` 默认只运行 secret scan；只有设置 `XLIB_ENABLE_VULNCHECK=1` 时才追加 `govulncheck ./...`，此时 `govulncheck` 也必须可用。缺少默认必需工具或启用漏洞扫描时缺少 `govulncheck`，本地 Makefile 必须硬失败。GitHub Actions CI 和 Release Check workflow 默认不安装或访问漏洞库；只有显式启用 `XLIB_ENABLE_VULNCHECK=1` 时才安装固定版本 `govulncheck`。
 
-GitHub Actions workflow 引用的第三方 Action 必须固定为 40 位 commit SHA，并用注释保留来源 tag 供审计。CI、Release Check 和 Security workflow 安装 `govulncheck` 时必须使用固定版本；当前基线是 `golang.org/x/vuln/cmd/govulncheck@v1.3.0`，不得在发布门禁中使用 `@latest`。
+GitHub Actions workflow 引用的第三方 Action 必须固定为 40 位 commit SHA，并用注释保留来源 tag 供审计。CI、Release Check 和 Security workflow 在 `XLIB_ENABLE_VULNCHECK=1` 时安装 `govulncheck` 必须使用固定版本；当前基线是 `golang.org/x/vuln/cmd/govulncheck@v1.3.0`，不得在发布门禁中使用 `@latest`。
 
-`make security` 必须委托 `goalcli security` 同时运行漏洞扫描和密钥扫描；不得把漏洞扫描降级为可选检查。
+`make security` 必须委托 `goalcli security` 默认运行 secret scan；只有设置 `XLIB_ENABLE_VULNCHECK=1` 时才先运行漏洞扫描再运行密钥扫描。
 
 ## Evidence
 

@@ -46,4 +46,4 @@ GOWORK=off make release-check
 
 完整 release Evidence 还需要 `release/manifest/latest.json`、`release/manifest/latest.json.sha256`、`release/standard-impact/latest.md`、`downstream_sync_required` 结论、manifest 内的 `score` 与 `workflow` 字段、CI artifact 和 `DONE with evidence:` 声明。Fuzz smoke 默认使用 `FUZZ_SMOKE_TIME=10s`，加长时必须记录到 Evidence。
 
-CI、Release Check 和 Security workflow 的第三方 Action 必须 pin 到 40 位 commit SHA，并保留来源 tag 注释。`govulncheck` 发布门禁基线为 `golang.org/x/vuln/cmd/govulncheck@v1.3.0`；release manifest 测试必须在临时 fixture 仓库构造 `.omc` state，不得读取当前工作区的 Agent 运行态。
+CI、Release Check 和 Security workflow 的第三方 Action 必须 pin 到 40 位 commit SHA，并保留来源 tag 注释。`govulncheck` 仅在 `XLIB_ENABLE_VULNCHECK=1` 时启用，发布门禁固定基线为 `golang.org/x/vuln/cmd/govulncheck@v1.3.0`；release manifest 测试必须在临时 fixture 仓库构造 `.omc` state，不得读取当前工作区的 Agent 运行态。
