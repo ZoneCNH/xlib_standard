@@ -24,13 +24,14 @@
 - `spec-check`
 - `design-check`
 - `task-check`
-- `pr-check`
+- `pr-check --context local_write|local_readonly|ci_pull_request|ci_main_verify|release_verify`
 - `evidence-check`
 - `done-assertion`
 - `cli-contract`
 - `issue-registry`
 - `command-registry`
 - `makefile-baseline`
+- `audit-goal`
 - `context-profile`
 - `context-profile-check`
 - `context-schema-check`
@@ -115,6 +116,12 @@
 ## Goalcli MVA commands
 
 Goalcli MVA commands（`goal-acceptance`、`goal-delivery`、`goal-handover`、`goal-downstream-adoption`、`goal-certify` 和 `goal-runtime-final`）用于证明 `goalcli v0.1.0` 的 G12-G16 evidence contracts，并且只在 goalcli MVA evidence scope 内是 blocking gate。它们不会创建第二套并列 goalcli 执行面，也不会修改 downstream 仓库。source authority 是 `cmd/goalcli` 执行面和 `.agent/evidence/ledger.jsonl`；`release/evidence/goalcli/` 下的 generated packs 只是派生产物。root goalcli plan 仍是 roadmap authority，完成证据来自同一 `GOAL_ID` 下已调和的 source ledger 和 final report。
+
+## Goal audit command
+
+`goalcli audit-goal [--matrix .agent/traceability-matrix.md] [--json]` 是本地只读聚合审计入口，用于一次性验证 goal、REQ、task、issue、evidence 与 release readiness 的关键链路。它复用 `context-check`、`spec-check`、`design-check`、`task-check`、`evidence-check`、`cli-contract`、`issue-registry`、`command-registry`、`makefile-baseline` 和 `traceability-check`，并以 `--dry-run --verify` 调用 `goal-acceptance`、`goal-delivery`、`goal-handover`、`goal-downstream-adoption`、`goal-certify`、`goal-runtime-final`。
+
+该命令不传入 `--write-evidence`，不会写 `.agent/evidence/ledger.jsonl`，也不会修改 downstream 仓库。所有组件通过时返回 `0`；任一组件发现 gap 时返回 `1` 并在 `gaps` 中记录组件名、退出码和摘要；非法参数返回 `2`。
 
 ## Debt governance commands
 

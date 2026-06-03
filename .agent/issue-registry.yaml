@@ -92,6 +92,11 @@ issues:
     status: implemented
     command: context-release
     evidence: [context-release, release-final-check, context-fast-check, context-standard-check, context-full-check]
+  - id: P0-019
+    title: 目标完整性本地审计
+    status: implemented
+    command: audit-goal
+    evidence: [audit-goal, traceability-check, goal-runtime-final]
   - id: P1-001
     title: 治理硬化矩阵
     status: implemented

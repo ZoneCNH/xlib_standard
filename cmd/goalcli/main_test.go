@@ -218,6 +218,119 @@ func TestRunDispatchesExternalCommands(t *testing.T) {
 	}
 }
 
+func TestRunSecurityExecutesVulnerabilityScanBeforeSecrets(t *testing.T) {
+	_, callLog := setupSecurityFixture(t)
+	var stdout, stderr bytes.Buffer
+
+	got := run([]string{"security"}, strings.NewReader(""), &stdout, &stderr)
+
+	if got != 0 {
+		t.Fatalf("security exit = %d, stderr %q, stdout %q; want 0", got, stderr.String(), stdout.String())
+	}
+	if calls := readText(t, callLog); calls != "govulncheck ./...\ncheck_secrets.sh\n" {
+		t.Fatalf("security calls = %q; want vulnerability scan before secrets", calls)
+	}
+}
+
+func TestRunSecurityStopsWhenVulnerabilityScanFails(t *testing.T) {
+	_, callLog := setupSecurityFixture(t)
+	t.Setenv("GOVULNCHECK_EXIT", "7")
+	var stdout, stderr bytes.Buffer
+
+	got := run([]string{"security"}, strings.NewReader(""), &stdout, &stderr)
+
+	if got != 7 {
+		t.Fatalf("security exit = %d, stderr %q, stdout %q; want 7", got, stderr.String(), stdout.String())
+	}
+	if calls := readText(t, callLog); calls != "govulncheck ./...\n" {
+		t.Fatalf("security calls = %q; want short-circuit after govulncheck", calls)
+	}
+}
+
+func TestEvaluateWorktreeGateRejectsMainBranchLocalWrite(t *testing.T) {
+	setupPRCheckFixture(t, "main")
+
+	details, gaps := evaluateWorktreeGate("local_write")
+
+	if !gapsContainSubstring(gaps, "local_write is forbidden on main") {
+		t.Fatalf("gaps = %#v; want main branch local_write rejection", gaps)
+	}
+	if !slicesContain(details, "branch=main") {
+		t.Fatalf("details = %#v; want branch=main", details)
+	}
+}
+
+func TestRunPRCheckExecutesLintBeforeTest(t *testing.T) {
+	_, callLog := setupPRCheckFixture(t, "feature/demo")
+	var stdout, stderr bytes.Buffer
+
+	got := run([]string{"pr-check", "--context", "local_write"}, strings.NewReader(""), &stdout, &stderr)
+
+	if got != 0 {
+		t.Fatalf("pr-check exit = %d, stderr %q, stdout %q; want 0", got, stderr.String(), stdout.String())
+	}
+	if calls := readText(t, callLog); calls != "lint\ntest\n" {
+		t.Fatalf("make calls = %q; want lint before test", calls)
+	}
+}
+
+func TestRunPRCheckStopsOnLintFailure(t *testing.T) {
+	_, callLog := setupPRCheckFixture(t, "feature/demo")
+	t.Setenv("MAKE_LINT_EXIT", "5")
+	var stdout, stderr bytes.Buffer
+
+	got := run([]string{"pr-check", "--context", "local_write"}, strings.NewReader(""), &stdout, &stderr)
+
+	if got != 1 {
+		t.Fatalf("pr-check exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "make lint exited 5") {
+		t.Fatalf("stdout = %q; want lint failure gap", stdout.String())
+	}
+	if calls := readText(t, callLog); calls != "lint\n" {
+		t.Fatalf("make calls = %q; want lint only", calls)
+	}
+}
+
+func TestRunPRCheckReportsTestFailure(t *testing.T) {
+	_, callLog := setupPRCheckFixture(t, "feature/demo")
+	t.Setenv("MAKE_TEST_EXIT", "6")
+	var stdout, stderr bytes.Buffer
+
+	got := run([]string{"pr-check", "--context", "local_write"}, strings.NewReader(""), &stdout, &stderr)
+
+	if got != 1 {
+		t.Fatalf("pr-check exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "make test exited 6") {
+		t.Fatalf("stdout = %q; want test failure gap", stdout.String())
+	}
+	if calls := readText(t, callLog); calls != "lint\ntest\n" {
+		t.Fatalf("make calls = %q; want lint then test", calls)
+	}
+}
+
+func TestRunPRCheckSkipsMakeWhenGateFails(t *testing.T) {
+	_, callLog := setupPRCheckFixture(t, "main")
+	var stdout, stderr bytes.Buffer
+
+	got := run([]string{"pr-check", "--context", "local_write"}, strings.NewReader(""), &stdout, &stderr)
+
+	if got != 1 {
+		t.Fatalf("pr-check exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "local_write is forbidden on main") {
+		t.Fatalf("stdout = %q; want worktree gate gap", stdout.String())
+	}
+	data, err := os.ReadFile(callLog)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("read call log: %v", err)
+	}
+	if len(data) > 0 {
+		t.Fatalf("make calls = %q; want none", string(data))
+	}
+}
+
 func TestDebtHelpersWriteArtifacts(t *testing.T) {
 	chdir(t, repoRoot(t))
 
@@ -705,6 +818,27 @@ func TestMakefileBaselineRequiresExecutionContext(t *testing.T) {
 	}
 }
 
+func TestMakefileBaselineRejectsDuplicateRegistryTargets(t *testing.T) {
+	root := t.TempDir()
+	writeMakefileBaselineFixture(t, root, "fmt")
+	chdir(t, root)
+	var stdout, stderr bytes.Buffer
+
+	got := runMakefileBaseline(nil, &stdout, &stderr)
+
+	if got == 0 {
+		t.Fatal("runMakefileBaseline accepted duplicate registry targets; want failure")
+	}
+	for _, want := range []string{
+		".agent/makefile-target-registry.yaml duplicate target fmt",
+		".agent/makefile-baseline.yaml duplicate target fmt",
+	} {
+		if !strings.Contains(stdout.String(), want) {
+			t.Fatalf("stdout = %q; want %q", stdout.String(), want)
+		}
+	}
+}
+
 func TestCommandRegistryRequiresCompleteGovernanceSurface(t *testing.T) {
 	root := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(root, ".agent"), 0o755); err != nil {
@@ -870,7 +1004,7 @@ func TestRunGovernanceCommands(t *testing.T) {
 
 	t.Run("artifact gate passes when required files exist", func(t *testing.T) {
 		root := t.TempDir()
-		commandSurface := strings.Join(commandRegistryRequiredCommands(), "\n")
+		commandSurface := strings.Join(goalcliCLIContractNeedles(), "\n")
 		registrySurface := strings.Join(requiredCommandRegistryNeedles(), "\n")
 		files := map[string]string{
 			"docs/standard/goalcli-cli-contract.md": "goalcli\n" + commandSurface + "\n",
@@ -903,7 +1037,7 @@ func TestRunGovernanceCommands(t *testing.T) {
 
 	t.Run("cli contract requires full command surface in docs and registry", func(t *testing.T) {
 		root := t.TempDir()
-		fullRegistry := strings.Join(commandRegistryRequiredCommands(), "\n") + "\n"
+		fullRegistry := strings.Join(goalcliCLIContractNeedles(), "\n") + "\n"
 		fullCommandRegistry := strings.Join(requiredCommandRegistryNeedles(), "\n") + "\n"
 		files := map[string]string{
 			"docs/standard/goalcli-cli-contract.md": strings.Replace(fullRegistry, "execution-context\n", "", 1),
@@ -974,6 +1108,7 @@ func TestRunDoctorAllowsRenderedDownstreamWithoutSourceGoal(t *testing.T) {
 	files := map[string]string{
 		"go.mod":                                "module github.com/ZoneCNH/kernel\n\nreplace github.com/ZoneCNH/xlib-standard => ../xlib-standard\n",
 		".agent/harness.yaml":                   "checks: [version, doctor]\n",
+		".agent/index.yaml":                     "schema_version: \"1.0\"\nmodule: xlib-standard\ncontrol_plane:\n  purpose: fixture\nfiles:\n",
 		".agent/issue-registry.yaml":            issueRegistryFixture("P0-001", "P1-001", "P2-001", "CTX-001"),
 		".agent/command-registry.yaml":          "commands: [version, doctor]\n",
 		".agent/makefile-target-registry.yaml":  "targets: []\n",
@@ -1005,13 +1140,10 @@ func TestRunDoctorAllowsRenderedDownstreamWithoutSourceGoal(t *testing.T) {
 func TestCommandRegistryRequiresFullCommandSurface(t *testing.T) {
 	t.Run("accepts complete registry surface", func(t *testing.T) {
 		root := t.TempDir()
-		path := filepath.Join(root, ".agent", "command-registry.yaml")
-		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-			t.Fatalf("mkdir %s: %v", filepath.Dir(path), err)
-		}
-		if err := os.WriteFile(path, []byte(strings.Join(requiredCommandRegistryNeedles(), "\n")+"\n"), 0o644); err != nil {
-			t.Fatalf("write %s: %v", path, err)
-		}
+		writeValidAgentIndexFixture(t, root)
+		writeTestFiles(t, root, map[string]string{
+			".agent/command-registry.yaml": commandRegistryFixture(""),
+		})
 		chdir(t, root)
 
 		var stdout, stderr bytes.Buffer
@@ -1026,14 +1158,10 @@ func TestCommandRegistryRequiresFullCommandSurface(t *testing.T) {
 
 	t.Run("rejects incomplete registry surface", func(t *testing.T) {
 		root := t.TempDir()
-		path := filepath.Join(root, ".agent", "command-registry.yaml")
-		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-			t.Fatalf("mkdir %s: %v", filepath.Dir(path), err)
-		}
-		content := strings.Replace(strings.Join(requiredCommandRegistryNeedles(), "\n")+"\n", "name: goal-certify\n", "", 1)
-		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
-			t.Fatalf("write %s: %v", path, err)
-		}
+		writeValidAgentIndexFixture(t, root)
+		writeTestFiles(t, root, map[string]string{
+			".agent/command-registry.yaml": strings.Replace(commandRegistryFixture(""), "  - name: goal-certify\n", "", 1),
+		})
 		chdir(t, root)
 
 		var stdout, stderr bytes.Buffer
@@ -1043,6 +1171,71 @@ func TestCommandRegistryRequiresFullCommandSurface(t *testing.T) {
 		}
 		if !strings.Contains(stdout.String(), ".agent/command-registry.yaml missing name: goal-certify") {
 			t.Fatalf("stdout = %q; want missing goal-certify gap", stdout.String())
+		}
+	})
+
+	t.Run("rejects duplicate command names", func(t *testing.T) {
+		root := t.TempDir()
+		writeValidAgentIndexFixture(t, root)
+		writeTestFiles(t, root, map[string]string{
+			".agent/command-registry.yaml": commandRegistryFixture("  - name: version\n    phase: P0\n    target: version\n"),
+		})
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		got := run([]string{"command-registry"}, strings.NewReader(""), &stdout, &stderr)
+		if got != 1 {
+			t.Fatalf("command-registry duplicate fixture exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+		}
+		if !strings.Contains(stdout.String(), ".agent/command-registry.yaml duplicate command version") {
+			t.Fatalf("stdout = %q; want duplicate version gap", stdout.String())
+		}
+	})
+
+	t.Run("requires agent index", func(t *testing.T) {
+		root := t.TempDir()
+		writeTestFiles(t, root, map[string]string{
+			".agent/command-registry.yaml": commandRegistryFixture(""),
+		})
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		got := run([]string{"command-registry"}, strings.NewReader(""), &stdout, &stderr)
+		if got != 1 {
+			t.Fatalf("command-registry missing index exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+		}
+		if !strings.Contains(stdout.String(), "missing .agent/index.yaml") {
+			t.Fatalf("stdout = %q; want missing .agent/index.yaml gap", stdout.String())
+		}
+	})
+
+	t.Run("rejects invalid agent index", func(t *testing.T) {
+		root := t.TempDir()
+		writeTestFiles(t, root, map[string]string{
+			".agent/command-registry.yaml": commandRegistryFixture(""),
+			".agent/goal-runtime.md":       "fixture\n",
+			".agent/index.yaml": "schema_version: \"1.0\"\n" +
+				"module: xlib-standard\n" +
+				"control_plane:\n" +
+				"  purpose: fixture\n" +
+				"files:\n" +
+				"  - path: .agent/goal-runtime.md\n" +
+				"    layer: unknown\n" +
+				"    authority: source_of_truth\n" +
+				"    mutability: hand_written\n" +
+				"    owner: governance\n" +
+				"    validator: command-registry\n" +
+				"    purpose: fixture\n",
+		})
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		got := run([]string{"command-registry"}, strings.NewReader(""), &stdout, &stderr)
+		if got != 1 {
+			t.Fatalf("command-registry invalid index exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+		}
+		if !strings.Contains(stdout.String(), ".agent/index.yaml .agent/goal-runtime.md invalid layer unknown") {
+			t.Fatalf("stdout = %q; want invalid layer gap", stdout.String())
 		}
 	})
 }
@@ -1830,22 +2023,135 @@ func TestVersionConstantsTrackChangelogRelease(t *testing.T) {
 
 func writeGateScript(t *testing.T, root string, relative string) {
 	t.Helper()
+	writeExecutable(t, root, relative, printCommandScript())
+}
+
+func writePathTool(t *testing.T, root string, name string) {
+	t.Helper()
+	writeExecutable(t, root, name, printCommandScript())
+}
+
+func writeExecutable(t *testing.T, root string, relative string, body string) {
+	t.Helper()
 	path := filepath.Join(root, filepath.FromSlash(relative))
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatalf("mkdir %s: %v", filepath.Dir(path), err)
 	}
-	body := "#!/bin/sh\nprintf '%s' \"$(basename \"$0\")\"\nfor arg in \"$@\"; do printf ' %s' \"$arg\"; done\nprintf '\\n'\n"
 	if err := os.WriteFile(path, []byte(body), 0o755); err != nil {
 		t.Fatalf("write %s: %v", path, err)
 	}
 }
 
-func writePathTool(t *testing.T, root string, name string) {
+func printCommandScript() string {
+	return "#!/bin/sh\nprintf '%s' \"$(basename \"$0\")\"\nfor arg in \"$@\"; do printf ' %s' \"$arg\"; done\nprintf '\\n'\n"
+}
+
+func setupSecurityFixture(t *testing.T) (string, string) {
 	t.Helper()
-	path := filepath.Join(root, name)
-	body := "#!/bin/sh\nprintf '%s' \"$(basename \"$0\")\"\nfor arg in \"$@\"; do printf ' %s' \"$arg\"; done\nprintf '\\n'\n"
-	if err := os.WriteFile(path, []byte(body), 0o755); err != nil {
-		t.Fatalf("write %s: %v", path, err)
+	root := t.TempDir()
+	callLog := filepath.Join(root, "calls.log")
+	writeExecutable(t, root, "govulncheck", fmt.Sprintf(`#!/bin/sh
+printf 'govulncheck %%s\n' "$*" >> %q
+exit "${GOVULNCHECK_EXIT:-0}"
+`, callLog))
+	writeExecutable(t, root, "scripts/check_secrets.sh", fmt.Sprintf(`#!/bin/sh
+printf 'check_secrets.sh\n' >> %q
+exit "${SECRETS_EXIT:-0}"
+`, callLog))
+	chdir(t, root)
+	t.Setenv("PATH", root+string(os.PathListSeparator)+os.Getenv("PATH"))
+	return root, callLog
+}
+
+func setupPRCheckFixture(t *testing.T, branch string) (string, string) {
+	t.Helper()
+	root := t.TempDir()
+	callLog := filepath.Join(root, "make.log")
+	top := filepath.Join(root, ".worktree", "worker")
+	common := filepath.Join(root, ".git", "worktrees", "worker")
+	writeFakeGit(t, root, branch, top, common)
+	writeFakeMake(t, root)
+	chdir(t, root)
+	t.Setenv("PATH", root+string(os.PathListSeparator)+os.Getenv("PATH"))
+	return root, callLog
+}
+
+func writeFakeGit(t *testing.T, root string, branch string, top string, common string) {
+	t.Helper()
+	body := fmt.Sprintf(`#!/bin/sh
+if [ "$1" = "rev-parse" ] && [ "$2" = "--show-toplevel" ]; then
+  printf '%%s\n' %q
+  exit 0
+fi
+if [ "$1" = "rev-parse" ] && [ "$2" = "--path-format=absolute" ] && [ "$3" = "--git-common-dir" ]; then
+  printf '%%s\n' %q
+  exit 0
+fi
+if [ "$1" = "rev-parse" ] && [ "$2" = "--abbrev-ref" ] && [ "$3" = "HEAD" ]; then
+  printf '%%s\n' %q
+  exit 0
+fi
+printf 'unsupported git command: %%s\n' "$*" >&2
+exit 2
+`, top, common, branch)
+	writeExecutable(t, root, "git", body)
+}
+
+func writeFakeMake(t *testing.T, root string) {
+	t.Helper()
+	callLog := filepath.Join(root, "make.log")
+	body := fmt.Sprintf(`#!/bin/sh
+printf '%%s\n' "$1" >> %q
+case "$1" in
+  lint)
+    exit "${MAKE_LINT_EXIT:-0}"
+    ;;
+  test)
+    exit "${MAKE_TEST_EXIT:-0}"
+    ;;
+  *)
+    exit 0
+    ;;
+esac
+`, callLog)
+	writeExecutable(t, root, "make", body)
+}
+
+func writeMakefileBaselineFixture(t *testing.T, root string, duplicate string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Join(root, ".agent"), 0o755); err != nil {
+		t.Fatalf("mkdir .agent: %v", err)
+	}
+	targets := requiredMakefileTargets()
+	var makefile strings.Builder
+	makefile.WriteString(".PHONY:")
+	for _, target := range targets {
+		makefile.WriteString(" " + target)
+	}
+	makefile.WriteString("\n")
+	for _, target := range targets {
+		makefile.WriteString(target + ":\n")
+	}
+	if err := os.WriteFile(filepath.Join(root, "Makefile"), []byte(makefile.String()), 0o644); err != nil {
+		t.Fatalf("write Makefile: %v", err)
+	}
+	var registry strings.Builder
+	registry.WriteString("schema_version: \"2.9.3\"\nmodule: xlib-standard\ntargets:\n")
+	for _, target := range targets {
+		registry.WriteString("  - " + target + "\n")
+	}
+	registry.WriteString("  - " + duplicate + "\n")
+	if err := os.WriteFile(filepath.Join(root, ".agent", "makefile-target-registry.yaml"), []byte(registry.String()), 0o644); err != nil {
+		t.Fatalf("write makefile target registry: %v", err)
+	}
+	var baseline strings.Builder
+	baseline.WriteString("schema_version: \"2.9.3\"\nmodule: xlib-standard\nbaseline_targets:\n")
+	for _, target := range targets {
+		baseline.WriteString("  " + target + ": fixture\n")
+	}
+	baseline.WriteString("  " + duplicate + ": duplicate\n")
+	if err := os.WriteFile(filepath.Join(root, ".agent", "makefile-baseline.yaml"), []byte(baseline.String()), 0o644); err != nil {
+		t.Fatalf("write makefile baseline: %v", err)
 	}
 }
 
@@ -1859,6 +2165,84 @@ func writeTestFiles(t *testing.T, root string, files map[string]string) {
 		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
 			t.Fatalf("write %s: %v", path, err)
 		}
+	}
+}
+
+func commandRegistryFixture(extra string) string {
+	var b strings.Builder
+	b.WriteString("schema_version: \"2.9.3\"\nmodule: xlib-standard\ncommands:\n")
+	for _, command := range commandRegistryRequiredCommands() {
+		b.WriteString("  - name: ")
+		b.WriteString(command)
+		b.WriteString("\n")
+		b.WriteString("    phase: P0\n")
+		b.WriteString("    target: ")
+		b.WriteString(command)
+		b.WriteString("\n")
+	}
+	b.WriteString(extra)
+	return b.String()
+}
+
+func writeValidAgentIndexFixture(t *testing.T, root string) {
+	t.Helper()
+	files := map[string]string{
+		".agent/index.yaml": validAgentIndexFixture(),
+	}
+	for _, path := range requiredAgentIndexPaths() {
+		if path == ".agent/command-registry.yaml" {
+			continue
+		}
+		files[path] = "fixture\n"
+	}
+	writeTestFiles(t, root, files)
+}
+
+func validAgentIndexFixture() string {
+	var b strings.Builder
+	b.WriteString("schema_version: \"1.0\"\nmodule: xlib-standard\ncontrol_plane:\n  purpose: fixture\nfiles:\n")
+	for _, path := range requiredAgentIndexPaths() {
+		b.WriteString("  - path: ")
+		b.WriteString(path)
+		b.WriteString("\n")
+		b.WriteString("    layer: ")
+		b.WriteString(testAgentIndexLayer(path))
+		b.WriteString("\n")
+		b.WriteString("    authority: source_of_truth\n")
+		b.WriteString("    mutability: hand_written\n")
+		b.WriteString("    owner: governance\n")
+		b.WriteString("    validator: command-registry\n")
+		b.WriteString("    purpose: fixture\n")
+	}
+	return b.String()
+}
+
+func testAgentIndexLayer(path string) string {
+	switch {
+	case strings.Contains(path, "evidence"):
+		return "evidence"
+	case path == ".agent/command-registry.yaml" ||
+		path == ".agent/issue-registry.yaml" ||
+		path == ".agent/command-implementation-status.yaml" ||
+		path == ".agent/makefile-target-registry.yaml" ||
+		path == ".agent/makefile-baseline.yaml":
+		return "registry"
+	case path == ".agent/harness.yaml" || path == ".agent/release-required-gates.yaml":
+		return "machine_contract"
+	case path == ".agent/runtime-file-ownership.yaml" ||
+		path == ".agent/execution-context.yaml" ||
+		path == ".agent/policy-schema.yaml":
+		return "policy"
+	case path == ".agent/traceability-matrix.md" ||
+		path == ".agent/risk-register.md" ||
+		path == ".agent/decision-log.md":
+		return "traceability"
+	case path == ".agent/retrospective.md":
+		return "archive"
+	case path == ".agent/release-template.md" || path == ".agent/agent-teams.md":
+		return "documentation"
+	default:
+		return "runtime_contract"
 	}
 }
 

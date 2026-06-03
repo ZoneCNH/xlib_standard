@@ -29,6 +29,7 @@ groups:
       - issue-registry
       - command-registry
       - makefile-baseline
+      - audit-goal
       - boundary
       - contracts
       - dependency-check

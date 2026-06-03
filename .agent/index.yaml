@@ -1,0 +1,164 @@
+schema_version: "1.0"
+module: xlib-standard
+control_plane:
+  purpose: ".agent 逻辑分类索引，用于约束 Goal Runtime v3.1 控制面边界。"
+  authority_order:
+    - docs/goal.md and docs/standard/
+    - .agent/*.yaml and cmd/goalcli
+    - release/manifest/ and release/evidence/
+  physical_migration: false
+files:
+  - path: .agent/goal-runtime.md
+    layer: runtime_contract
+    authority: source_of_truth
+    mutability: hand_written
+    owner: governance
+    validator: goal-runtime
+    purpose: 运行时总契约。
+  - path: .agent/object-model.md
+    layer: runtime_contract
+    authority: source_of_truth
+    mutability: hand_written
+    owner: governance
+    validator: goal-runtime
+    purpose: 运行时对象模型。
+  - path: .agent/state-machine.md
+    layer: runtime_contract
+    authority: source_of_truth
+    mutability: hand_written
+    owner: governance
+    validator: goal-runtime
+    purpose: Goal 生命周期状态机。
+  - path: .agent/harness.yaml
+    layer: machine_contract
+    authority: source_of_truth
+    mutability: hand_written
+    owner: gate-runtime
+    validator: governance-check
+    purpose: 必需 gate 与命令编排契约。
+  - path: .agent/command-registry.yaml
+    layer: registry
+    authority: source_of_truth
+    mutability: hand_written
+    owner: gate-runtime
+    validator: command-registry
+    purpose: goalcli 命令到 Makefile target 的注册表。
+  - path: .agent/issue-registry.yaml
+    layer: registry
+    authority: source_of_truth
+    mutability: hand_written
+    owner: governance
+    validator: issue-registry
+    purpose: 治理 Issue 覆盖注册表。
+  - path: .agent/command-implementation-status.yaml
+    layer: registry
+    authority: validated_mirror
+    mutability: hand_written
+    owner: gate-runtime
+    validator: command-registry
+    purpose: 命令实现状态镜像。
+  - path: .agent/makefile-target-registry.yaml
+    layer: registry
+    authority: validated_mirror
+    mutability: hand_written
+    owner: ci
+    validator: makefile-baseline
+    purpose: Makefile target 表面镜像。
+  - path: .agent/makefile-baseline.yaml
+    layer: registry
+    authority: validated_mirror
+    mutability: hand_written
+    owner: ci
+    validator: makefile-baseline
+    purpose: Makefile 必需 target baseline。
+  - path: .agent/release-required-gates.yaml
+    layer: machine_contract
+    authority: source_of_truth
+    mutability: hand_written
+    owner: release
+    validator: release-check
+    purpose: 发布必需 gate 契约。
+  - path: .agent/evidence-protocol.md
+    layer: evidence
+    authority: source_of_truth
+    mutability: hand_written
+    owner: release
+    validator: evidence-check
+    purpose: 证据收集协议。
+  - path: .agent/evidence/ledger.jsonl
+    layer: evidence
+    authority: source_of_truth
+    mutability: append_only
+    owner: release
+    validator: evidence
+    purpose: 源证据 ledger。
+  - path: .agent/runtime-file-ownership.yaml
+    layer: policy
+    authority: source_of_truth
+    mutability: hand_written
+    owner: governance
+    validator: runtime-file-ownership
+    purpose: 路径所有权与审查路由策略。
+  - path: .agent/execution-context.yaml
+    layer: policy
+    authority: source_of_truth
+    mutability: hand_written
+    owner: governance
+    validator: execution-context
+    purpose: 允许的执行上下文。
+  - path: .agent/policy-schema.yaml
+    layer: policy
+    authority: source_of_truth
+    mutability: hand_written
+    owner: governance
+    validator: governance-check
+    purpose: 治理策略 schema。
+  - path: .agent/traceability-matrix.md
+    layer: traceability
+    authority: validated_mirror
+    mutability: hand_written
+    owner: governance
+    validator: governance-check
+    purpose: Goal 到 gate 的可追溯矩阵。
+  - path: .agent/risk-register.md
+    layer: traceability
+    authority: source_of_truth
+    mutability: append_only
+    owner: governance
+    validator: docs-check
+    purpose: 风险登记。
+  - path: .agent/decision-log.md
+    layer: traceability
+    authority: source_of_truth
+    mutability: append_only
+    owner: governance
+    validator: docs-check
+    purpose: 决策记录。
+  - path: .agent/rollback-protocol.md
+    layer: runtime_contract
+    authority: source_of_truth
+    mutability: hand_written
+    owner: release
+    validator: governance-check
+    purpose: 回滚协议。
+  - path: .agent/release-template.md
+    layer: documentation
+    authority: validated_mirror
+    mutability: hand_written
+    owner: release
+    validator: docs-check
+    purpose: 发布说明模板。
+  - path: .agent/agent-teams.md
+    layer: documentation
+    authority: source_of_truth
+    mutability: hand_written
+    owner: governance
+    validator: docs-check
+    purpose: Agent team 协作说明。
+  - path: .agent/retrospective.md
+    layer: archive
+    authority: historical_snapshot
+    mutability: append_only
+    owner: governance
+    validator: docs-check
+    purpose: 复盘记录。

@@ -24,16 +24,7 @@ targets:
   - contracts
   - docs-check
   - rules-verify
-  - debt
-  - architecture
-  - domain
-  - docs-drift
-  - dependency-debt
-  - security-debt
-  - testing-debt
-  - implementation-debt
   - downstream-debt
-  - debt-evidence
   - debt-evidence-hash
   - debt-evidence-checksum-check
   - evidence
@@ -51,6 +42,7 @@ targets:
   - issue-registry
   - command-registry
   - makefile-baseline
+  - audit-goal
   - context-profile
   - context-profile-check
   - context-schema-check

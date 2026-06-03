@@ -203,6 +203,10 @@ command-registry:
 makefile-baseline:
 	$(GOALCLI) makefile-baseline
 
+.PHONY: audit-goal
+audit-goal:
+	$(GOALCLI) audit-goal
+
 .PHONY: agent-team-contract scope-lock pr-template acceptance-matrix runtime-health upgrade-standard conformance-profile downstream-registry self-healing-skeleton goal-runtime github-governance supply-chain changelog governance-fixture-test autoresearch policy-schema github-settings toolchain evidence-artifacts naming
 agent-team-contract scope-lock pr-template acceptance-matrix runtime-health upgrade-standard conformance-profile downstream-registry self-healing-skeleton goal-runtime github-governance supply-chain changelog governance-fixture-test autoresearch policy-schema github-settings toolchain evidence-artifacts naming:
 	$(GOALCLI) $@ --dry-run --verify
@@ -245,7 +249,7 @@ traceability-check:
 	$(GOALCLI) traceability-check
 
 .PHONY: governance-check
-governance-check: require-gowork-off main-guard worktree-guard evidence-check boundary architecture domain security security-debt contracts docs-check cli-contract issue-registry command-registry makefile-baseline rules-consistency-check debt traceability-check
+governance-check: require-gowork-off main-guard worktree-guard evidence-check boundary architecture domain security security-debt contracts docs-check cli-contract issue-registry command-registry makefile-baseline audit-goal rules-consistency-check debt traceability-check
 
 .PHONY: rules-consistency-check
 rules-consistency-check:

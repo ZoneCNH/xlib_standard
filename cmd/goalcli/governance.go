@@ -56,6 +56,7 @@ func runDoctor(args []string, stdout io.Writer, stderr io.Writer) int {
 	}
 	required := []string{
 		".agent/harness.yaml",
+		".agent/index.yaml",
 		".agent/issue-registry.yaml",
 		".agent/command-registry.yaml",
 		".agent/makefile-target-registry.yaml",
@@ -158,10 +159,16 @@ func runWorktreeGate(command string, args []string, stdout io.Writer, stderr io.
 func evaluateWorktreeGate(context string) ([]string, []string) {
 	top := gitOutput("rev-parse", "--show-toplevel")
 	common := gitOutput("rev-parse", "--path-format=absolute", "--git-common-dir")
+	branch := gitOutput("rev-parse", "--abbrev-ref", "HEAD")
 	isWorkerTree := strings.Contains(top, string(filepath.Separator)+".worktree"+string(filepath.Separator)) || strings.Contains(top, string(filepath.Separator)+".worktrees"+string(filepath.Separator)) || strings.Contains(common, string(filepath.Separator)+"worktrees"+string(filepath.Separator))
-	details := []string{"context=" + context, "top=" + fallback(top, "unknown")}
-	if context == "local_write" && !isWorkerTree {
-		return details, []string{"local_write requires a worker worktree"}
+	details := []string{"context=" + context, "top=" + fallback(top, "unknown"), "branch=" + fallback(branch, "unknown")}
+	if context == "local_write" {
+		if branch == "main" || branch == "master" {
+			return details, []string{"local_write is forbidden on " + branch}
+		}
+		if !isWorkerTree {
+			return details, []string{"local_write requires a worker worktree"}
+		}
 	}
 	return details, nil
 }
@@ -295,6 +302,10 @@ func runPRCheck(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writ
 }
 
 func runRegistryCheck(command string, required map[string][]string, stdout io.Writer, stderr io.Writer) int {
+	return emitRegistryCheckResult(command, registryContractGaps(required), stdout, stderr)
+}
+
+func registryContractGaps(required map[string][]string) []string {
 	var gaps []string
 	for path, needles := range required {
 		content, err := os.ReadFile(path)
@@ -309,6 +320,10 @@ func runRegistryCheck(command string, required map[string][]string, stdout io.Wr
 			}
 		}
 	}
+	return gaps
+}
+
+func emitRegistryCheckResult(command string, gaps []string, stdout io.Writer, stderr io.Writer) int {
 	if len(gaps) > 0 {
 		write(stderr, "ERROR: %s found %d gap(s)\n", command, len(gaps))
 		return emitReport(stdout, command, "failed", nil, gaps)
@@ -334,7 +349,7 @@ func runCLIContract(args []string, stdout io.Writer, stderr io.Writer) int {
 		return invalidInternalArgsExit("cli-contract", err, stderr)
 	}
 	return runRegistryCheck("cli-contract", map[string][]string{
-		"docs/standard/goalcli-cli-contract.md": commandRegistryRequiredCommands(),
+		"docs/standard/goalcli-cli-contract.md": goalcliCLIContractNeedles(),
 		"contracts/goalcli-report.schema.json":  {"command", "status", "details", "gaps"},
 		".agent/command-registry.yaml":          requiredCommandRegistryNeedles(),
 	}, stdout, stderr)
@@ -357,22 +372,36 @@ func runCommandRegistry(args []string, stdout io.Writer, stderr io.Writer) int {
 	if err := validateInternalCommandArgs("command-registry", args, internalCommandFlagSpec{boolFlags: []string{"json"}}); err != nil {
 		return invalidInternalArgsExit("command-registry", err, stderr)
 	}
-	return runRegistryCheck("command-registry", map[string][]string{
+	gaps := registryContractGaps(map[string][]string{
 		".agent/command-registry.yaml": requiredCommandRegistryNeedles(),
-	}, stdout, stderr)
+	})
+	appendYAMLListDuplicateGaps(".agent/command-registry.yaml", "name", "command", &gaps)
+	appendAgentIndexGaps(".agent/index.yaml", &gaps)
+	if len(gaps) > 0 {
+		write(stderr, "ERROR: command-registry found %d gap(s)\n", len(gaps))
+		return emitReport(stdout, "command-registry", "failed", nil, gaps)
+	}
+	return emitReport(stdout, "command-registry", "passed", []string{"command registry entries are complete and unique", ".agent/index.yaml control-plane classification satisfied"}, nil)
 }
 
 func runMakefileBaseline(args []string, stdout io.Writer, stderr io.Writer) int {
 	if err := validateInternalCommandArgs("makefile-baseline", args, internalCommandFlagSpec{boolFlags: []string{"json"}}); err != nil {
 		return invalidInternalArgsExit("makefile-baseline", err, stderr)
 	}
-	requiredTargets := append([]string{"fmt", "vet", "lint", "test", "race", "boundary", "security", "contracts", "docs-check", "rules-verify", "evidence", "score-check", "main-guard", "worktree-guard", "worktree-check", "context-check", "spec-check", "design-check", "task-check", "pr-check", "evidence-check", "cli-contract", "issue-registry", "command-registry", "makefile-baseline", "governance-check", "p1-governance-check", "execution-context", "p2-runtime-check", "release-check", "release-final-check"}, contextRuntimeTargets()...)
-	requiredTargets = append(requiredTargets, goalcliMakefileTargets()...)
+	requiredTargets := requiredMakefileTargets()
 	required := map[string][]string{"Makefile": {}, ".agent/makefile-target-registry.yaml": requiredTargets, ".agent/makefile-baseline.yaml": requiredTargets}
 	for _, target := range requiredTargets {
 		required["Makefile"] = append(required["Makefile"], ".PHONY: "+target, target+":")
 	}
-	return runRegistryCheck("makefile-baseline", required, stdout, stderr)
+	gaps := registryContractGaps(required)
+	appendYAMLSequenceDuplicateGaps(".agent/makefile-target-registry.yaml", "targets", "target", &gaps)
+	appendYAMLMapSectionDuplicateGaps(".agent/makefile-baseline.yaml", "baseline_targets", "target", &gaps)
+	return emitRegistryCheckResult("makefile-baseline", gaps, stdout, stderr)
+}
+
+func requiredMakefileTargets() []string {
+	requiredTargets := append([]string{"fmt", "vet", "lint", "test", "race", "boundary", "security", "contracts", "docs-check", "rules-verify", "evidence", "score-check", "main-guard", "worktree-guard", "worktree-check", "context-check", "spec-check", "design-check", "task-check", "pr-check", "evidence-check", "cli-contract", "issue-registry", "command-registry", "makefile-baseline", "audit-goal", "governance-check", "p1-governance-check", "execution-context", "p2-runtime-check", "release-check", "release-final-check"}, contextRuntimeTargets()...)
+	return append(requiredTargets, goalcliMakefileTargets()...)
 }
 
 func goalcliMakefileTargets() []string {
@@ -443,7 +472,7 @@ func runContextProfileCheck(command string, args []string, stdout io.Writer, std
 		".agent/command-registry.yaml":          requiredCommandRegistryNeedles(),
 		".agent/makefile-target-registry.yaml":  contextTargets,
 		".agent/makefile-baseline.yaml":         contextTargets,
-		"docs/standard/goalcli-cli-contract.md": commandRegistryRequiredCommands(),
+		"docs/standard/goalcli-cli-contract.md": goalcliCLIContractNeedles(),
 		"Makefile":                              {"release-final-check:", "$(MAKE) context-release"},
 	}
 	for _, target := range contextTargets {
@@ -1157,6 +1186,7 @@ var commandRegistryCommands = []string{
 	"issue-registry",
 	"command-registry",
 	"makefile-baseline",
+	"audit-goal",
 	"context-profile",
 	"context-profile-check",
 	"context-schema-check",
@@ -1228,12 +1258,164 @@ func commandRegistryRequiredCommands() []string {
 	return append([]string(nil), commandRegistryCommands...)
 }
 
+func goalcliCLIContractNeedles() []string {
+	needles := commandRegistryRequiredCommands()
+	return append(needles, "worktree-check --context", "pr-check --context")
+}
+
 func requiredCommandRegistryNeedles() []string {
 	needles := make([]string, 0, len(commandRegistryCommands))
 	for _, command := range commandRegistryCommands {
 		needles = append(needles, "name: "+command)
 	}
 	return needles
+}
+
+type agentIndexEntry struct {
+	path  string
+	block string
+}
+
+func appendAgentIndexGaps(path string, gaps *[]string) {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		*gaps = append(*gaps, "missing "+path)
+		return
+	}
+	text := string(content)
+	for _, needle := range []string{"schema_version:", "module: xlib-standard", "control_plane:", "files:"} {
+		if !strings.Contains(text, needle) {
+			*gaps = append(*gaps, path+" missing "+needle)
+		}
+	}
+	entries := parseAgentIndexEntries(text)
+	if len(entries) == 0 {
+		*gaps = append(*gaps, path+" must define files entries")
+		return
+	}
+
+	allowedLayers := scalarSet("runtime_contract", "machine_contract", "registry", "evidence", "traceability", "policy", "archive", "documentation")
+	allowedAuthorities := scalarSet("source_of_truth", "validated_mirror", "historical_snapshot")
+	allowedMutability := scalarSet("hand_written", "append_only", "generated")
+	seen := map[string]bool{}
+	present := map[string]bool{}
+	for _, entry := range entries {
+		if entry.path == "" {
+			*gaps = append(*gaps, path+" contains file entry without path")
+			continue
+		}
+		if seen[entry.path] {
+			*gaps = append(*gaps, path+" duplicate file entry "+entry.path)
+		}
+		seen[entry.path] = true
+		present[entry.path] = true
+		if !strings.HasPrefix(entry.path, ".agent/") {
+			*gaps = append(*gaps, path+" "+entry.path+" must stay under .agent/")
+		}
+		if info, statErr := os.Stat(entry.path); statErr != nil {
+			*gaps = append(*gaps, path+" references missing "+entry.path)
+		} else if info.IsDir() {
+			*gaps = append(*gaps, path+" "+entry.path+" must be a file")
+		}
+
+		appendRequiredAgentIndexField(path, entry, "layer", gaps)
+		appendRequiredAgentIndexField(path, entry, "authority", gaps)
+		appendRequiredAgentIndexField(path, entry, "mutability", gaps)
+		appendRequiredAgentIndexField(path, entry, "owner", gaps)
+		appendRequiredAgentIndexField(path, entry, "validator", gaps)
+		appendRequiredAgentIndexField(path, entry, "purpose", gaps)
+		appendAgentIndexEnumGap(path, entry, "layer", allowedLayers, gaps)
+		appendAgentIndexEnumGap(path, entry, "authority", allowedAuthorities, gaps)
+		appendAgentIndexEnumGap(path, entry, "mutability", allowedMutability, gaps)
+	}
+	for _, required := range requiredAgentIndexPaths() {
+		if !present[required] {
+			*gaps = append(*gaps, path+" missing file entry "+required)
+		}
+	}
+}
+
+func parseAgentIndexEntries(text string) []agentIndexEntry {
+	var entries []agentIndexEntry
+	lines := strings.Split(text, "\n")
+	inFiles := false
+	var current *agentIndexEntry
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if !inFiles {
+			if trimmed == "files:" {
+				inFiles = true
+			}
+			continue
+		}
+		if isTopLevelYAMLKey(line) && trimmed != "files:" {
+			break
+		}
+		if strings.HasPrefix(trimmed, "- path:") {
+			if current != nil {
+				entries = append(entries, *current)
+			}
+			current = &agentIndexEntry{path: trimYAMLScalar(strings.TrimSpace(strings.TrimPrefix(trimmed, "- path:")))}
+		}
+		if current != nil {
+			current.block += line + "\n"
+		}
+	}
+	if current != nil {
+		entries = append(entries, *current)
+	}
+	return entries
+}
+
+func appendRequiredAgentIndexField(indexPath string, entry agentIndexEntry, field string, gaps *[]string) {
+	if !blockHasNonEmptyYAMLValue(entry.block, field) {
+		*gaps = append(*gaps, indexPath+" "+entry.path+" missing "+field+":")
+	}
+}
+
+func appendAgentIndexEnumGap(indexPath string, entry agentIndexEntry, field string, allowed map[string]bool, gaps *[]string) {
+	value, ok := blockYAMLValue(entry.block, field)
+	if !ok || value == "" {
+		return
+	}
+	if !allowed[value] {
+		*gaps = append(*gaps, indexPath+" "+entry.path+" invalid "+field+" "+value)
+	}
+}
+
+func requiredAgentIndexPaths() []string {
+	return []string{
+		".agent/goal-runtime.md",
+		".agent/object-model.md",
+		".agent/state-machine.md",
+		".agent/harness.yaml",
+		".agent/command-registry.yaml",
+		".agent/issue-registry.yaml",
+		".agent/command-implementation-status.yaml",
+		".agent/makefile-target-registry.yaml",
+		".agent/makefile-baseline.yaml",
+		".agent/release-required-gates.yaml",
+		".agent/evidence-protocol.md",
+		".agent/evidence/ledger.jsonl",
+		".agent/runtime-file-ownership.yaml",
+		".agent/execution-context.yaml",
+		".agent/policy-schema.yaml",
+		".agent/traceability-matrix.md",
+		".agent/risk-register.md",
+		".agent/decision-log.md",
+		".agent/rollback-protocol.md",
+		".agent/release-template.md",
+		".agent/agent-teams.md",
+		".agent/retrospective.md",
+	}
+}
+
+func scalarSet(values ...string) map[string]bool {
+	set := make(map[string]bool, len(values))
+	for _, value := range values {
+		set[value] = true
+	}
+	return set
 }
 
 type issueRegistryEntry struct {
@@ -1391,6 +1573,133 @@ func trimYAMLScalar(value string) string {
 	}
 	value = strings.TrimSpace(value)
 	return strings.Trim(value, `"'`)
+}
+
+func appendYAMLListDuplicateGaps(path string, field string, label string, gaps *[]string) {
+	values, err := yamlListScalarValues(path, field)
+	if err != nil {
+		*gaps = append(*gaps, "read "+path+": "+err.Error())
+		return
+	}
+	for _, duplicate := range duplicateValues(values) {
+		*gaps = append(*gaps, fmt.Sprintf("%s duplicate %s %s", path, label, duplicate))
+	}
+}
+
+func appendYAMLSequenceDuplicateGaps(path string, section string, label string, gaps *[]string) {
+	values, err := yamlSequenceValuesInSection(path, section)
+	if err != nil {
+		*gaps = append(*gaps, "read "+path+": "+err.Error())
+		return
+	}
+	for _, duplicate := range duplicateValues(values) {
+		*gaps = append(*gaps, fmt.Sprintf("%s duplicate %s %s", path, label, duplicate))
+	}
+}
+
+func appendYAMLMapSectionDuplicateGaps(path string, section string, label string, gaps *[]string) {
+	values, err := yamlMapKeysInSection(path, section)
+	if err != nil {
+		*gaps = append(*gaps, "read "+path+": "+err.Error())
+		return
+	}
+	for _, duplicate := range duplicateValues(values) {
+		*gaps = append(*gaps, fmt.Sprintf("%s duplicate %s %s", path, label, duplicate))
+	}
+}
+
+func yamlListScalarValues(path string, field string) ([]string, error) {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	prefix := "- " + field + ":"
+	var values []string
+	for _, line := range strings.Split(string(content), "\n") {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, prefix) {
+			values = append(values, trimYAMLScalar(strings.TrimSpace(strings.TrimPrefix(trimmed, prefix))))
+		}
+	}
+	return values, nil
+}
+
+func yamlSequenceValuesInSection(path string, section string) ([]string, error) {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var values []string
+	inSection := false
+	header := section + ":"
+	for _, line := range strings.Split(string(content), "\n") {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+		if !inSection {
+			inSection = trimmed == header && line == trimmed
+			continue
+		}
+		if isTopLevelYAMLKey(line) {
+			break
+		}
+		if strings.HasPrefix(trimmed, "- ") {
+			values = append(values, trimYAMLScalar(strings.TrimSpace(strings.TrimPrefix(trimmed, "- "))))
+		}
+	}
+	return values, nil
+}
+
+func yamlMapKeysInSection(path string, section string) ([]string, error) {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var values []string
+	inSection := false
+	header := section + ":"
+	for _, line := range strings.Split(string(content), "\n") {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+		if !inSection {
+			inSection = trimmed == header && line == trimmed
+			continue
+		}
+		if isTopLevelYAMLKey(line) {
+			break
+		}
+		if strings.HasPrefix(line, "  ") && strings.Contains(trimmed, ":") && !strings.HasPrefix(trimmed, "- ") {
+			key := strings.TrimSpace(strings.SplitN(trimmed, ":", 2)[0])
+			values = append(values, trimYAMLScalar(key))
+		}
+	}
+	return values, nil
+}
+
+func isTopLevelYAMLKey(line string) bool {
+	trimmed := strings.TrimSpace(line)
+	return line == trimmed && strings.HasSuffix(trimmed, ":") && !strings.HasPrefix(trimmed, "- ")
+}
+
+func duplicateValues(values []string) []string {
+	seen := map[string]bool{}
+	reported := map[string]bool{}
+	var duplicates []string
+	for _, value := range values {
+		if value == "" {
+			continue
+		}
+		if seen[value] && !reported[value] {
+			duplicates = append(duplicates, value)
+			reported[value] = true
+		}
+		seen[value] = true
+	}
+	sort.Strings(duplicates)
+	return duplicates
 }
 
 func gitOutput(args ...string) string {
