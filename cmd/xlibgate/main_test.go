@@ -402,15 +402,16 @@ func TestGoalkitMVACommandSurfaceRequiresG12ThroughG16Equivalents(t *testing.T) 
 			}
 
 			var report struct {
-				Command          string `json:"command"`
-				Status           string `json:"status"`
-				GoalID           string `json:"goal_id"`
-				Executor         string `json:"executor"`
-				ControlPlane     string `json:"control_plane"`
-				Blocking         bool   `json:"blocking"`
-				MVAStatus        string `json:"mva_status"`
-				LedgerPath       string `json:"ledger_path"`
-				EvidencePackPath string `json:"evidence_pack_path"`
+				Command          string   `json:"command"`
+				Status           string   `json:"status"`
+				GoalID           string   `json:"goal_id"`
+				Executor         string   `json:"executor"`
+				ControlPlane     string   `json:"control_plane"`
+				Blocking         bool     `json:"blocking"`
+				MVAStatus        string   `json:"mva_status"`
+				LedgerPath       string   `json:"ledger_path"`
+				EvidencePackPath string   `json:"evidence_pack_path"`
+				Evidence         []string `json:"evidence"`
 				Gates            []struct {
 					ID       string `json:"id"`
 					Command  string `json:"command"`
@@ -1361,10 +1362,11 @@ func TestGoalkitMVAGoalCommandsRequireHarnessMarkers(t *testing.T) {
 		marker  string
 	}{
 		{command: "goal-acceptance", marker: "G12_ACCEPTANCE"},
-		{command: "goal-delivery", marker: "G13_HARNESS_RUNTIME"},
-		{command: "goal-handover", marker: "G14_EVIDENCE_LEDGER"},
-		{command: "goal-downstream", marker: "G15_AUTHORITY_MAP"},
-		{command: "goal-certify", marker: "G16_NO_FALSE_COMPLETION"},
+		{command: "goal-delivery", marker: "G13_DELIVERY"},
+		{command: "goal-handover", marker: "G14_HANDOVER"},
+		{command: "goal-downstream-adoption", marker: "G15_DOWNSTREAM_ADOPTION"},
+		{command: "goal-certify", marker: "G16_CERTIFY"},
+		{command: "goal-runtime-final", marker: "G12_G16_FINAL"},
 	}
 
 	for _, tt := range tests {

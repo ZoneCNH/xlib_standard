@@ -1,6 +1,7 @@
 XLIBGATE ?= go run ./cmd/xlibgate
 XLIB_CONTEXT ?= local_write
 GOAL_ID ?= GOAL-20260603-XLIB-RUNTIME-001
+GOAL_RUNTIME_MODE ?= FULL
 
 .PHONY: require-gowork-off
 require-gowork-off:
@@ -205,25 +206,6 @@ makefile-baseline:
 agent-team-contract scope-lock pr-template acceptance-matrix runtime-health upgrade-standard conformance-profile downstream-registry self-healing-skeleton goal-runtime github-governance supply-chain changelog governance-fixture-test autoresearch policy-schema github-settings toolchain evidence-artifacts naming:
 	$(XLIBGATE) $@ --dry-run --verify
 
-.PHONY: goal-acceptance
-goal-acceptance:
-	$(XLIBGATE) $@ --dry-run --verify
-
-.PHONY: goal-delivery
-goal-delivery:
-	$(XLIBGATE) $@ --dry-run --verify
-
-.PHONY: goal-handover
-goal-handover:
-	$(XLIBGATE) $@ --dry-run --verify
-
-.PHONY: goal-downstream
-goal-downstream:
-	$(XLIBGATE) $@ --dry-run --verify
-
-.PHONY: goal-certify
-goal-certify:
-	$(XLIBGATE) $@ --dry-run --verify
 
 .PHONY: install-runtime upgrade-runtime release-ready evidence-replay attest-conformance pack-standard pack-gate pack-evidence downstream-baseline downstream-adoption runtime-file-ownership
 install-runtime upgrade-runtime release-ready evidence-replay attest-conformance pack-standard pack-gate pack-evidence downstream-baseline downstream-adoption runtime-file-ownership:
@@ -235,33 +217,33 @@ execution-context:
 
 .PHONY: goal-acceptance
 goal-acceptance: require-gowork-off
-	$(XLIBGATE) $@ --goal-id "$(GOAL_ID)" --json
+	$(XLIBGATE) $@ --goal-id "$(GOAL_ID)" --mode "$(GOAL_RUNTIME_MODE)" --json
 
 .PHONY: goal-delivery
 goal-delivery: require-gowork-off
-	$(XLIBGATE) $@ --goal-id "$(GOAL_ID)" --json
+	$(XLIBGATE) $@ --goal-id "$(GOAL_ID)" --mode "$(GOAL_RUNTIME_MODE)" --json
 
 .PHONY: goal-handover
 goal-handover: require-gowork-off
-	$(XLIBGATE) $@ --goal-id "$(GOAL_ID)" --json
+	$(XLIBGATE) $@ --goal-id "$(GOAL_ID)" --mode "$(GOAL_RUNTIME_MODE)" --json
 
 .PHONY: goal-downstream-adoption
 goal-downstream-adoption: require-gowork-off
-	$(XLIBGATE) $@ --goal-id "$(GOAL_ID)" --json
+	$(XLIBGATE) $@ --goal-id "$(GOAL_ID)" --mode "$(GOAL_RUNTIME_MODE)" --json
 
 .PHONY: goal-certify
 goal-certify: require-gowork-off
-	$(XLIBGATE) $@ --goal-id "$(GOAL_ID)" --json
+	$(XLIBGATE) $@ --goal-id "$(GOAL_ID)" --mode "$(GOAL_RUNTIME_MODE)" --json
 
 .PHONY: goal-runtime-final
 goal-runtime-final: require-gowork-off goal-acceptance goal-delivery goal-handover goal-downstream-adoption goal-certify
-	$(XLIBGATE) $@ --goal-id "$(GOAL_ID)" --json
+	$(XLIBGATE) $@ --goal-id "$(GOAL_ID)" --mode "$(GOAL_RUNTIME_MODE)" --json
 
 .PHONY: governance-check
 governance-check: require-gowork-off main-guard worktree-guard evidence-check boundary architecture domain security security-debt contracts docs-check cli-contract issue-registry command-registry makefile-baseline debt
 
 .PHONY: p1-governance-check
-p1-governance-check: agent-team-contract scope-lock pr-template acceptance-matrix runtime-health upgrade-standard conformance-profile downstream-registry self-healing-skeleton goal-runtime goal-acceptance goal-delivery goal-handover goal-downstream goal-certify github-governance supply-chain changelog governance-fixture-test autoresearch policy-schema github-settings toolchain evidence-artifacts naming
+p1-governance-check: agent-team-contract scope-lock pr-template acceptance-matrix runtime-health upgrade-standard conformance-profile downstream-registry self-healing-skeleton goal-runtime github-governance supply-chain changelog governance-fixture-test autoresearch policy-schema github-settings toolchain evidence-artifacts naming
 
 .PHONY: p2-runtime-check
 p2-runtime-check: install-runtime upgrade-runtime release-ready evidence-replay attest-conformance pack-standard pack-gate pack-evidence downstream-baseline downstream-adoption runtime-file-ownership execution-context

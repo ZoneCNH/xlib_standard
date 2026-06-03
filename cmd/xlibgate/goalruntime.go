@@ -14,6 +14,7 @@ func runGoalRuntimeCommand(command string, args []string, stdout io.Writer, stde
 	flags.SetOutput(stderr)
 	goalID := flags.String("goal-id", envDefault("GOAL_ID", goalruntime.DefaultGoalID), "goal identifier to evaluate")
 	flags.Bool("json", false, "emit JSON report")
+	mode := flags.String("mode", "FULL", "goalkit runtime evaluation mode")
 	flags.Bool("strict", false, "reserved strict contract flag")
 	if err := flags.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
@@ -25,7 +26,7 @@ func runGoalRuntimeCommand(command string, args []string, stdout io.Writer, stde
 		write(stderr, "ERROR: %s invalid arguments: unexpected positional argument %q\n", command, flags.Arg(0))
 		return 2
 	}
-	report, err := goalruntime.Evaluate(command, goalruntime.Options{GoalID: *goalID, Root: "."})
+	report, err := goalruntime.Evaluate(command, goalruntime.Options{GoalID: *goalID, Mode: *mode, Root: "."})
 	if err != nil {
 		write(stderr, "ERROR: %v\n", err)
 		return 2
