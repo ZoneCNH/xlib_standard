@@ -58,12 +58,18 @@ commands:
   - name: dashboard-generate
     phase: P0
     target: dashboard-generate
+  - name: traceability-check
+    phase: P0
+    target: traceability-check
   - name: boundary
     phase: P0
     target: boundary
   - name: contracts
     phase: P0
     target: contracts
+  - name: schema-check
+    phase: P0
+    target: schema-check
   - name: dependency-check
     phase: P0
     target: dependency-check

@@ -73,6 +73,7 @@ debt-evidence-hash:
 debt-evidence-checksum-check:
 	$(GOALCLI) debt-evidence-checksum-check
 
+.PHONY: secret-check
 .PHONY: security
 
 architecture:
@@ -114,6 +115,9 @@ debt-patch-suggest:
 
 debt-lifecycle-check:
 	$(GOALCLI) debt lifecycle-check
+
+secret-check:
+	$(GOALCLI) secret-check
 
 security:
 	$(GOALCLI) security
@@ -277,6 +281,10 @@ context-profile-check:
 context-schema-check:
 	$(GOALCLI) context-schema-check
 
+.PHONY: schema-check
+schema-check:
+	$(GOALCLI) schema validate --all --report reports/schema-check.json
+
 .PHONY: context-lite
 context-lite: require-gowork-off governance-check
 
@@ -303,7 +311,7 @@ context-standard-check: context-standard
 context-full-check: context-full
 
 .PHONY: ci
-ci: doctor-hooks-local fmt vet lint test race boundary architecture domain security security-debt contracts governance-check debt score rules-verify
+ci: doctor-hooks-local fmt vet lint test race boundary architecture domain secret-check security security-debt contracts governance-check debt score rules-verify
 
 .PHONY: ci-extended
 ci-extended: ci property golden fuzz-smoke docs-drift

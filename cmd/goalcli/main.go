@@ -63,6 +63,10 @@ func run(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) int
 		return runContextProfileCheck("context-profile-check", args[1:], stdout, stderr)
 	case "context-schema-check":
 		return runContextProfileCheck("context-schema-check", args[1:], stdout, stderr)
+	case "schema":
+		return runSchemaCommand(args[1:], stdout, stderr)
+	case "schema-check":
+		return runSchemaCheck(args[1:], stdout, stderr)
 	case "context-lite", "context-standard", "context-full", "context-release", "context-fast-check", "context-standard-check", "context-full-check":
 		return runContextProfileAlias(args[0], args[1:], stdout, stderr)
 	case "debt":
@@ -122,7 +126,11 @@ func run(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) int
 	case "score":
 		return runScore(args[1:], stdout, stderr)
 	case "secrets":
-		return runExternal(stdin, stdout, stderr, "./scripts/check_secrets.sh")
+		return runExternal(stdin, stdout, stderr, "./scripts/check_secrets.sh", args[1:]...)
+	case "secret-check":
+		return runExternal(stdin, stdout, stderr, "./scripts/check_secrets.sh", args[1:]...)
+	case "secret":
+		return runSecretCommand(args[1:], stdin, stdout, stderr)
 	case "security":
 		return runExternalSequence(stdin, stdout, stderr,
 			externalCommand{name: "govulncheck", args: []string{"./..."}},
@@ -139,6 +147,23 @@ func run(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) int
 		return 0
 	default:
 		write(stderr, "unknown command %q\n", args[0])
+		return 2
+	}
+}
+
+func runSecretCommand(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) int {
+	if len(args) == 0 {
+		write(stderr, "usage: goalcli secret check [root]\n")
+		return 2
+	}
+	switch args[0] {
+	case "check":
+		return runExternal(stdin, stdout, stderr, "./scripts/check_secrets.sh", args[1:]...)
+	case "help", "-h", "--help":
+		write(stdout, "usage: goalcli secret check [root]\n")
+		return 0
+	default:
+		write(stderr, "unknown secret command %q\n", args[0])
 		return 2
 	}
 }
@@ -231,6 +256,8 @@ commands:
   context-profile-check [--json]
   context-release
   context-schema-check [--json]
+  schema validate --all|--fixture <dir> [--report <path>] [--json]
+  schema-check [--all|--fixture <dir>] [--report <path>] [--json]
   context-standard
   context-standard-check
   contracts
@@ -297,7 +324,9 @@ commands:
   runtime-health
   scope-lock
   score [--min <score>]
-  secrets
+  secret check [root]
+  secret-check [root]
+  secrets [root]
   security
   security-debt [debt args]
   self-improving-check [--root <path>] [--strict]

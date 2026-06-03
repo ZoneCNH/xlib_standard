@@ -33,6 +33,7 @@
 - `makefile-baseline`
 - `audit-goal`
 - `dashboard-generate`
+- `traceability-check [--matrix .agent/traceability-matrix.md] [--json]`
 - `context-profile`
 - `context-profile-check`
 - `context-schema-check`
@@ -160,6 +161,8 @@ goalcli MVA commands 是由 `.agent/harness.yaml` 背书的本地 `cmd/goalcli` 
 
 ## 语义校验
 
+`schema-check` 必须提供 `goalcli schema validate --all` 兼容入口并生成 `reports/schema-check.json`，用于校验 repo-local schema-bearing artifacts。
+
 `issue-registry` 不只是文件存在检查。它必须校验 `.agent/issue-registry.yaml` 中每个条目都具备非空 `title`、`command` 和 `evidence`，`status` 必须为 `implemented`，ID 必须匹配 `P0|P1|P2|CTX-###`、全局唯一，并且每个前缀从 `001` 连续编号。`context-profile-check` 复用该 registry 语义，不能用空文件或非连续 ID 作为通过证据。
 
 planned command 的 dry-run 也必须读取对应文件并检查语义 marker。当前强制 marker 包括：`agent-team-contract` 的 `schema_version:`、`roles:`、`rule:`；`acceptance-matrix` 的 `schema_version:`、`acceptance:`；`runtime-health` 的 `schema_version:`、`checks:`、`toolchain`；goalcli MVA 命令在 `.agent/harness.yaml` 中的 `goalcli_mva_gates:`、对应 `G12_ACCEPTANCE`/`G13_DELIVERY`/`G14_HANDOVER`/`G15_DOWNSTREAM_ADOPTION`/`G16_CERTIFY`/`G12_G16_FINAL` 与命令名；`execution-context` 的 `schema_version:`、`contexts:`、`local_write`、`ci_pull_request`、`release_verify`。这些命令不得退化为单纯路径存在检查。
@@ -171,6 +174,7 @@ Context Runtime v4.0 新增可叠加的 profile baseline，但不替换现有 P0
 - `context-profile --profile lite|standard|full|release`
 - `context-profile-check`
 - `context-schema-check`
+- `schema-check`
 - `context-lite`
 - `context-standard`
 - `context-full`

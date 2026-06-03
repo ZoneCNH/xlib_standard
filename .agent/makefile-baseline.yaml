@@ -22,6 +22,7 @@ baseline_targets:
   debt-lifecycle-check: "$(GOALCLI) debt lifecycle-check"
   security: "$(GOALCLI) security"
   contracts: "$(GOALCLI) contracts"
+  schema-check: "$(GOALCLI) schema validate --all --report reports/schema-check.json"
   docs-check: "$(GOALCLI) docs-check"
   rules-verify: "$(GOALCLI) rules-verify"
   downstream-debt: "$(GOALCLI) downstream-debt"

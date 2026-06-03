@@ -402,7 +402,7 @@ func runMakefileBaseline(args []string, stdout io.Writer, stderr io.Writer) int 
 }
 
 func requiredMakefileTargets() []string {
-	requiredTargets := append([]string{"fmt", "vet", "lint", "test", "race", "boundary", "security", "contracts", "docs-check", "rules-verify", "evidence", "score-check", "main-guard", "worktree-guard", "worktree-check", "context-check", "spec-check", "design-check", "task-check", "pr-check", "evidence-check", "cli-contract", "issue-registry", "command-registry", "makefile-baseline", "audit-goal", "dashboard-generate", "governance-check", "p1-governance-check", "execution-context", "p2-runtime-check", "release-check", "release-final-check"}, contextRuntimeTargets()...)
+	requiredTargets := append([]string{"fmt", "vet", "lint", "test", "race", "boundary", "security", "contracts", "schema-check", "docs-check", "rules-verify", "evidence", "score-check", "main-guard", "worktree-guard", "worktree-check", "context-check", "spec-check", "design-check", "task-check", "pr-check", "evidence-check", "cli-contract", "issue-registry", "command-registry", "makefile-baseline", "audit-goal", "dashboard-generate", "governance-check", "p1-governance-check", "execution-context", "p2-runtime-check", "release-check", "release-final-check"}, contextRuntimeTargets()...)
 	return append(requiredTargets, goalcliMakefileTargets()...)
 }
 
@@ -1443,9 +1443,11 @@ var commandRegistryCommands = []string{
 	"makefile-baseline",
 	"audit-goal",
 	"dashboard-generate",
+	"traceability-check",
 	"context-profile",
 	"context-profile-check",
 	"context-schema-check",
+	"schema-check",
 	"context-lite",
 	"context-standard",
 	"context-full",

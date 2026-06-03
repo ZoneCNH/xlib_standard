@@ -197,7 +197,9 @@ func TestRunDispatchesExternalCommands(t *testing.T) {
 		{name: "release-final-check", args: []string{"release-final-check"}, wantStdout: "make release-final-check"},
 		{name: "render-check", args: []string{"render-check", "rendered"}, wantStdout: "check_rendered_template.sh rendered"},
 		{name: "rules-verify", args: []string{"rules-verify"}, wantStdout: "python3 scripts/verify_rules.py"},
-		{name: "secrets", args: []string{"secrets"}, wantStdout: "check_secrets.sh"},
+		{name: "legacy secrets", args: []string{"secrets", "fixture-root"}, wantStdout: "check_secrets.sh fixture-root"},
+		{name: "secret-check", args: []string{"secret-check", "fixture-root"}, wantStdout: "check_secrets.sh fixture-root"},
+		{name: "secret check", args: []string{"secret", "check", "fixture-root"}, wantStdout: "check_secrets.sh fixture-root"},
 		{name: "security", args: []string{"security"}, wantStdout: "check_secrets.sh"},
 		{name: "standard-impact-check", args: []string{"standard-impact-check"}, wantStdout: "check_standard_impact.sh"},
 	}
@@ -216,6 +218,123 @@ func TestRunDispatchesExternalCommands(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRunSecretCommandRejectsUnknownSubcommand(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+
+	got := run([]string{"secret", "scan"}, strings.NewReader(""), &stdout, &stderr)
+
+	if got != 2 {
+		t.Fatalf("secret scan exit = %d, stderr %q, stdout %q; want 2", got, stderr.String(), stdout.String())
+	}
+	if !strings.Contains(stderr.String(), `unknown secret command "scan"`) {
+		t.Fatalf("stderr = %q; want unknown secret subcommand", stderr.String())
+	}
+}
+
+func TestSecretCheckScriptWritesReportsAndUsesExitSeven(t *testing.T) {
+	root := t.TempDir()
+	copySecretCheckScript(t, root)
+	secret := "api_token=" + "ghp_" + strings.Repeat("A", 36)
+	if err := os.WriteFile(filepath.Join(root, "leak.env"), []byte(secret+"\n"), 0o644); err != nil {
+		t.Fatalf("write leak fixture: %v", err)
+	}
+	chdir(t, root)
+
+	var stdout, stderr bytes.Buffer
+	got := run([]string{"secret-check"}, strings.NewReader(""), &stdout, &stderr)
+
+	if got != 7 {
+		t.Fatalf("secret-check exit = %d, stderr %q, stdout %q; want 7", got, stderr.String(), stdout.String())
+	}
+	if !strings.Contains(stderr.String(), "reports/secret-check.json") {
+		t.Fatalf("stderr = %q; want report path", stderr.String())
+	}
+	report := readSecretCheckReport(t, filepath.Join(root, "reports", "secret-check.json"))
+	if report.Status != "failed" {
+		t.Fatalf("report status = %q; want failed", report.Status)
+	}
+	if len(report.Findings) != 1 {
+		t.Fatalf("findings = %#v; want one finding", report.Findings)
+	}
+	if strings.Contains(report.Findings[0].Excerpt, "AAAAAAAA") {
+		t.Fatalf("excerpt leaked token material: %q", report.Findings[0].Excerpt)
+	}
+	if text := readText(t, filepath.Join(root, "reports", "secret-check.txt")); !strings.Contains(text, "FAIL: secret-check") {
+		t.Fatalf("text report = %q; want failure summary", text)
+	}
+}
+
+func TestSecretCheckScriptAllowsMaskedExamples(t *testing.T) {
+	root := t.TempDir()
+	copySecretCheckScript(t, root)
+	if err := os.WriteFile(filepath.Join(root, "example.env"), []byte("token=********\nsecret=<redacted>\n"), 0o644); err != nil {
+		t.Fatalf("write masked fixture: %v", err)
+	}
+	chdir(t, root)
+
+	var stdout, stderr bytes.Buffer
+	got := run([]string{"secret", "check"}, strings.NewReader(""), &stdout, &stderr)
+
+	if got != 0 {
+		t.Fatalf("secret check exit = %d, stderr %q, stdout %q; want 0", got, stderr.String(), stdout.String())
+	}
+	report := readSecretCheckReport(t, filepath.Join(root, "reports", "secret-check.json"))
+	if report.Status != "passed" {
+		t.Fatalf("report status = %q; want passed", report.Status)
+	}
+	if len(report.Findings) != 0 {
+		t.Fatalf("findings = %#v; want none", report.Findings)
+	}
+	if text := readText(t, filepath.Join(root, "reports", "secret-check.txt")); !strings.Contains(text, "PASS: secret-check") {
+		t.Fatalf("text report = %q; want pass summary", text)
+	}
+}
+
+func copySecretCheckScript(t *testing.T, root string) {
+	t.Helper()
+	source := filepath.Join(repoRoot(t), "scripts", "check_secrets.sh")
+	data, err := os.ReadFile(source)
+	if err != nil {
+		t.Fatalf("read secret check script: %v", err)
+	}
+	path := filepath.Join(root, "scripts", "check_secrets.sh")
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatalf("mkdir scripts: %v", err)
+	}
+	if err := os.WriteFile(path, data, 0o755); err != nil {
+		t.Fatalf("write secret check script: %v", err)
+	}
+}
+
+func readSecretCheckReport(t *testing.T, path string) struct {
+	Status   string `json:"status"`
+	Findings []struct {
+		RuleID  string `json:"rule_id"`
+		File    string `json:"file"`
+		Line    int    `json:"line"`
+		Excerpt string `json:"excerpt"`
+	} `json:"findings"`
+} {
+	t.Helper()
+	var report struct {
+		Status   string `json:"status"`
+		Findings []struct {
+			RuleID  string `json:"rule_id"`
+			File    string `json:"file"`
+			Line    int    `json:"line"`
+			Excerpt string `json:"excerpt"`
+		} `json:"findings"`
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read secret check report: %v", err)
+	}
+	if err := json.Unmarshal(data, &report); err != nil {
+		t.Fatalf("unmarshal secret check report: %v", err)
+	}
+	return report
 }
 
 func TestRunSecurityExecutesVulnerabilityScanBeforeSecrets(t *testing.T) {
@@ -867,6 +986,59 @@ func TestCommandRegistryRequiresCompleteGovernanceSurface(t *testing.T) {
 	}
 	if !slicesContain(report.Gaps, ".agent/command-registry.yaml missing name: execution-context") {
 		t.Fatalf("gaps = %#v; want missing execution-context registry entry", report.Gaps)
+	}
+}
+
+func TestTraceabilityCheckMetadataIsSynchronized(t *testing.T) {
+	root := repoRoot(t)
+	for _, check := range []struct {
+		path   string
+		needle string
+	}{
+		{
+			path:   "docs/standard/goalcli-cli-contract.md",
+			needle: "- `traceability-check [--matrix .agent/traceability-matrix.md] [--json]`",
+		},
+		{
+			path:   ".agent/command-registry.yaml",
+			needle: "  - name: traceability-check\n",
+		},
+		{
+			path:   ".agent/command-implementation-status.yaml",
+			needle: "      - traceability-check\n",
+		},
+	} {
+		t.Run(check.path, func(t *testing.T) {
+			content, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(check.path)))
+			if err != nil {
+				t.Fatalf("read %s: %v", check.path, err)
+			}
+			if !strings.Contains(string(content), check.needle) {
+				t.Fatalf("%s missing %q", check.path, check.needle)
+			}
+		})
+	}
+}
+
+func TestImplementationStatusIncludesImplementedP0CheckTargets(t *testing.T) {
+	root := repoRoot(t)
+	content, err := os.ReadFile(filepath.Join(root, ".agent", "command-implementation-status.yaml"))
+	if err != nil {
+		t.Fatalf("read command implementation status: %v", err)
+	}
+	status := string(content)
+	for _, command := range []string{
+		"worktree-check",
+		"context-check",
+		"spec-check",
+		"design-check",
+		"task-check",
+		"pr-check",
+		"traceability-check",
+	} {
+		if !strings.Contains(status, "\n      - "+command+"\n") {
+			t.Errorf("implementation status missing implemented P0 command %q", command)
+		}
 	}
 }
 

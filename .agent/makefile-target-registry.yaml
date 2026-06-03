@@ -22,6 +22,7 @@ targets:
   - debt-lifecycle-check
   - security
   - contracts
+  - schema-check
   - docs-check
   - rules-verify
   - downstream-debt

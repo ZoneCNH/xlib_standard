@@ -23,6 +23,12 @@ groups:
       - minimal-kernel
       - main-guard
       - worktree-guard
+      - worktree-check
+      - context-check
+      - spec-check
+      - design-check
+      - task-check
+      - pr-check
       - evidence-check
       - done-assertion
       - cli-contract
@@ -30,8 +36,10 @@ groups:
       - command-registry
       - makefile-baseline
       - audit-goal
+      - traceability-check
       - boundary
       - contracts
+      - schema-check
       - dependency-check
       - docs-check
       - debt
