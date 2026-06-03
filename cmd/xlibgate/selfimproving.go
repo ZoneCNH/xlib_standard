@@ -131,13 +131,14 @@ func runSelfImprovingCheck(cmdName string, args []string, stdout io.Writer, stde
 		findings = append(findings, "[RULE-SI-001] --strict: harness/prompt/rule patches.yaml 三处合计 0 个 patch entry (Lite Mode 且无失败可豁免)")
 	}
 
-	if len(findings) > 0 {
-		write(stdout, "%s: failed (%d findings)\n", cmdName, len(findings))
-		for _, f := range findings {
-			write(stdout, "  - %s\n", f)
-		}
-		return 1
+	details := []string{
+		"retrospective present",
+		"3 patch registries present",
+		"retro-gate present",
+		fmt.Sprintf("%d patch entries", totalEntries),
 	}
-	write(stdout, "%s: passed (retrospective + 3 patch registries + retro-gate present, %d patch entries)\n", cmdName, totalEntries)
-	return 0
+	if len(findings) > 0 {
+		return emitReport(stdout, cmdName, "failed", details, findings)
+	}
+	return emitReport(stdout, cmdName, "passed", details, nil)
 }
