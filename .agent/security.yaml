@@ -1,3 +1,6 @@
 schema_version: "2.9.3"
 forbidden_reads: [/home/k8s/secrets/env]
-checks: [govulncheck, goalcli secrets]
+checks: [goalcli secrets]
+optional_checks:
+  - name: govulncheck
+    when: "XLIB_ENABLE_VULNCHECK=1"

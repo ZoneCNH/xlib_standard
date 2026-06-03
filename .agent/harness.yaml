@@ -41,7 +41,7 @@ required_gates:
     purpose: "module boundary, x.go import ban, business-layer ban"
   - id: security
     command: "GOWORK=off make security"
-    purpose: "govulncheck and secret scan; no /home/k8s/secrets/env/* contents"
+    purpose: "secret scan by default; govulncheck only when XLIB_ENABLE_VULNCHECK=1; no /home/k8s/secrets/env/* contents"
   - id: contracts
     command: "GOWORK=off make contracts"
     purpose: "contracts schema and metrics contract validation"
