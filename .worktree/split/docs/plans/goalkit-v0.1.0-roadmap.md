@@ -10,20 +10,20 @@
 
 ## 1. Current-State Matrix
 
-| 能力 | specified | registered | dry_run_ready | implemented | verified |
-|------|-----------|------------|---------------|-------------|----------|
-| Goal Kernel 对象模型 | ✓ | ✓ | — | — | — |
-| Mode Router | ✓ | ✓ | ✓ | — | — |
-| G12 acceptance | ✓ | — | — | — | — |
-| G13 delivery | ✓ | — | — | — | — |
-| G14 handover | ✓ | — | — | — | — |
-| G15 downstream adoption (gap-only dry run) | ✓ | ✓ | ✓ | — | — |
-| G16 certify | ✓ | — | — | — | — |
-| Evidence Ledger | ✓ | ✓ | ✓ | partial | — |
-| Automation Surface | ✓ | — | — | — | — |
-| debt 命令 | ✓ | ✓ | ✓ | ✓ | ✓ |
-| governance 命令 | ✓ | ✓ | ✓ | ✓ | ✓ |
-| score/version/doctor | ✓ | ✓ | ✓ | ✓ | ✓ |
+| 能力                                       | specified | registered | dry_run_ready | implemented | verified |
+| ------------------------------------------ | --------- | ---------- | ------------- | ----------- | -------- |
+| Goal Kernel 对象模型                       | ✓         | ✓          | —             | —           | —        |
+| Mode Router                                | ✓         | ✓          | ✓             | —           | —        |
+| G12 acceptance                             | ✓         | —          | —             | —           | —        |
+| G13 delivery                               | ✓         | —          | —             | —           | —        |
+| G14 handover                               | ✓         | —          | —             | —           | —        |
+| G15 downstream adoption (gap-only dry run) | ✓         | ✓          | ✓             | —           | —        |
+| G16 certify                                | ✓         | —          | —             | —           | —        |
+| Evidence Ledger                            | ✓         | ✓          | ✓             | partial     | —        |
+| Automation Surface                         | ✓         | —          | —             | —           | —        |
+| debt 命令                                  | ✓         | ✓          | ✓             | ✓           | ✓        |
+| governance 命令                            | ✓         | ✓          | ✓             | ✓           | ✓        |
+| score/version/doctor                       | ✓         | ✓          | ✓             | ✓           | ✓        |
 
 ## 2. PR Dependency Graph
 
@@ -88,12 +88,12 @@ PR-11, PR-12 ← 依赖 PR-10
 ### PR-4: Harness + xlibgate 实现
 
 - **前置条件**：PR-1, PR-2, PR-3 全部合并
-- **范围**：Makefile goal-* targets + `cmd/xlibgate/` acceptance,delivery,handover,downstream,certify + `internal/goalruntime/` + `testdata/`
+- **范围**：Makefile goal-\* targets + `cmd/xlibgate/` acceptance,delivery,handover,downstream,certify + `internal/goalruntime/` + `testdata/`
 - **产出**：可执行命令 + fixtures + tests
 - **不得声明**：G12-G16 为 blocking required gate
 - **Fixture ID**：`GOAL-20260603-XLIB-RUNTIME-001`（不得使用 `test` 作为验收 fixture）
 - **验收命令**：`GOAL_ID=GOAL-20260603-XLIB-RUNTIME-001 GOWORK=off make goal-acceptance && GOAL_ID=GOAL-20260603-XLIB-RUNTIME-001 GOWORK=off make goal-runtime-final`
-- **回滚**：回退 Makefile goal-* targets、`.agent/command-registry.yaml` 的 G12-G16 注册、`cmd/xlibgate/` 新子命令、`internal/goalruntime/`、fixtures 与相关测试；不得触碰已存在的 debt/governance 命令。
+- **回滚**：回退 Makefile goal-\* targets、`.agent/command-registry.yaml` 的 G12-G16 注册、`cmd/xlibgate/` 新子命令、`internal/goalruntime/`、fixtures 与相关测试；不得触碰已存在的 debt/governance 命令。
 - **参考执行包**：xlib_standard_pr4_makefile_harness_command_registry_execution_pack.md + xlib_standard_pr5_xlibgate_commands_fixtures_tests_execution_pack.md
 
 ### PR-5: Generated Artifact Policy + Blocking
@@ -164,42 +164,42 @@ PR-11, PR-12 ← 依赖 PR-10
 
 ## 4. Rollback Strategy
 
-| 失败场景 | 回滚行动 |
-|---------|---------|
-| PR-4 合并后 G12-G16 命令失败 | PR-5 不得合并；回退 PR-4 的 Makefile targets、command registry、xlibgate 子命令、fixtures 与 tests |
-| PR-5 blocking 导致已有 gate 误阻断 | 回退 harness.yaml 变更，保留 PR-4 命令 |
-| PR-9 downstream target 覆盖已有 target | 立即回退 PR-9 Makefile 变更，恢复原 `downstream-adoption`；`goal-downstream-adoption` 必须保持新增且无覆盖 |
-| generated artifact 误提交 | 以后续 revert/清理提交移除误提交产物，并更新 `.gitignore`/artifact policy；除非 release manager 明确批准，不改写已发布历史 |
+| 失败场景                               | 回滚行动                                                                                                                   |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| PR-4 合并后 G12-G16 命令失败           | PR-5 不得合并；回退 PR-4 的 Makefile targets、command registry、xlibgate 子命令、fixtures 与 tests                         |
+| PR-5 blocking 导致已有 gate 误阻断     | 回退 harness.yaml 变更，保留 PR-4 命令                                                                                     |
+| PR-9 downstream target 覆盖已有 target | 立即回退 PR-9 Makefile 变更，恢复原 `downstream-adoption`；`goal-downstream-adoption` 必须保持新增且无覆盖                 |
+| generated artifact 误提交              | 以后续 revert/清理提交移除误提交产物，并更新 `.gitignore`/artifact policy；除非 release manager 明确批准，不改写已发布历史 |
 
 ## 5. goalkit 与 debt.md 分工
 
-| 维度 | goalkit v0.1.0 | debt.md |
-|------|---------------|---------|
-| 定位 | Goal Runtime 框架与工具包 | 债务治理的自动化落地 |
-| xlibgate 命令 | acceptance/delivery/handover/downstream/certify | debt（已实现）、governance（已实现）|
-| 优先级 | 先建 Goal Runtime 框架 | 在框架上运行 debt goals |
-| 执行顺序 | 先建框架 | 用框架 |
+| 维度          | goalkit v0.1.0                                  | debt.md                              |
+| ------------- | ----------------------------------------------- | ------------------------------------ |
+| 定位          | Goal Runtime 框架与工具包                       | 债务治理的自动化落地                 |
+| xlibgate 命令 | acceptance/delivery/handover/downstream/certify | debt（已实现）、governance（已实现） |
+| 优先级        | 先建 Goal Runtime 框架                          | 在框架上运行 debt goals              |
+| 执行顺序      | 先建框架                                        | 用框架                               |
 
 原则：goalkit 建框架，debt 用框架。两者不应互相阻塞。
 
 ## 6. Timeline
 
-| 阶段 | 时间 | PR | 产出 |
-|------|------|-----|------|
-| Core MVA | 7 天 | PR-1~5 | G12-G16 可执行 + blocking |
-| 可信治理 | 30 天 | PR-6~8 | 防漂移、可测试、可信任 |
-| 生态协作 | 60 天 | PR-9~10 | downstream + observability |
-| 成熟化 | 90 天 | PR-11~12 | DX + automation |
+| 阶段     | 时间  | PR       | 产出                       |
+| -------- | ----- | -------- | -------------------------- |
+| Core MVA | 7 天  | PR-1~5   | G12-G16 可执行 + blocking  |
+| 可信治理 | 30 天 | PR-6~8   | 防漂移、可测试、可信任     |
+| 生态协作 | 60 天 | PR-9~10  | downstream + observability |
+| 成熟化   | 90 天 | PR-11~12 | DX + automation            |
 
 ## 7. Metrics
 
-| 指标 | source | command | threshold | owner |
-|------|--------|---------|-----------|-------|
-| Goal 完成率 | evidence ledger | evidence-check | >80% | goal owner |
-| 平均 PR 数/Goal | git log + issue registry | issue-registry | ≤3 | team lead |
-| 平均 Gate 耗时 | gate result JSON | xlibgate --format json | <30s | harness maintainer |
-| Gate 失败率 | gate result JSON | aggregate gate results | <20% | harness maintainer |
-| Evidence 缺失率 | evidence-check | evidence-check | 0% | goal owner |
-| Release rollback 次数 | release manifest | release history | 0 | release manager |
-| Full Mode 使用比例 | goal registry | goal-runtime | <30% | team lead |
-| 小改动误判 Full Mode | mode routing log | mode-router audit | 0 | harness maintainer |
+| 指标                  | source                   | command                | threshold | owner              |
+| --------------------- | ------------------------ | ---------------------- | --------- | ------------------ |
+| Goal 完成率           | evidence ledger          | evidence-check         | >80%      | goal owner         |
+| 平均 PR 数/Goal       | git log + issue registry | issue-registry         | ≤3        | team lead          |
+| 平均 Gate 耗时        | gate result JSON         | xlibgate --format json | <30s      | harness maintainer |
+| Gate 失败率           | gate result JSON         | aggregate gate results | <20%      | harness maintainer |
+| Evidence 缺失率       | evidence-check           | evidence-check         | 0%        | goal owner         |
+| Release rollback 次数 | release manifest         | release history        | 0         | release manager    |
+| Full Mode 使用比例    | goal registry            | goal-runtime           | <30%      | team lead          |
+| 小改动误判 Full Mode  | mode routing log         | mode-router audit      | 0         | harness maintainer |

@@ -60,3 +60,9 @@ targets:
   - p2-runtime-check
   - release-check
   - release-final-check
+  - goal-acceptance
+  - goal-delivery
+  - goal-handover
+  - goal-downstream-adoption
+  - goal-certify
+  - goal-runtime-final

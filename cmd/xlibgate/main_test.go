@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ZoneCNH/xlib-standard/internal/goalruntime"
 	"github.com/ZoneCNH/xlib-standard/internal/releasequality"
 	"github.com/ZoneCNH/xlib-standard/pkg/templatex"
 )
@@ -306,6 +307,12 @@ func TestGoalGovernanceCommandSurface(t *testing.T) {
 		{command: "acceptance-matrix"},
 		{command: "runtime-health"},
 		{command: "goal-runtime"},
+		{command: "goal-acceptance", args: []string{"--json"}},
+		{command: "goal-delivery", args: []string{"--json"}},
+		{command: "goal-handover", args: []string{"--json"}},
+		{command: "goal-downstream-adoption", args: []string{"--json"}},
+		{command: "goal-certify", args: []string{"--json"}},
+		{command: "goal-runtime-final", args: []string{"--json"}},
 		{command: "github-settings"},
 		{command: "github-governance"},
 		{command: "governance-fixture-test"},
@@ -364,6 +371,176 @@ func TestGoalGovernanceCommandSurface(t *testing.T) {
 				t.Fatalf("report status = %q; want %s; report %#v", report.Status, wantStatus, report)
 			}
 		})
+	}
+}
+
+func TestGoalkitMVACommandSurfaceRequiresG12ThroughG16Equivalents(t *testing.T) {
+	chdir(t, repoRoot(t))
+	tests := []struct {
+		command   string
+		wantGates int
+	}{
+		{command: "goal-acceptance", wantGates: 1},
+		{command: "goal-delivery", wantGates: 1},
+		{command: "goal-handover", wantGates: 1},
+		{command: "goal-downstream-adoption", wantGates: 1},
+		{command: "goal-certify", wantGates: 1},
+		{command: "goal-runtime-final", wantGates: 5},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.command, func(t *testing.T) {
+			var stdout, stderr bytes.Buffer
+			got := run([]string{
+				tt.command,
+				"--goal-id", "GOAL-20260603-XLIB-RUNTIME-001",
+				"--mode", "FULL",
+				"--json",
+			}, strings.NewReader(""), &stdout, &stderr)
+			if got != 0 {
+				t.Fatalf("run(%s) = %d, stderr %q, stdout %q; want 0", tt.command, got, stderr.String(), stdout.String())
+			}
+
+			var report struct {
+				Command          string   `json:"command"`
+				Status           string   `json:"status"`
+				GoalID           string   `json:"goal_id"`
+				Executor         string   `json:"executor"`
+				ControlPlane     string   `json:"control_plane"`
+				Blocking         bool     `json:"blocking"`
+				MVAStatus        string   `json:"mva_status"`
+				LedgerPath       string   `json:"ledger_path"`
+				EvidencePackPath string   `json:"evidence_pack_path"`
+				Evidence         []string `json:"evidence"`
+				Gates            []struct {
+					ID       string `json:"id"`
+					Command  string `json:"command"`
+					Status   string `json:"status"`
+					Blocking bool   `json:"blocking"`
+				} `json:"gates"`
+			}
+			if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
+				t.Fatalf("stdout is not goalkit report JSON: %v; stdout %q", err, stdout.String())
+			}
+			if report.Command != tt.command || report.Status != "passed" {
+				t.Fatalf("report = %#v; want command %q with passed status", report, tt.command)
+			}
+			if report.GoalID != "GOAL-20260603-XLIB-RUNTIME-001" {
+				t.Fatalf("goal_id = %q; want fixture goal id", report.GoalID)
+			}
+			if report.Executor != "xlibgate" || report.ControlPlane != "Harness Runtime" {
+				t.Fatalf("executor/control_plane = %q/%q; want xlibgate/Harness Runtime", report.Executor, report.ControlPlane)
+			}
+			if report.Blocking {
+				t.Fatalf("report is blocking; G12-G16 must stay non-blocking in the PR-4 slice")
+			}
+			if !slicesContain(report.Evidence, "evidence_ledger="+goalruntime.EvidenceLedgerPath) {
+				t.Fatalf("evidence = %#v; want goalkit ledger path", report.Evidence)
+			}
+			if report.LedgerPath != ".agent/evidence/ledger.jsonl" || !strings.HasPrefix(report.EvidencePackPath, "release/evidence/goalkit") {
+				t.Fatalf("ledger/evidence paths = %q/%q; want source ledger and generated pack split", report.LedgerPath, report.EvidencePackPath)
+			}
+			if len(report.Gates) != tt.wantGates {
+				t.Fatalf("gates = %#v; want %d gates", report.Gates, tt.wantGates)
+			}
+			for _, gate := range report.Gates {
+				if gate.Status != "passed" || gate.Blocking {
+					t.Fatalf("gate = %#v; want passed non-blocking gate", gate)
+				}
+			}
+		})
+	}
+}
+
+func TestGoalkitRuntimeTargetsRouteThroughXlibgate(t *testing.T) {
+	chdir(t, repoRoot(t))
+	makefile := readText(t, "Makefile")
+	for _, command := range []string{
+		"goal-acceptance",
+		"goal-delivery",
+		"goal-handover",
+		"goal-downstream-adoption",
+		"goal-certify",
+		"goal-runtime-final",
+	} {
+		if !strings.Contains(makefile, ".PHONY: "+command) {
+			t.Fatalf("Makefile missing .PHONY for %s", command)
+		}
+		if !strings.Contains(makefile, command+": require-gowork-off") {
+			t.Fatalf("Makefile target %s must require GOWORK=off", command)
+		}
+		if !strings.Contains(makefile, "$(XLIBGATE) $@ --goal-id") {
+			t.Fatalf("Makefile target %s must route through xlibgate", command)
+		}
+	}
+	if strings.Contains(makefile, "$(GOALKIT)") || strings.Contains(makefile, "goalkit goal-") {
+		t.Fatalf("Makefile must not route goalkit v0.1.0 through a standalone goalkit CLI")
+	}
+}
+
+func TestGoalkitControlPlaneDocumentsEvidenceLedgerAndIncompleteMVA(t *testing.T) {
+	chdir(t, repoRoot(t))
+	files := map[string][]string{
+		".agent/harness.yaml": {
+			"goalkit_v0_1_0",
+			"control_plane: Harness Runtime",
+			"executor: xlibgate",
+			"source_evidence_ledger: .agent/evidence/ledger.jsonl",
+			"blocking: false",
+		},
+		".agent/registry/runtime.yaml": {
+			"mva_status: not-complete",
+			"control_plane: Harness Runtime",
+			"executor: xlibgate",
+			"source_evidence_ledger: .agent/evidence/ledger.jsonl",
+		},
+		".agent/registry/commands.yaml": {
+			"goal-acceptance",
+			"goal-downstream-adoption",
+			"goal-runtime-final",
+			"mva_status: not-complete",
+		},
+		".agent/command-implementation-status.yaml": {
+			"goalkit_pr4_command_backed_non_blocking",
+			"mva_status: not-complete",
+			"evidence_strength: command_backed_non_blocking",
+		},
+		".agent/evidence/README.md": {
+			".agent/evidence/ledger.jsonl",
+			"release/evidence/goalkit/",
+			"mva_status: not-complete",
+		},
+		"docs/standard/goalkit-runtime.md": {
+			"not an independent external CLI",
+			"xlibgate",
+			"Harness Runtime",
+			".agent/evidence/ledger.jsonl",
+			"not-complete",
+		},
+		"docs/adr/ADR-20260603-001-goalkit-xlibgate-runtime.md": {
+			"Accepted",
+			"standalone `goalkit` CLI was rejected",
+			"xlibgate",
+			"Harness Runtime",
+		},
+		"docs/plans/goalkit-v0.1.0-roadmap.md": {
+			"PR-4",
+			"G12-G16",
+			"not full MVA completion",
+			"PR-5+",
+		},
+	}
+
+	for path, needles := range files {
+		text := readText(t, path)
+		for _, needle := range needles {
+			if !strings.Contains(text, needle) {
+				t.Fatalf("%s missing %q", path, needle)
+			}
+		}
+	}
+	if _, err := os.Stat(".agent/evidence/ledger.jsonl"); err != nil {
+		t.Fatalf("source evidence ledger missing: %v", err)
 	}
 }
 
@@ -769,7 +946,7 @@ func TestCommandRegistryRequiresFullCommandSurface(t *testing.T) {
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 			t.Fatalf("mkdir %s: %v", filepath.Dir(path), err)
 		}
-		content := strings.Replace(strings.Join(requiredCommandRegistryNeedles(), "\n")+"\n", "name: goal-runtime\n", "", 1)
+		content := strings.Replace(strings.Join(requiredCommandRegistryNeedles(), "\n")+"\n", "name: goal-certify\n", "", 1)
 		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
 			t.Fatalf("write %s: %v", path, err)
 		}
@@ -780,8 +957,8 @@ func TestCommandRegistryRequiresFullCommandSurface(t *testing.T) {
 		if got != 1 {
 			t.Fatalf("command-registry incomplete fixture exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
 		}
-		if !strings.Contains(stdout.String(), ".agent/command-registry.yaml missing name: goal-runtime") {
-			t.Fatalf("stdout = %q; want missing goal-runtime gap", stdout.String())
+		if !strings.Contains(stdout.String(), ".agent/command-registry.yaml missing name: goal-certify") {
+			t.Fatalf("stdout = %q; want missing goal-certify gap", stdout.String())
 		}
 	})
 }
@@ -1176,6 +1353,43 @@ roles:
 	}
 	if !gapsContainSubstring(report.Gaps, ".agent/team-contract.yaml missing semantic marker rule:") {
 		t.Fatalf("gaps = %#v; want semantic marker gap", report.Gaps)
+	}
+}
+
+func TestGoalkitMVAGoalCommandsRequireHarnessMarkers(t *testing.T) {
+	tests := []struct {
+		command string
+		marker  string
+	}{
+		{command: "goal-acceptance", marker: "G12_ACCEPTANCE"},
+		{command: "goal-delivery", marker: "G13_DELIVERY"},
+		{command: "goal-handover", marker: "G14_HANDOVER"},
+		{command: "goal-downstream-adoption", marker: "G15_DOWNSTREAM_ADOPTION"},
+		{command: "goal-certify", marker: "G16_CERTIFY"},
+		{command: "goal-runtime-final", marker: "G12_G16_FINAL"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.command, func(t *testing.T) {
+			root := t.TempDir()
+			writeTestFiles(t, root, map[string]string{
+				".agent/harness.yaml": "goalkit_mva_gates:\n  command: " + tt.command + "\n  status: dry_run_ready\n",
+			})
+			chdir(t, root)
+
+			var stdout, stderr bytes.Buffer
+			got := run([]string{tt.command, "--dry-run", "--verify"}, strings.NewReader(""), &stdout, &stderr)
+			if got != 1 {
+				t.Fatalf("%s missing marker exit = %d, stderr %q, stdout %q; want 1", tt.command, got, stderr.String(), stdout.String())
+			}
+			var report gateReport
+			if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
+				t.Fatalf("stdout is not gateReport JSON: %v; stdout %q", err, stdout.String())
+			}
+			if !gapsContainSubstring(report.Gaps, ".agent/harness.yaml missing semantic marker "+tt.marker) {
+				t.Fatalf("gaps = %#v; want missing %s marker gap", report.Gaps, tt.marker)
+			}
+		})
 	}
 }
 
@@ -1603,6 +1817,15 @@ func latestChangelogVersion(t *testing.T, text string) string {
 func slicesContain(values []string, want string) bool {
 	for _, value := range values {
 		if value == want {
+			return true
+		}
+	}
+	return false
+}
+
+func containsSubstring(values []string, want string) bool {
+	for _, value := range values {
+		if strings.Contains(value, want) {
 			return true
 		}
 	}

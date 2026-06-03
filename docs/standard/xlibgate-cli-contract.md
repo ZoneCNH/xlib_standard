@@ -68,6 +68,12 @@
 - `acceptance-matrix`
 - `runtime-health`
 - `goal-runtime`
+- `goal-acceptance --goal-id <GOAL-ID> --mode FULL --json`
+- `goal-delivery --goal-id <GOAL-ID> --mode FULL --json`
+- `goal-handover --goal-id <GOAL-ID> --mode FULL --json`
+- `goal-downstream-adoption --goal-id <GOAL-ID> --mode FULL --json`
+- `goal-certify --goal-id <GOAL-ID> --mode FULL --json`
+- `goal-runtime-final --goal-id <GOAL-ID> --mode FULL --json`
 - `naming`
 - `upgrade-standard --dry-run --repo <path>`
 - `conformance-profile`
@@ -98,11 +104,26 @@
 - `downstream-adoption --repo kernel/configx --mode patch-only`
 - `execution-context`
 
+## Goalkit MVA commands
+
+Goalkit MVA commands (`goal-acceptance`, `goal-delivery`, `goal-handover`, `goal-downstream-adoption`, `goal-certify`, and `goal-runtime-final`) only prove local G12-G16 evidence contracts for `goalkit v0.1.0`. They do not promote G12-G16 to global release blocking gates, do not create an independent `goalkit` CLI, do not modify downstream repositories, and write authority through the xlibgate execution surface with the evidence ledger path `release/evidence/goalkit/`. The root goalkit plan remains backlog/roadmap authority, not completion evidence.
+
 ## Debt governance commands
 
 Debt governance commands are P0 release-blocking gates. `xlibgate debt` runs the full debt scanner, while `architecture`, `domain`, `docs-drift`, `dependency-debt`, `security-debt`, `testing-debt`, `implementation-debt`, and `downstream-debt` run focused slices of the same policy. The scanner reuses existing local scripts for boundary, docs, dependency diff, and secret checks; scanner failures return non-zero and cannot be treated as passed evidence.
 
 `xlibgate debt-evidence` writes generated evidence to `release/debt/latest.json`, `release/debt/latest.md`, and `release/debt/latest.json.sha256`. These latest evidence files are reproducible release artifacts and are intentionally ignored by git. P0 debt rules are not exceptable: policy files under `.agent/debt/` must not introduce P0 exception markers, and release verification must fail if debt status is not `passed`.
+
+## Goalkit v0.1.0 MVA runtime commands
+
+The goalkit MVA commands are local xlibgate evidence commands backed by `.agent/harness.yaml`; they make command, Makefile, and harness coverage executable without claiming that goalkit v0.1.0 is fully complete.
+
+- `goal-acceptance` verifies `G12_ACCEPTANCE`.
+- `goal-delivery` verifies `G13_DELIVERY`.
+- `goal-handover` verifies `G14_HANDOVER`.
+- `goal-downstream-adoption` verifies `G15_DOWNSTREAM_ADOPTION`.
+- `goal-certify` verifies `G16_CERTIFY` and preserves the no-false-completion claim.
+- `goal-runtime-final` verifies the `G12_G16_FINAL` rollup across the five prerequisite local gates.
 
 ## 执行约束
 
@@ -116,7 +137,7 @@ Debt governance commands are P0 release-blocking gates. `xlibgate debt` runs the
 
 `issue-registry` 不只是文件存在检查。它必须校验 `.agent/issue-registry.yaml` 中每个条目都具备非空 `title`、`command` 和 `evidence`，`status` 必须为 `implemented`，ID 必须匹配 `P0|P1|P2|CTX-###`、全局唯一，并且每个前缀从 `001` 连续编号。`context-profile-check` 复用该 registry 语义，不能用空文件或非连续 ID 作为通过证据。
 
-planned command 的 dry-run 也必须读取对应文件并检查语义 marker。当前强制 marker 包括：`agent-team-contract` 的 `schema_version:`、`roles:`、`rule:`；`acceptance-matrix` 的 `schema_version:`、`acceptance:`；`runtime-health` 的 `schema_version:`、`checks:`、`toolchain`；`execution-context` 的 `schema_version:`、`contexts:`、`local_write`、`ci_pull_request`、`release_verify`。这些命令不得退化为单纯路径存在检查。
+planned command 的 dry-run 也必须读取对应文件并检查语义 marker。当前强制 marker 包括：`agent-team-contract` 的 `schema_version:`、`roles:`、`rule:`；`acceptance-matrix` 的 `schema_version:`、`acceptance:`；`runtime-health` 的 `schema_version:`、`checks:`、`toolchain`；goalkit MVA 命令在 `.agent/harness.yaml` 中的 `goalkit_mva_gates:`、对应 `G12_ACCEPTANCE`/`G13_DELIVERY`/`G14_HANDOVER`/`G15_DOWNSTREAM_ADOPTION`/`G16_CERTIFY`/`G12_G16_FINAL` 与命令名；`execution-context` 的 `schema_version:`、`contexts:`、`local_write`、`ci_pull_request`、`release_verify`。这些命令不得退化为单纯路径存在检查。
 
 ## Context Runtime v4 命令
 

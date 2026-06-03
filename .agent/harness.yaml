@@ -113,6 +113,16 @@ extended_gates:
     command: "GOWORK=off make ci-extended"
   - id: release_check_extended
     command: "GOWORK=off make release-check-extended"
+  - id: goalkit_g12_acceptance
+    command: "GOAL_ID=GOAL-20260603-XLIB-RUNTIME-001 GOWORK=off make goal-acceptance"
+  - id: goalkit_g13_delivery
+    command: "GOAL_ID=GOAL-20260603-XLIB-RUNTIME-001 GOWORK=off make goal-delivery"
+  - id: goalkit_g14_handover
+    command: "GOAL_ID=GOAL-20260603-XLIB-RUNTIME-001 GOWORK=off make goal-handover"
+  - id: goalkit_g15a_downstream_adoption
+    command: "GOAL_ID=GOAL-20260603-XLIB-RUNTIME-001 GOWORK=off make goal-downstream-adoption"
+  - id: goalkit_g15b_certify
+    command: "GOAL_ID=GOAL-20260603-XLIB-RUNTIME-001 GOWORK=off make goal-certify"
 final_gates:
   - id: release_score_final
     command: "go run ./cmd/xlibgate score --min 9.8"
@@ -124,12 +134,15 @@ final_gates:
     command: "xlibgate score --min 9.8"
   - id: kernel_downstream
     command: "GOWORK=off make integration DOWNSTREAM=kernel"
+  - id: goalkit_g16_runtime_final
+    command: "GOAL_ID=GOAL-20260603-XLIB-RUNTIME-001 GOWORK=off make goal-runtime-final"
 evidence:
   manifest: "release/manifest/latest.json"
   checksum: "release/manifest/latest.json.sha256"
   debt_manifest: "release/debt/latest.json"
   debt_markdown: "release/debt/latest.md"
   debt_checksum: "release/debt/latest.json.sha256"
+  goalkit_ledger: "release/evidence/goalkit/"
   done_format: "DONE with evidence:"
   required_fields:
     - commit
@@ -145,3 +158,33 @@ forbidden:
   - "hidden global clients"
   - "business-domain models in xlib-standard, kernel, or generated base libraries"
   - "legacy baselib-template/foundationx as primary identity outside migration context"
+
+goalkit_v0_1_0:
+  mva_status: not-complete
+  control_plane: Harness Runtime
+  executor: xlibgate
+  source_evidence_ledger: .agent/evidence/ledger.jsonl
+  generated_evidence_pack: release/evidence/goalkit/
+  blocking_activation: PR-5+
+  notes:
+    - "goalkit v0.1.0 is not a standalone external CLI."
+    - "G12-G16 are PR-4 command-backed checks and are not release-blocking gates yet."
+  gates:
+    - id: G12_ACCEPTANCE
+      command: "GOWORK=off make goal-acceptance"
+      blocking: false
+    - id: G13_DELIVERY
+      command: "GOWORK=off make goal-delivery"
+      blocking: false
+    - id: G14_HANDOVER
+      command: "GOWORK=off make goal-handover"
+      blocking: false
+    - id: G15_DOWNSTREAM_ADOPTION
+      command: "GOWORK=off make goal-downstream-adoption"
+      blocking: false
+    - id: G16_CERTIFY
+      command: "GOWORK=off make goal-certify"
+      blocking: false
+    - id: G12_G16_FINAL
+      command: "GOWORK=off make goal-runtime-final"
+      blocking: false
