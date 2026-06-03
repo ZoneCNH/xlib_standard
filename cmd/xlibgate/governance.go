@@ -169,9 +169,11 @@ func runEvidenceCheck(args []string, stdout io.Writer, stderr io.Writer) int {
 		return invalidInternalArgsExit("evidence-check", err, stderr)
 	}
 	return runRegistryCheck("evidence-check", map[string][]string{
-		".agent/done-assertion.yaml":           {"DONE with evidence", "commit", "gates"},
-		".agent/evidence-artifact-policy.yaml": {"redaction", "sha256", "release/manifest/latest.json"},
-		".agent/harness.yaml":                  {"manifest", "checksum", "required_fields"},
+		".agent/done-assertion.yaml":              {"DONE with evidence", "commit", "gates"},
+		".agent/evidence-artifact-policy.yaml":    {"redaction", "sha256", "release/manifest/latest.json"},
+		".agent/harness.yaml":                     {"manifest", "checksum", "required_fields"},
+		".agent/evidence-artifacts.yaml":          {"release_evidence", "execution_evidence", "schema:", "contracts/execution-evidence.schema.json"},
+		"contracts/execution-evidence.schema.json": {"evidence_id", "stdout_sha256", "commit", "exit_code", "artifact_path"},
 	}, stdout, stderr)
 }
 
