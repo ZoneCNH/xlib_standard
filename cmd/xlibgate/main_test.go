@@ -1957,3 +1957,80 @@ func slicesContain(values []string, want string) bool {
 	}
 	return false
 }
+
+func TestRulesConsistencyCheckPassesOnConsistentFixture(t *testing.T) {
+root := t.TempDir()
+chdir(t, root)
+if err := os.MkdirAll(".agent/standard", 0o755); err != nil {
+t.Fatal(err)
+}
+if err := os.MkdirAll(".agent/rules", 0o755); err != nil {
+t.Fatal(err)
+}
+canonical := "# Canonical\n\n## 1. 八条铁律\n\n" +
+"| ID | 铁律 | 机器化实现 |\n|---|---|---|\n" +
+"| RULE-CORE-001 | x | y |\n" +
+"| RULE-WORKTREE-001 | a | b |\n\n## 2. 其他\n"
+iron := "# Iron\n\n## 七律\n\n" +
+"1. evidence (RULE-CORE-001 / RULE-EVIDENCE-001).\n" +
+"5. worktree (RULE-WORKTREE-001 / RULE-MERGE-001).\n"
+registry := "rules:\n" +
+"  - id: RULE-CORE-001\n    level: P0\n" +
+"  - id: RULE-WORKTREE-001\n    level: P0\n" +
+"  - id: RULE-EVIDENCE-001\n    level: P0\n" +
+"  - id: RULE-MERGE-001\n    level: P0\n"
+for path, content := range map[string]string{
+".agent/standard/goal-runtime-canonical.md": canonical,
+".agent/rules/iron-rules.md":                iron,
+".agent/rules/registry.yaml":                registry,
+} {
+if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+t.Fatal(err)
+}
+}
+var stdout, stderr bytes.Buffer
+got := runRulesConsistencyCheck(nil, &stdout, &stderr)
+if got != 0 {
+t.Fatalf("got exit=%d stderr=%q stdout=%q", got, stderr.String(), stdout.String())
+}
+if !strings.Contains(stdout.String(), `"passed"`) {
+t.Fatalf("stdout = %q", stdout.String())
+}
+}
+
+func TestRulesConsistencyCheckDetectsDriftAndUnregistered(t *testing.T) {
+root := t.TempDir()
+chdir(t, root)
+if err := os.MkdirAll(".agent/standard", 0o755); err != nil {
+t.Fatal(err)
+}
+if err := os.MkdirAll(".agent/rules", 0o755); err != nil {
+t.Fatal(err)
+}
+canonical := "## 1. 八条铁律\n| ID | 铁律 | 实现 |\n|---|---|---|\n" +
+"| RULE-CORE-001 | x | y |\n" +
+"| RULE-MISSING-001 | a | b |\n\n## 2. 其他\n"
+iron := "## 七律\n1. (RULE-CORE-001).\n"
+registry := "rules:\n  - id: RULE-CORE-001\n"
+for path, content := range map[string]string{
+".agent/standard/goal-runtime-canonical.md": canonical,
+".agent/rules/iron-rules.md":                iron,
+".agent/rules/registry.yaml":                registry,
+} {
+if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+t.Fatal(err)
+}
+}
+var stdout, stderr bytes.Buffer
+got := runRulesConsistencyCheck(nil, &stdout, &stderr)
+if got == 0 {
+t.Fatalf("expected failure; stdout=%q", stdout.String())
+}
+out := stdout.String()
+if !strings.Contains(out, "RULE-MISSING-001 未在") {
+t.Errorf("want unregistered gap; stdout=%q", out)
+}
+if !strings.Contains(out, "漂移：") {
+t.Errorf("want drift gap; stdout=%q", out)
+}
+}

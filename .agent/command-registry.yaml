@@ -130,6 +130,9 @@ commands:
   - name: render-check
     phase: P0
     target: render-check
+  - name: rules-consistency-check
+    phase: P0
+    target: rules-consistency-check
   - name: score
     phase: P0
     target: score
