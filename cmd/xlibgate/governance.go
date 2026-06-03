@@ -781,6 +781,9 @@ var plannedCommandSemanticMarkers = map[string]map[string][]string{
 	"execution-context": {
 		".agent/execution-context.yaml": {"schema_version:", "contexts:", "local_write", "ci_pull_request", "release_verify"},
 	},
+	"runtime-file-ownership": {
+		".agent/runtime-file-ownership.yaml": {"schema_version:", "owners:", "owner:", "review_required:", "rationale:"},
+	},
 }
 
 func runPlannedCommand(command string, args []string, stdout io.Writer, stderr io.Writer) int {
