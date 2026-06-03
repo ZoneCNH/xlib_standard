@@ -35,7 +35,7 @@ func runSelfImprovingCheck(cmdName string, args []string, stdout io.Writer, stde
 		return 2
 	}
 	if flags.NArg() > 0 {
-		fmt.Fprintf(stderr, "ERROR: %s invalid arguments: unexpected positional argument %q\n", cmdName, flags.Arg(0))
+		write(stderr, "ERROR: %s invalid arguments: unexpected positional argument %q\n", cmdName, flags.Arg(0))
 		return 2
 	}
 
@@ -133,12 +133,12 @@ func runSelfImprovingCheck(cmdName string, args []string, stdout io.Writer, stde
 	}
 
 	if len(findings) > 0 {
-		fmt.Fprintf(stdout, "%s: failed (%d findings)\n", cmdName, len(findings))
+		write(stdout, "%s: failed (%d findings)\n", cmdName, len(findings))
 		for _, f := range findings {
-			fmt.Fprintf(stdout, "  - %s\n", f)
+			write(stdout, "  - %s\n", f)
 		}
 		return 1
 	}
-	fmt.Fprintf(stdout, "%s: passed (retrospective + 3 patch registries + retro-gate present, %d patch entries)\n", cmdName, totalEntries)
+	write(stdout, "%s: passed (retrospective + 3 patch registries + retro-gate present, %d patch entries)\n", cmdName, totalEntries)
 	return 0
 }
