@@ -1536,10 +1536,10 @@ func releaseManifestFixtureRepo(t *testing.T) string {
 func writeFixtureDebtPolicy(t *testing.T, repo string) {
 	t.Helper()
 	files := map[string]string{
-		".agent/debt/rules.yaml":              "schema_version: debt-rules/v1\nprofile: fixture\n",
-		".agent/debt/rule-registry.yaml":      "schema_version: debt-rule-registry/v1\nrules: []\n",
-		".agent/debt/exceptions.yaml":         "schema_version: debt-exceptions/v1\nexceptions: []\n",
-		".agent/debt/dependency-purpose.yaml": "schema_version: debt-dependency-purpose/v1\npurposes: []\n",
+		".agent/policies/debt/rules.yaml":              "schema_version: debt-rules/v1\nprofile: fixture\n",
+		".agent/registries/debt/rule-registry.yaml":      "schema_version: debt-rule-registry/v1\nrules: []\n",
+		".agent/policies/debt/exceptions.yaml":         "schema_version: debt-exceptions/v1\nexceptions: []\n",
+		".agent/policies/debt/dependency-purpose.yaml": "schema_version: debt-dependency-purpose/v1\npurposes: []\n",
 	}
 	for path, content := range files {
 		fullPath := filepath.Join(repo, filepath.FromSlash(path))
@@ -1588,7 +1588,7 @@ func writeDebtReportFixture(t *testing.T, repo string) {
   "status": "passed",
   "score": 9.8,
   "min_score": 9.8,
-  "policy_path": ".agent/debt/rules.yaml",
+  "policy_path": ".agent/policies/debt/rules.yaml",
   "checks": [
     {"id": "policy", "status": "passed"}
   ],

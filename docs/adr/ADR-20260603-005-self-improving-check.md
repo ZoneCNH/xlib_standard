@@ -16,7 +16,7 @@ ADR-004 落地后，registry.yaml 剩 65 条 indexed，其中含唯一一条 P0 
 - `RULE-RETRO-CHECK-001/002`（Retrospective 不能只是总结 / 缺 Patch 候选则 Gate 失败）
 - `RULE-SI-001/002/003`（Retro 必须生成可执行 Patch / Patch 必须分状态 / Patch 必须进入 Registry）
 
-仓库已有相关产物：`.agent/retrospective.md` / `retrospective-template.md` / `{harness,prompt,rule}-patches.yaml` / `harness/gates/retro-gate.yaml`，但缺机器 enforcer：`Makefile` 中 `retro-check` 仅 `@echo passed`。
+仓库已有相关产物：`.agent/archive/retrospective.md` / `retrospective-template.md` / `{harness,prompt,rule}-patches.yaml` / `harness/gates/retro-gate.yaml`，但缺机器 enforcer：`Makefile` 中 `retro-check` 仅 `@echo passed`。
 
 ## Decision
 

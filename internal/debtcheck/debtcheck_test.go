@@ -57,7 +57,7 @@ func TestRunFailsDownstreamSectionWithoutRegistryCoverage(t *testing.T) {
 	root := t.TempDir()
 	writePolicyFiles(t, root)
 	writeDownstreamFiles(t, root)
-	writeFile(t, root, ".agent/downstream-registry.yaml", `schema_version: "2.9.3"
+	writeFile(t, root, ".agent/registries/downstream-registry.yaml", `schema_version: "2.9.3"
 downstreams:
   - repo: kernel/configx
     mode: patch-only
@@ -84,7 +84,7 @@ func TestRunFailsDownstreamSectionOnFalseAdoptionClaim(t *testing.T) {
 	root := t.TempDir()
 	writePolicyFiles(t, root)
 	writeDownstreamFiles(t, root)
-	writeFile(t, root, ".agent/downstream-adoption-status.yaml", `schema_version: "2.9.3"
+	writeFile(t, root, ".agent/registries/downstream-adoption-status.yaml", `schema_version: "2.9.3"
 current_registry:
   adoption_status: adopted
   proof_based_adoption: true
@@ -96,6 +96,7 @@ standard_target_libraries:
   - name: postgresx
   - name: redisx
   - name: kafkax
+  - name: natsx
   - name: taosx
   - name: ossx
   - name: clickhousex
@@ -204,7 +205,7 @@ func writePolicyFiles(t *testing.T, root string) {
 func writeDownstreamFiles(t *testing.T, root string) {
 	t.Helper()
 	files := map[string]string{
-		".agent/downstream-registry.yaml": `schema_version: "2.9.3"
+		".agent/registries/downstream-registry.yaml": `schema_version: "2.9.3"
 downstreams:
   - repo: kernel/configx
     mode: patch-only
@@ -216,16 +217,16 @@ downstreams:
     mode: patch-only
     status: unavailable_in_worker_workspace_gap_explicit
 `,
-		".agent/downstream-baseline-scan.yaml": `schema_version: "2.9.3"
+		".agent/registries/downstream-baseline-scan.yaml": `schema_version: "2.9.3"
 repo: kernel/configx
 mode: patch-only
 status: gap_explicit_when_repo_missing
 `,
-		".agent/downstream-adoption-modes.yaml": `schema_version: "2.9.3"
+		".agent/registries/downstream-adoption-modes.yaml": `schema_version: "2.9.3"
 modes: [patch-only, dry-run]
 forbidden: [direct_downstream_write_without_repo]
 `,
-		".agent/downstream-adoption-status.yaml": `schema_version: "2.9.3"
+		".agent/registries/downstream-adoption-status.yaml": `schema_version: "2.9.3"
 current_registry:
   adoption_status: not_adopted
   proof_based_adoption: false
@@ -239,6 +240,7 @@ standard_target_libraries:
   - name: postgresx
   - name: redisx
   - name: kafkax
+  - name: natsx
   - name: taosx
   - name: ossx
   - name: clickhousex
@@ -254,6 +256,7 @@ standard_target_libraries:
 | ` + "`postgresx`" + ` | not_adopted |
 | ` + "`redisx`" + ` | not_adopted |
 | ` + "`kafkax`" + ` | not_adopted |
+| ` + "`natsx`" + ` | not_adopted |
 | ` + "`taosx`" + ` | not_adopted |
 | ` + "`ossx`" + ` | not_adopted |
 | ` + "`clickhousex`" + ` | not_adopted |

@@ -102,12 +102,15 @@ func TestMetricsContractDocumentsPublicConstants(t *testing.T) {
 func TestGoalRuntimeSchemasAreValidJSON(t *testing.T) {
 	for _, path := range []string{
 		"goalcli-report.schema.json",
+		"goalcli-dashboard.schema.json",
 		"issue-registry.schema.json",
 		"command-registry.schema.json",
+		"layer-governance.schema.json",
 		"execution-context.schema.json",
 		"conformance-attestation.schema.json",
 		"policy.schema.json",
 		"execution-evidence.schema.json",
+		"downstream-adoption-proof.schema.json",
 	} {
 		t.Run(path, func(t *testing.T) {
 			content, err := os.ReadFile(path)
@@ -159,8 +162,27 @@ func TestExecutionEvidenceContractRequiredFields(t *testing.T) {
 	}
 }
 
+func TestDownstreamAdoptionProofContractRequiredFields(t *testing.T) {
+	schema := readSchema(t, "downstream-adoption-proof.schema.json")
+	requireFields(t, schema.Required,
+		"schema_version",
+		"source_repo",
+		"source_commit",
+		"downstream_repo",
+		"downstream_commit",
+		"mode",
+		"gate_outputs",
+		"rollback",
+	)
+	mode := sortedStrings(schema.Properties["mode"].Enum...)
+	expectedMode := sortedStrings("patch-only", "dry-run", "pr-plan")
+	if !reflect.DeepEqual(mode, expectedMode) {
+		t.Fatalf("mode enum drift:\nactual:   %#v\nexpected: %#v", mode, expectedMode)
+	}
+}
+
 func TestExecutionEvidenceContractMatchesEvidenceManifest(t *testing.T) {
-	manifest, err := os.ReadFile("../.agent/evidence-artifacts.yaml")
+	manifest, err := os.ReadFile("../.agent/evidence/evidence-artifacts.yaml")
 	if err != nil {
 		t.Fatalf("read evidence-artifacts.yaml: %v", err)
 	}
@@ -173,7 +195,7 @@ func TestExecutionEvidenceContractMatchesEvidenceManifest(t *testing.T) {
 		"exit_code",
 	} {
 		if !strings.Contains(text, needle) {
-			t.Fatalf(".agent/evidence-artifacts.yaml missing required marker %q", needle)
+			t.Fatalf(".agent/evidence/evidence-artifacts.yaml missing required marker %q", needle)
 		}
 	}
 }
