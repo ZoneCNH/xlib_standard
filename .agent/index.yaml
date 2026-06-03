@@ -939,4 +939,4 @@ files:
     mutability: hand_written
     owner: governance
     validator: governance-check
-    purpose: Issue 59 Phase 3/4 .agent 物理分类迁移清单、路径引用扫描与兼容例外。
+    purpose: Issue 59 Phase 3 .agent 物理分类迁移清单、路径引用扫描与兼容例外。
