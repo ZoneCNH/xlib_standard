@@ -2762,6 +2762,17 @@ func TestAgentPhysicalMigrationManifestGuardsNewPaths(t *testing.T) {
 	if !strings.Contains(index, "physical_migration: true") {
 		t.Fatalf(".agent/index.yaml missing physical_migration marker")
 	}
+	indexPaths := map[string]bool{}
+	for _, entry := range parseAgentIndexEntries(index) {
+		indexPaths[entry.path] = true
+	}
+	if !indexPaths[manifestRel] {
+		t.Fatalf(".agent/index.yaml missing %s entry", manifestRel)
+	}
+	oldRootManifestRel := ".agent/" + "physical-migration-manifest.yaml"
+	if indexPaths[oldRootManifestRel] {
+		t.Fatalf(".agent/index.yaml still references old root physical migration manifest")
+	}
 
 	type migration struct {
 		oldPath string
@@ -2769,17 +2780,22 @@ func TestAgentPhysicalMigrationManifestGuardsNewPaths(t *testing.T) {
 	}
 	var migrations []migration
 	var currentOld string
+	coveredPaths := map[string]bool{}
 	for _, line := range strings.Split(manifest, "\n") {
 		line = strings.TrimSpace(line)
 		line = strings.TrimPrefix(line, "- ")
 		switch {
+		case strings.HasPrefix(line, "path: "):
+			coveredPaths[strings.TrimSpace(strings.TrimPrefix(line, "path: "))] = true
 		case strings.HasPrefix(line, "old_path: "):
 			currentOld = strings.TrimSpace(strings.TrimPrefix(line, "old_path: "))
 		case strings.HasPrefix(line, "new_path: ") && currentOld != "":
+			newPath := strings.TrimSpace(strings.TrimPrefix(line, "new_path: "))
 			migrations = append(migrations, migration{
 				oldPath: currentOld,
-				newPath: strings.TrimSpace(strings.TrimPrefix(line, "new_path: ")),
+				newPath: newPath,
 			})
+			coveredPaths[newPath] = true
 			currentOld = ""
 		}
 	}
@@ -2795,6 +2811,11 @@ func TestAgentPhysicalMigrationManifestGuardsNewPaths(t *testing.T) {
 		}
 		if _, err := os.Stat(filepath.Join(root, filepath.FromSlash(migration.oldPath))); !errors.Is(err, os.ErrNotExist) {
 			t.Fatalf("old migrated path %s still exists: %v", migration.oldPath, err)
+		}
+	}
+	for path := range indexPaths {
+		if !coveredPaths[path] {
+			t.Fatalf("%s missing manifest coverage for indexed path %s", manifestRel, path)
 		}
 	}
 
