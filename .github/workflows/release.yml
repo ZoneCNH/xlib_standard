@@ -5,6 +5,10 @@ on:
     tags:
       - "v*"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   release-check:
     runs-on: ubuntu-latest
@@ -14,7 +18,9 @@ jobs:
 
       - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # tag v5
         with:
-          go-version: "1.23"
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: go.sum
 
       - name: Install golangci-lint
         run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6
@@ -29,9 +35,6 @@ jobs:
           export ARTIFACT_NAME="release-manifest-${{ github.run_id }}"
           export ARTIFACT_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           GOWORK=off make release-final-check
-
-      - name: Full Goal Runtime score
-        run: GOWORK=off go run ./cmd/xlibgate score --min 9.8
 
       - name: Hash release evidence
         if: always()

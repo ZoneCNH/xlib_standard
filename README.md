@@ -52,7 +52,7 @@
 - [Release Scorecard](docs/scorecard.md)：`xlibgate score --min 9.8` 的评分维度、阈值和语义边界。
 - [发布](docs/release.md)：`release-check`、manifest 字段和 Evidence 规则。
 - [独立审计 2026-06-02](docs/independent-audit-20260602.md)：独立审计发现、修复状态和剩余验证缺口。
-- [项目分析快照 2026-06-02](docs/project-analysis-20260602.md)：`v0.3.7` 发布/分析快照；当前治理主基线仍以 [目标文档](docs/goal.md) v2.9.3 Complete 和 [.agent/traceability-matrix.md](.agent/traceability-matrix.md) 为准。
+- [项目分析快照 2026-06-02](docs/project-analysis-20260602.md)：`v0.3.7` 发布/分析快照；当前治理主基线仍以 [目标文档](docs/goal/goal.md) v2.9.3 Complete 和 [.agent/traceability-matrix.md](.agent/traceability-matrix.md) 为准。
 - [结构性问题清单 2026-06-02](docs/structural-issues-20260602.md)：记录架构、治理和交付风险的结构化问题清单。
 - [.agent 真相状态文件](.agent/truth-state.yaml)：汇总当前治理、命令实现、release gate、Evidence 可用性和下游采纳状态口径。
 
@@ -68,7 +68,7 @@ GOWORK=off make standard-impact-check
 GOWORK=off make docs-check
 XLIB_CONTEXT=release_verify GOWORK=off make release-check
 XLIB_CONTEXT=release_verify GOWORK=off make release-final-check
-XLIB_CONTEXT=release_verify GOWORK=off make release-preflight VERSION=v0.4.3
+XLIB_CONTEXT=release_verify GOWORK=off make release-preflight VERSION=v0.4.5
 make evidence
 ```
 
