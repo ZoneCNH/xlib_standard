@@ -1,6 +1,8 @@
 package goalruntime
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -8,8 +10,10 @@ import (
 )
 
 const (
-	DefaultGoalID      = "GOAL-20260603-XLIB-RUNTIME-001"
-	EvidenceLedgerPath = "release/evidence/goalkit/"
+	DefaultGoalID       = "GOAL-20260603-XLIB-GOALKIT-001"
+	EvidenceLedgerPath  = "release/evidence/goalkit/"
+	SourceLedgerPath    = ".agent/evidence/ledger.jsonl"
+	finalRuntimeCommand = "goal-runtime-final"
 )
 
 var commandGates = map[string]string{
@@ -17,8 +21,8 @@ var commandGates = map[string]string{
 	"goal-delivery":            "G13",
 	"goal-handover":            "G14",
 	"goal-downstream-adoption": "G15A",
-	"goal-certify":             "G15B",
-	"goal-runtime-final":       "G16",
+	"goal-certify":             "G16",
+	"goal-runtime-final":       "G12_G16_FINAL",
 }
 
 var commandHarnessGates = map[string]string{
@@ -35,7 +39,7 @@ var gateDescriptions = map[string]string{
 	"goal-handover":            "接手材料和边界声明已收敛",
 	"goal-downstream-adoption": "下游采用证明保持为本地 contract，不修改 downstream 仓库",
 	"goal-certify":             "认证证明保持为本地 contract，不宣称完整 release 完成",
-	"goal-runtime-final":       "G12-G15B 本地 contract 汇总为 goalkit v0.1.0 MVA final evidence",
+	"goal-runtime-final":       "G12-G16 本地 contract 汇总为 goalkit v0.1.0 MVA final evidence",
 }
 
 var requiredAuthorityPaths = []string{
@@ -44,7 +48,22 @@ var requiredAuthorityPaths = []string{
 	"docs/standard/xlibgate-cli-contract.md",
 	".agent/harness.yaml",
 	".agent/command-registry.yaml",
+	".agent/registry/runtime.yaml",
+	".agent/registry/commands.yaml",
+	".agent/command-implementation-status.yaml",
+	".agent/evidence/README.md",
+	"docs/standard/goalkit-runtime.md",
+	"docs/plans/goalkit-v0.1.0-roadmap.md",
+	"docs/adr/ADR-20260603-001-goalkit-xlibgate-runtime.md",
 	"Makefile",
+}
+
+var finalPrerequisiteCommands = []string{
+	"goal-acceptance",
+	"goal-delivery",
+	"goal-handover",
+	"goal-downstream-adoption",
+	"goal-certify",
 }
 
 // Options configures a goalkit MVA contract evaluation.
@@ -75,12 +94,23 @@ type Report struct {
 	Gaps             []string     `json:"gaps,omitempty"`
 }
 
-// GateReport records one non-blocking local goalkit evidence gate.
+// GateReport records one local goalkit evidence gate.
 type GateReport struct {
 	ID       string `json:"id"`
 	Command  string `json:"command"`
 	Status   string `json:"status"`
 	Blocking bool   `json:"blocking"`
+}
+
+// LedgerEntry is the compact JSONL source entry for generated goalkit evidence.
+type LedgerEntry struct {
+	SchemaVersion    string `json:"schema_version"`
+	GoalID           string `json:"goal_id"`
+	Command          string `json:"command"`
+	Status           string `json:"status"`
+	MVAStatus        string `json:"mva_status"`
+	Blocking         bool   `json:"blocking"`
+	EvidencePackPath string `json:"evidence_pack_path"`
 }
 
 // Evaluate verifies the local goalkit v0.1.0 MVA contract for a single command.
@@ -110,20 +140,21 @@ func Evaluate(command string, options Options) (Report, error) {
 		Mode:             mode,
 		Executor:         "xlibgate",
 		ControlPlane:     "Harness Runtime",
-		Blocking:         false,
-		MVAStatus:        "not-complete",
-		LedgerPath:       ".agent/evidence/ledger.jsonl",
+		Blocking:         true,
+		MVAStatus:        "complete",
+		LedgerPath:       SourceLedgerPath,
 		EvidencePackPath: EvidenceLedgerPath + goalID + ".json",
 		Gates:            gatesForCommand(command),
 		Details: []string{
 			gateDescriptions[command],
 			"goalkit v0.1.0 不提供独立 CLI；xlibgate 是当前执行面",
 			"G12-G16 是 goalkit MVA evidence gates，不是全局 release blocking gates",
-			"root plan 是 backlog/roadmap authority，不是完成声明",
+			"root plan 是 authority；完成状态由本地 authority 校验和 evidence 写入共同证明",
 		},
 		Evidence: []string{
 			"fixture_id=" + DefaultGoalID,
-			"evidence_ledger=" + EvidenceLedgerPath,
+			"source_evidence_ledger=" + SourceLedgerPath,
+			"generated_evidence_pack=" + EvidenceLedgerPath,
 			"runtime_logic=internal/goalruntime",
 		},
 	}
@@ -138,7 +169,7 @@ func Evaluate(command string, options Options) (Report, error) {
 		}
 		report.AuthorityPaths = append(report.AuthorityPaths, path)
 	}
-	if command == "goal-runtime-final" {
+	if command == finalRuntimeCommand {
 		report.Evidence = append(report.Evidence,
 			"requires=goal-acceptance",
 			"requires=goal-delivery",
@@ -146,23 +177,21 @@ func Evaluate(command string, options Options) (Report, error) {
 			"requires=goal-downstream-adoption",
 			"requires=goal-certify",
 		)
+		if len(report.Gaps) == 0 {
+			report.Gaps = append(report.Gaps, validateFinalPrerequisites(root, goalID)...)
+		}
 	}
 	if len(report.Gaps) > 0 {
 		report.Status = "failed"
+		report.MVAStatus = "not-complete"
 	}
 	return report, nil
 }
 
 func gatesForCommand(command string) []GateReport {
 	commands := []string{command}
-	if command == "goal-runtime-final" {
-		commands = []string{
-			"goal-acceptance",
-			"goal-delivery",
-			"goal-handover",
-			"goal-downstream-adoption",
-			"goal-certify",
-		}
+	if command == finalRuntimeCommand {
+		commands = finalPrerequisiteCommands
 	}
 	reports := make([]GateReport, 0, len(commands))
 	for _, gateCommand := range commands {
@@ -170,10 +199,140 @@ func gatesForCommand(command string) []GateReport {
 			ID:       commandHarnessGates[gateCommand],
 			Command:  gateCommand,
 			Status:   "passed",
-			Blocking: false,
+			Blocking: true,
 		})
 	}
 	return reports
+}
+
+// WriteEvidence idempotently records passed goalkit MVA reports in the source
+// ledger. Final reports also write the generated evidence pack after the
+// prerequisite G12-G16 ledger entries have been reconciled for the same goal.
+func WriteEvidence(root string, report Report) error {
+	if _, ok := commandGates[report.Command]; !ok {
+		return fmt.Errorf("evidence write is not supported for command %s", report.Command)
+	}
+	if report.Status != "passed" || report.MVAStatus != "complete" || !report.Blocking {
+		return fmt.Errorf("refuse to write incomplete goalkit evidence: status=%s mva_status=%s blocking=%t", report.Status, report.MVAStatus, report.Blocking)
+	}
+	if root == "" {
+		root = "."
+	}
+	if report.Command != finalRuntimeCommand {
+		return upsertLedgerEntry(filepath.Join(root, filepath.FromSlash(report.LedgerPath)), ledgerEntryForReport(report))
+	}
+	if gaps := validateFinalPrerequisites(root, report.GoalID); len(gaps) > 0 {
+		return fmt.Errorf("refuse to write final goalkit evidence before prerequisites: %s", strings.Join(gaps, "; "))
+	}
+	packPath := filepath.Join(root, filepath.FromSlash(report.EvidencePackPath))
+	if err := os.MkdirAll(filepath.Dir(packPath), 0o755); err != nil {
+		return fmt.Errorf("create evidence pack directory: %w", err)
+	}
+	pack, err := json.MarshalIndent(report, "", "  ")
+	if err != nil {
+		return fmt.Errorf("marshal evidence pack: %w", err)
+	}
+	if err := os.WriteFile(packPath, append(pack, '\n'), 0o644); err != nil {
+		return fmt.Errorf("write evidence pack %s: %w", report.EvidencePackPath, err)
+	}
+	return upsertLedgerEntry(filepath.Join(root, filepath.FromSlash(report.LedgerPath)), ledgerEntryForReport(report))
+}
+
+func ledgerEntryForReport(report Report) LedgerEntry {
+	return LedgerEntry{
+		SchemaVersion:    report.SchemaVersion,
+		GoalID:           report.GoalID,
+		Command:          report.Command,
+		Status:           report.Status,
+		MVAStatus:        report.MVAStatus,
+		Blocking:         report.Blocking,
+		EvidencePackPath: report.EvidencePackPath,
+	}
+}
+
+func validateFinalPrerequisites(root string, goalID string) []string {
+	ledgerPath := filepath.Join(root, filepath.FromSlash(SourceLedgerPath))
+	entries, err := readLedgerEntries(ledgerPath)
+	if err != nil {
+		return []string{"missing prerequisite evidence ledger: " + SourceLedgerPath + " (" + err.Error() + ")"}
+	}
+	byCommand := make(map[string]LedgerEntry, len(entries))
+	for _, entry := range entries {
+		if entry.GoalID == goalID {
+			byCommand[entry.Command] = entry
+		}
+	}
+	var gaps []string
+	for _, command := range finalPrerequisiteCommands {
+		entry, ok := byCommand[command]
+		if !ok {
+			gaps = append(gaps, fmt.Sprintf("missing prerequisite evidence for goal_id %s: %s", goalID, command))
+			continue
+		}
+		if entry.Status != "passed" || entry.MVAStatus != "complete" || !entry.Blocking {
+			gaps = append(gaps, fmt.Sprintf("incomplete prerequisite evidence for goal_id %s: %s", goalID, command))
+		}
+	}
+	return gaps
+}
+
+func readLedgerEntries(path string) ([]LedgerEntry, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	lines := bytes.Split(data, []byte{'\n'})
+	entries := make([]LedgerEntry, 0, len(lines))
+	for i, line := range lines {
+		line = bytes.TrimSpace(line)
+		if len(line) == 0 {
+			continue
+		}
+		var entry LedgerEntry
+		if err := json.Unmarshal(line, &entry); err != nil {
+			return nil, fmt.Errorf("invalid ledger entry on line %d: %w", i+1, err)
+		}
+		entries = append(entries, entry)
+	}
+	return entries, nil
+}
+
+func upsertLedgerEntry(path string, entry LedgerEntry) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return fmt.Errorf("create evidence ledger directory: %w", err)
+	}
+	var lines [][]byte
+	if data, err := os.ReadFile(path); err == nil {
+		lines = bytes.Split(data, []byte{'\n'})
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("read evidence ledger: %w", err)
+	}
+	next := make([]byte, 0)
+	for _, line := range lines {
+		line = bytes.TrimSpace(line)
+		if len(line) == 0 {
+			continue
+		}
+		var existing LedgerEntry
+		if err := json.Unmarshal(line, &existing); err == nil &&
+			existing.GoalID == entry.GoalID &&
+			existing.Command == entry.Command &&
+			existing.EvidencePackPath == entry.EvidencePackPath {
+			continue
+		}
+		next = append(next, line...)
+		next = append(next, '\n')
+	}
+	data, err := json.Marshal(entry)
+	if err != nil {
+		return fmt.Errorf("marshal evidence ledger entry: %w", err)
+	}
+	next = append(next, data...)
+	next = append(next, '\n')
+	if err := os.WriteFile(path, next, 0o644); err != nil {
+		return fmt.Errorf("write evidence ledger: %w", err)
+	}
+	return nil
 }
 
 // Commands returns the supported goalkit MVA command names.

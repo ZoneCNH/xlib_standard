@@ -112,12 +112,12 @@ groups:
       - downstream-baseline
       - downstream-adoption
 
-  - id: goalkit_pr4_command_backed_non_blocking
+  - id: goalkit_v0_1_0_mva_blocking
     phase: P2
     implementation_status: implemented
-    mva_status: not-complete
-    evidence_strength: command_backed_non_blocking
-    note: "goalkit v0.1.0 MVA commands prove local G12-G16 evidence contracts through xlibgate; they are not global release blocking gates."
+    mva_status: complete
+    evidence_strength: full_mva_evidence
+    note: "goalkit v0.1.0 MVA commands 通过 xlibgate 和 source ledger 证明 blocking G12-G16 evidence contracts。"
     commands:
       - goal-acceptance
       - goal-delivery

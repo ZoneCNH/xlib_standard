@@ -106,7 +106,7 @@
 
 ## Goalkit MVA commands
 
-Goalkit MVA commands (`goal-acceptance`, `goal-delivery`, `goal-handover`, `goal-downstream-adoption`, `goal-certify`, and `goal-runtime-final`) only prove local G12-G16 evidence contracts for `goalkit v0.1.0`. They do not promote G12-G16 to global release blocking gates, do not create an independent `goalkit` CLI, do not modify downstream repositories, and write authority through the xlibgate execution surface with the evidence ledger path `release/evidence/goalkit/`. The root goalkit plan remains backlog/roadmap authority, not completion evidence.
+Goalkit MVA commands（`goal-acceptance`、`goal-delivery`、`goal-handover`、`goal-downstream-adoption`、`goal-certify` 和 `goal-runtime-final`）用于证明 `goalkit v0.1.0` 的 G12-G16 evidence contracts，并且只在 goalkit MVA evidence scope 内是 blocking gate。它们不会创建独立 `goalkit` CLI，也不会修改 downstream 仓库。source authority 是 `xlibgate` 执行面和 `.agent/evidence/ledger.jsonl`；`release/evidence/goalkit/` 下的 generated packs 只是派生产物。root goalkit plan 仍是 roadmap authority，完成证据来自同一 `GOAL_ID` 下已调和的 source ledger 和 final report。
 
 ## Debt governance commands
 
@@ -116,14 +116,17 @@ Debt governance commands are P0 release-blocking gates. `xlibgate debt` runs the
 
 ## Goalkit v0.1.0 MVA runtime commands
 
-The goalkit MVA commands are local xlibgate evidence commands backed by `.agent/harness.yaml`; they make command, Makefile, and harness coverage executable without claiming that goalkit v0.1.0 is fully complete.
+goalkit MVA commands 是由 `.agent/harness.yaml` 背书的本地 `xlibgate` evidence commands；它们把 command、Makefile 和 harness coverage 变成可执行契约。只有当同一 `GOAL_ID` 的 G12-G16 检查都已写入 source ledger 并由 final rollup 调和后，才能证明 goalkit v0.1.0 MVA completion。
 
-- `goal-acceptance` verifies `G12_ACCEPTANCE`.
-- `goal-delivery` verifies `G13_DELIVERY`.
-- `goal-handover` verifies `G14_HANDOVER`.
-- `goal-downstream-adoption` verifies `G15_DOWNSTREAM_ADOPTION`.
-- `goal-certify` verifies `G16_CERTIFY` and preserves the no-false-completion claim.
-- `goal-runtime-final` verifies the `G12_G16_FINAL` rollup across the five prerequisite local gates.
+- `goal-acceptance` 校验 `G12_ACCEPTANCE`。
+- `goal-delivery` 校验 `G13_DELIVERY`。
+- `goal-handover` 校验 `G14_HANDOVER`。
+- `goal-downstream-adoption` 校验 `G15_DOWNSTREAM_ADOPTION`。
+- `goal-certify` 校验 `G16_CERTIFY` 并保留 source-ledger evidence claim。
+- `goal-runtime-final` 校验五个 prerequisite local gates 的 `G12_G16_FINAL` rollup。
+- 直接运行 `xlibgate <command> --json` 是只读检查，不会写 evidence。
+- 只有显式传入 `--write-evidence` 时，命令才会写入 `.agent/evidence/ledger.jsonl`。
+- `goal-runtime-final --write-evidence` 只有在 source ledger 已存在同一 `GOAL_ID` 的五个 prerequisite entries 后，才会写入 generated evidence pack。
 
 ## 执行约束
 

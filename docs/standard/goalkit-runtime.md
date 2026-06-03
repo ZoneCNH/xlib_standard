@@ -1,30 +1,36 @@
 # goalkit v0.1.0 runtime standard
 
-Status: normative for the v0.1.0 MVA slice.
+Status: v0.1.0 MVA slice 的 normative authority。
 
 ## Authority
 
-- `xlibgate` is the only machine executor for goalkit v0.1.0 commands.
-- Harness Runtime is the control plane for routing, policy, and evidence interpretation.
-- goalkit v0.1.0 is not an independent external CLI.
-- `.agent/evidence/ledger.jsonl` is the source evidence ledger.
-- `release/evidence/goalkit/` is a generated evidence pack location and is not the source ledger.
+- `xlibgate` 是 goalkit v0.1.0 commands 的唯一机器执行面。
+- Harness Runtime 是 routing、policy 和 evidence interpretation 的 control plane。
+- goalkit v0.1.0 不是独立外部 CLI。
+- `.agent/evidence/ledger.jsonl` 是 source evidence ledger。
+- `release/evidence/goalkit/` 是 generated evidence pack 目录，不是 source ledger。
 
 ## Command surface
 
-The PR-4 command-backed slice exposes G12-G16 equivalents through Makefile targets that delegate to `xlibgate`:
+PR-4 command-backed slice 通过委托给 `xlibgate` 的 Makefile targets 暴露 G12-G16 等价 gate：
 
 | Gate | Command / target | Blocking |
 | --- | --- | --- |
-| G12 acceptance | `goal-acceptance` | no |
-| G13 delivery | `goal-delivery` | no |
-| G14 handover | `goal-handover` | no |
-| G15 downstream adoption | `goal-downstream-adoption` | no |
-| G16 certify | `goal-certify` | no |
-| G12-G16 final report | `goal-runtime-final` | no |
+| G12 acceptance | `goal-acceptance` | yes |
+| G13 delivery | `goal-delivery` | yes |
+| G14 handover | `goal-handover` | yes |
+| G15 downstream adoption | `goal-downstream-adoption` | yes |
+| G16 certify | `goal-certify` | yes |
+| G12-G16 final report | `goal-runtime-final` | yes |
 
-Each command requires `GOAL_ID` or `--goal-id` and reports `mva_status: not-complete`. The target result proves only the current command-backed Harness slice, not full MVA completion.
+每个命令都需要 `GOAL_ID` 或 `--goal-id`。同一 goal 的 fresh ledger-backed evidence 只有在 `goal-runtime-final` 调和全部 G12-G16 checks 后，才能报告 `mva_status: complete`。
 
 ## Completion rule
 
-Do not claim the goalkit v0.1.0 MVA is complete until Harness policy activates the required gates, fresh command evidence is recorded, and the root plan / roadmap aliases are reconciled in the evidence ledger.
+只有同时满足以下条件，才能声明 goalkit v0.1.0 MVA complete：
+
+- Harness policy 将 G12-G16 标记为 required。
+- fresh command evidence 已记录到 `.agent/evidence/ledger.jsonl`。
+- `release/evidence/goalkit/` 下的 generated packs 由 source ledger 派生。
+- root plan 与 roadmap aliases 已在 evidence ledger 中调和。
+- final report 的同一 `GOAL_ID` 已包含五个 prerequisite command entries。

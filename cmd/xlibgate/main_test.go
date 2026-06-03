@@ -376,6 +376,7 @@ func TestGoalGovernanceCommandSurface(t *testing.T) {
 
 func TestGoalkitMVACommandSurfaceRequiresG12ThroughG16Equivalents(t *testing.T) {
 	chdir(t, repoRoot(t))
+	const fixtureGoalID = "GOAL-20260603-XLIB-GOALKIT-001"
 	tests := []struct {
 		command   string
 		wantGates int
@@ -390,10 +391,17 @@ func TestGoalkitMVACommandSurfaceRequiresG12ThroughG16Equivalents(t *testing.T) 
 
 	for _, tt := range tests {
 		t.Run(tt.command, func(t *testing.T) {
+			root := t.TempDir()
+			writeGoalkitAuthorityFixture(t, root)
+			if tt.command == "goal-runtime-final" {
+				writeGoalkitPrerequisiteLedgerFixture(t, root, fixtureGoalID)
+			}
+			chdir(t, root)
+
 			var stdout, stderr bytes.Buffer
 			got := run([]string{
 				tt.command,
-				"--goal-id", "GOAL-20260603-XLIB-RUNTIME-001",
+				"--goal-id", fixtureGoalID,
 				"--mode", "FULL",
 				"--json",
 			}, strings.NewReader(""), &stdout, &stderr)
@@ -425,17 +433,23 @@ func TestGoalkitMVACommandSurfaceRequiresG12ThroughG16Equivalents(t *testing.T) 
 			if report.Command != tt.command || report.Status != "passed" {
 				t.Fatalf("report = %#v; want command %q with passed status", report, tt.command)
 			}
-			if report.GoalID != "GOAL-20260603-XLIB-RUNTIME-001" {
+			if report.GoalID != fixtureGoalID {
 				t.Fatalf("goal_id = %q; want fixture goal id", report.GoalID)
 			}
 			if report.Executor != "xlibgate" || report.ControlPlane != "Harness Runtime" {
 				t.Fatalf("executor/control_plane = %q/%q; want xlibgate/Harness Runtime", report.Executor, report.ControlPlane)
 			}
-			if report.Blocking {
-				t.Fatalf("report is blocking; G12-G16 must stay non-blocking in the PR-4 slice")
+			if !report.Blocking {
+				t.Fatalf("blocking = false; want %s to be goalkit MVA-blocking", tt.command)
 			}
-			if !slicesContain(report.Evidence, "evidence_ledger="+goalruntime.EvidenceLedgerPath) {
-				t.Fatalf("evidence = %#v; want goalkit ledger path", report.Evidence)
+			if report.MVAStatus != "complete" {
+				t.Fatalf("mva_status = %q; want complete for %s", report.MVAStatus, tt.command)
+			}
+			if !slicesContain(report.Evidence, "source_evidence_ledger="+goalruntime.SourceLedgerPath) {
+				t.Fatalf("evidence = %#v; want source evidence ledger path", report.Evidence)
+			}
+			if !slicesContain(report.Evidence, "generated_evidence_pack="+goalruntime.EvidenceLedgerPath) {
+				t.Fatalf("evidence = %#v; want generated evidence pack path", report.Evidence)
 			}
 			if report.LedgerPath != ".agent/evidence/ledger.jsonl" || !strings.HasPrefix(report.EvidencePackPath, "release/evidence/goalkit") {
 				t.Fatalf("ledger/evidence paths = %q/%q; want source ledger and generated pack split", report.LedgerPath, report.EvidencePackPath)
@@ -444,11 +458,52 @@ func TestGoalkitMVACommandSurfaceRequiresG12ThroughG16Equivalents(t *testing.T) 
 				t.Fatalf("gates = %#v; want %d gates", report.Gates, tt.wantGates)
 			}
 			for _, gate := range report.Gates {
-				if gate.Status != "passed" || gate.Blocking {
-					t.Fatalf("gate = %#v; want passed non-blocking gate", gate)
+				if gate.Status != "passed" || !gate.Blocking {
+					t.Fatalf("gate = %#v; want passed blocking gate", gate)
 				}
 			}
 		})
+	}
+}
+
+func TestGoalkitRuntimeFinalWritesEvidenceWhenRequested(t *testing.T) {
+	root := t.TempDir()
+	writeGoalkitAuthorityFixture(t, root)
+	writeGoalkitPrerequisiteLedgerFixture(t, root, "GOAL-20260603-XLIB-GOALKIT-001")
+	chdir(t, root)
+
+	var stdout, stderr bytes.Buffer
+	got := run([]string{
+		"goal-runtime-final",
+		"--goal-id", "GOAL-20260603-XLIB-GOALKIT-001",
+		"--mode", "FULL",
+		"--json",
+		"--write-evidence",
+	}, strings.NewReader(""), &stdout, &stderr)
+	if got != 0 {
+		t.Fatalf("run(goal-runtime-final) = %d, stderr %q, stdout %q; want 0", got, stderr.String(), stdout.String())
+	}
+
+	var report struct {
+		EvidencePackPath string `json:"evidence_pack_path"`
+		MVAStatus        string `json:"mva_status"`
+		Blocking         bool   `json:"blocking"`
+	}
+	if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
+		t.Fatalf("stdout is not goalkit report JSON: %v; stdout %q", err, stdout.String())
+	}
+	if report.MVAStatus != "complete" || !report.Blocking {
+		t.Fatalf("report = %#v; want complete blocking report", report)
+	}
+	if _, err := os.Stat(filepath.Join(root, filepath.FromSlash(report.EvidencePackPath))); err != nil {
+		t.Fatalf("evidence pack was not written: %v", err)
+	}
+	ledger, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(goalruntime.SourceLedgerPath)))
+	if err != nil {
+		t.Fatalf("source evidence ledger was not written: %v", err)
+	}
+	if !strings.Contains(string(ledger), report.EvidencePackPath) || !strings.Contains(string(ledger), `"mva_status":"complete"`) {
+		t.Fatalf("ledger = %s; want complete entry for evidence pack %s", ledger, report.EvidencePackPath)
 	}
 }
 
@@ -476,58 +531,66 @@ func TestGoalkitRuntimeTargetsRouteThroughXlibgate(t *testing.T) {
 	if strings.Contains(makefile, "$(GOALKIT)") || strings.Contains(makefile, "goalkit goal-") {
 		t.Fatalf("Makefile must not route goalkit v0.1.0 through a standalone goalkit CLI")
 	}
+	if !strings.Contains(makefile, "$(XLIBGATE) $@ --goal-id \"$(GOAL_ID)\" --mode \"$(GOAL_RUNTIME_MODE)\" --json --write-evidence") {
+		t.Fatalf("goal-runtime-final must explicitly request evidence writing")
+	}
 }
 
-func TestGoalkitControlPlaneDocumentsEvidenceLedgerAndIncompleteMVA(t *testing.T) {
+func TestGoalkitControlPlaneDocumentsEvidenceLedgerAndCompleteMVA(t *testing.T) {
 	chdir(t, repoRoot(t))
 	files := map[string][]string{
 		".agent/harness.yaml": {
 			"goalkit_v0_1_0",
+			"goalkit_mva_gates:",
 			"control_plane: Harness Runtime",
 			"executor: xlibgate",
 			"source_evidence_ledger: .agent/evidence/ledger.jsonl",
-			"blocking: false",
+			"generated_evidence_pack: release/evidence/goalkit/",
+			"blocking: true",
 		},
 		".agent/registry/runtime.yaml": {
-			"mva_status: not-complete",
+			"mva_status: complete",
 			"control_plane: Harness Runtime",
 			"executor: xlibgate",
 			"source_evidence_ledger: .agent/evidence/ledger.jsonl",
+			"generated_evidence_pack: release/evidence/goalkit/",
 		},
 		".agent/registry/commands.yaml": {
 			"goal-acceptance",
 			"goal-downstream-adoption",
 			"goal-runtime-final",
-			"mva_status: not-complete",
+			"mva_status: complete",
+			"blocking: true",
 		},
 		".agent/command-implementation-status.yaml": {
-			"goalkit_pr4_command_backed_non_blocking",
-			"mva_status: not-complete",
-			"evidence_strength: command_backed_non_blocking",
+			"goalkit_v0_1_0_mva_blocking",
+			"mva_status: complete",
+			"evidence_strength: full_mva_evidence",
 		},
 		".agent/evidence/README.md": {
 			".agent/evidence/ledger.jsonl",
 			"release/evidence/goalkit/",
-			"mva_status: not-complete",
+			"mva_status: complete",
 		},
 		"docs/standard/goalkit-runtime.md": {
-			"not an independent external CLI",
+			"不是独立外部 CLI",
 			"xlibgate",
 			"Harness Runtime",
 			".agent/evidence/ledger.jsonl",
-			"not-complete",
+			"mva_status: complete",
 		},
 		"docs/adr/ADR-20260603-001-goalkit-xlibgate-runtime.md": {
 			"Accepted",
-			"standalone `goalkit` CLI was rejected",
+			"拒绝 standalone `goalkit` CLI",
 			"xlibgate",
 			"Harness Runtime",
 		},
 		"docs/plans/goalkit-v0.1.0-roadmap.md": {
 			"PR-4",
 			"G12-G16",
-			"not full MVA completion",
-			"PR-5+",
+			"MVA-blocking",
+			"completion rollup",
+			"mva_status: complete",
 		},
 	}
 
@@ -1740,6 +1803,55 @@ func contextProfileMakefileFixture(overrides map[string]string, releaseFinalBody
 	b.WriteString(releaseFinalBody)
 	b.WriteString("\n")
 	return b.String()
+}
+
+func writeGoalkitAuthorityFixture(t *testing.T, root string) {
+	t.Helper()
+	for _, path := range []string{
+		".worktree/goalkit-v0.1.0-plan.md",
+		".omx/context/goalkit-v0.1.0-team-20260603T005302Z.md",
+		"docs/standard/xlibgate-cli-contract.md",
+		".agent/harness.yaml",
+		".agent/command-registry.yaml",
+		".agent/registry/runtime.yaml",
+		".agent/registry/commands.yaml",
+		".agent/command-implementation-status.yaml",
+		".agent/evidence/README.md",
+		"docs/standard/goalkit-runtime.md",
+		"docs/plans/goalkit-v0.1.0-roadmap.md",
+		"docs/adr/ADR-20260603-001-goalkit-xlibgate-runtime.md",
+		"Makefile",
+	} {
+		full := filepath.Join(root, filepath.FromSlash(path))
+		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+			t.Fatalf("mkdir fixture path %s: %v", path, err)
+		}
+		if err := os.WriteFile(full, []byte("fixture\n"), 0o644); err != nil {
+			t.Fatalf("write fixture path %s: %v", path, err)
+		}
+	}
+}
+
+func writeGoalkitPrerequisiteLedgerFixture(t *testing.T, root string, goalID string) {
+	t.Helper()
+	for _, command := range []string{
+		"goal-acceptance",
+		"goal-delivery",
+		"goal-handover",
+		"goal-downstream-adoption",
+		"goal-certify",
+	} {
+		report, err := goalruntime.Evaluate(command, goalruntime.Options{
+			Root:   root,
+			GoalID: goalID,
+		})
+		if err != nil {
+			t.Fatalf("Evaluate prerequisite %s returned error: %v", command, err)
+		}
+		if err := goalruntime.WriteEvidence(root, report); err != nil {
+			t.Fatalf("WriteEvidence prerequisite %s returned error: %v", command, err)
+		}
+	}
 }
 
 func chdir(t *testing.T, dir string) {

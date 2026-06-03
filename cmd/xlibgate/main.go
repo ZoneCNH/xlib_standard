@@ -219,7 +219,7 @@ commands:
   goal-downstream-adoption [--goal-id <id>] [--json]
   goal-certify [--goal-id <id>] [--json]
   goal-runtime
-  goal-runtime-final [--goal-id <id>] [--json]
+  goal-runtime-final [--goal-id <id>] [--json] [--write-evidence]
   governance-fixture-test
   install-runtime [--dry-run]
   integration

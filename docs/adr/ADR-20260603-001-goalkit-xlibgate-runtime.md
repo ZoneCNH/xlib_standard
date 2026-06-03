@@ -1,23 +1,23 @@
-# ADR-20260603-001: goalkit v0.1.0 runs through xlibgate and Harness Runtime
+# ADR-20260603-001: goalkit v0.1.0 通过 xlibgate 和 Harness Runtime 执行
 
 Status: Accepted
 
 ## Decision
 
-goalkit v0.1.0 will not ship as a standalone CLI. The executable surface is Makefile targets that invoke `xlibgate`, and Harness Runtime remains the policy/control plane.
+goalkit v0.1.0 不作为 standalone CLI 交付。可执行面是调用 `xlibgate` 的 Makefile targets，Harness Runtime 继续作为 policy/control plane。
 
-The source evidence ledger is `.agent/evidence/ledger.jsonl`. Generated packs under `release/evidence/goalkit/` are derived artifacts only.
+source evidence ledger 是 `.agent/evidence/ledger.jsonl`。`release/evidence/goalkit/` 下的 generated packs 只是 derived artifacts。
 
 ## Rationale
 
-This keeps the MVA aligned with the existing governance gate architecture, avoids a second command authority, and makes G12-G16 evidence auditable from the same runtime as the rest of xlib-standard.
+该决策让 MVA 与现有 governance gate architecture 保持一致，避免第二套 command authority，并确保 G12-G16 evidence 可以由 xlib-standard 现有 runtime 审计。
 
 ## Consequences
 
-- G12-G16 equivalents may be command-backed in PR-4, but they are non-blocking until later Harness activation.
-- Reports must expose `mva_status: not-complete` until fresh evidence proves the full MVA.
-- Future work must not introduce a mandatory external `goalkit` CLI for v0.1.0.
+- G12-G16 equivalents 是 command-backed，并且在 goalkit v0.1.0 MVA evidence scope 内是 blocking。
+- 只有 fresh source-ledger evidence 证明 full MVA 后，reports 才能暴露 `mva_status: complete`。
+- v0.1.0 future work 不得引入 mandatory external `goalkit` CLI。
 
 ## Rejected
 
-A standalone `goalkit` CLI was rejected because it would bypass the xlibgate executor and Harness control-plane contract for v0.1.0.
+拒绝 standalone `goalkit` CLI，因为它会绕过 v0.1.0 的 `xlibgate` executor 和 Harness Runtime control-plane contract。

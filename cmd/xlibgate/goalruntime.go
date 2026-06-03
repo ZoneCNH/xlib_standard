@@ -17,6 +17,7 @@ func runGoalRuntimeCommand(command string, args []string, stdout io.Writer, stde
 	dryRun := flags.Bool("dry-run", false, "run local planned-command contract check")
 	verify := flags.Bool("verify", false, "verify local planned-command contract markers")
 	mode := flags.String("mode", "FULL", "goalkit runtime evaluation mode")
+	writeEvidence := flags.Bool("write-evidence", false, "write source ledger entry and generated goalkit final evidence pack when applicable")
 	flags.Bool("strict", false, "reserved strict contract flag")
 	if err := flags.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
@@ -42,6 +43,12 @@ func runGoalRuntimeCommand(command string, args []string, stdout io.Writer, stde
 	if err != nil {
 		write(stderr, "ERROR: %v\n", err)
 		return 2
+	}
+	if *writeEvidence {
+		if err := goalruntime.WriteEvidence(".", report); err != nil {
+			write(stderr, "ERROR: write %s evidence: %v\n", command, err)
+			return 1
+		}
 	}
 	data, err := json.MarshalIndent(report, "", "  ")
 	if err != nil {

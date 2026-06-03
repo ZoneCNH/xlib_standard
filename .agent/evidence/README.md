@@ -1,8 +1,5 @@
 # goalkit evidence ledger
 
-`.agent/evidence/ledger.jsonl` is the source evidence ledger for goalkit v0.1.0.
-Generated evidence packs may be written under `release/evidence/goalkit/`, but generated
-release artifacts are not the source of truth and must not be treated as canonical ledger input.
+`.agent/evidence/ledger.jsonl` 是 goalkit v0.1.0 的 source evidence ledger。`release/evidence/goalkit/` 可以保存 generated evidence packs，但这些 release artifacts 不是 source of truth，也不能作为 canonical ledger input。
 
-The PR-4 G12-G16 commands are xlibgate/Harness-backed, non-blocking checks. They report
-`mva_status: not-complete` until a later PR activates blocking Harness policy with fresh evidence.
+G12-G16 commands 是由 `xlibgate` 和 Harness Runtime 背书的 goalkit MVA-blocking checks。fresh ledger-backed evidence 只有在 `goal-runtime-final` 调和同一 `GOAL_ID` 下的 `goal-acceptance`、`goal-delivery`、`goal-handover`、`goal-downstream-adoption` 和 `goal-certify` 后，才能报告 `mva_status: complete`。
