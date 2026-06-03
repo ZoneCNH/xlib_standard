@@ -337,7 +337,11 @@ func readSecretCheckReport(t *testing.T, path string) struct {
 	return report
 }
 
+<<<<<<< HEAD
 func TestRunSecurityDefaultsToSecretScanOnly(t *testing.T) {
+=======
+func TestRunSecurityRunsSecretScanByDefault(t *testing.T) {
+>>>>>>> f52a64f (omx(team): auto-checkpoint worker-1 [1])
 	_, callLog := setupSecurityFixture(t)
 	var stdout, stderr bytes.Buffer
 
@@ -351,7 +355,11 @@ func TestRunSecurityDefaultsToSecretScanOnly(t *testing.T) {
 	}
 }
 
+<<<<<<< HEAD
 func TestRunSecurityOptInExecutesVulnerabilityScanBeforeSecrets(t *testing.T) {
+=======
+func TestRunSecurityExecutesVulnerabilityScanBeforeSecretsWhenEnabled(t *testing.T) {
+>>>>>>> f52a64f (omx(team): auto-checkpoint worker-1 [1])
 	_, callLog := setupSecurityFixture(t)
 	t.Setenv("XLIB_ENABLE_VULNCHECK", "1")
 	var stdout, stderr bytes.Buffer
@@ -362,11 +370,19 @@ func TestRunSecurityOptInExecutesVulnerabilityScanBeforeSecrets(t *testing.T) {
 		t.Fatalf("security exit = %d, stderr %q, stdout %q; want 0", got, stderr.String(), stdout.String())
 	}
 	if calls := readText(t, callLog); calls != "govulncheck ./...\ncheck_secrets.sh\n" {
+<<<<<<< HEAD
 		t.Fatalf("security calls = %q; want vulnerability scan before secrets when opt-in is enabled", calls)
 	}
 }
 
 func TestRunSecurityOptInStopsWhenVulnerabilityScanFails(t *testing.T) {
+=======
+		t.Fatalf("security calls = %q; want vulnerability scan before secrets when enabled", calls)
+	}
+}
+
+func TestRunSecurityStopsWhenEnabledVulnerabilityScanFails(t *testing.T) {
+>>>>>>> f52a64f (omx(team): auto-checkpoint worker-1 [1])
 	_, callLog := setupSecurityFixture(t)
 	t.Setenv("XLIB_ENABLE_VULNCHECK", "1")
 	t.Setenv("GOVULNCHECK_EXIT", "7")

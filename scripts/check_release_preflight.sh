@@ -56,6 +56,7 @@ if ! grep -Eq "^## \\[?$version\\]?( |$)" CHANGELOG.md; then
   exit 1
 fi
 
+<<<<<<< HEAD
 if ! command -v golangci-lint >/dev/null 2>&1; then
   echo "ERROR: golangci-lint not installed"
   exit 1
@@ -65,5 +66,18 @@ if [[ "${XLIB_ENABLE_VULNCHECK:-0}" == "1" ]] && ! command -v govulncheck >/dev/
   echo "ERROR: govulncheck not installed (required when XLIB_ENABLE_VULNCHECK=1)"
   exit 1
 fi
+=======
+required_tools=(golangci-lint)
+if [[ "${XLIB_ENABLE_VULNCHECK:-}" == "1" ]]; then
+  required_tools+=(govulncheck)
+fi
+
+for tool in "${required_tools[@]}"; do
+  if ! command -v "$tool" >/dev/null 2>&1; then
+    echo "ERROR: $tool not installed"
+    exit 1
+  fi
+done
+>>>>>>> f52a64f (omx(team): auto-checkpoint worker-1 [1])
 
 echo "release preflight metadata checks passed for $version"

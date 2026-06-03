@@ -136,6 +136,7 @@ func run(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) int
 	case "secret":
 		return runSecretCommand(args[1:], stdin, stdout, stderr)
 	case "security":
+<<<<<<< HEAD
 		if os.Getenv("XLIB_ENABLE_VULNCHECK") == "1" {
 			return runExternalSequence(stdin, stdout, stderr,
 				externalCommand{name: "govulncheck", args: []string{"./..."}},
@@ -143,6 +144,13 @@ func run(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) int
 			)
 		}
 		return runExternal(stdin, stdout, stderr, "./scripts/check_secrets.sh")
+=======
+		securityCommands := []externalCommand{{name: "./scripts/check_secrets.sh"}}
+		if os.Getenv("XLIB_ENABLE_VULNCHECK") == "1" {
+			securityCommands = append([]externalCommand{{name: "govulncheck", args: []string{"./..."}}}, securityCommands...)
+		}
+		return runExternalSequence(stdin, stdout, stderr, securityCommands...)
+>>>>>>> f52a64f (omx(team): auto-checkpoint worker-1 [1])
 	case "standard-impact-check":
 		return runExternal(stdin, stdout, stderr, "./scripts/check_standard_impact.sh")
 	case "self-improving-check", "retro-check":
