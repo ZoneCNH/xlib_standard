@@ -1,0 +1,11 @@
+schema_version: "0.1.0"
+runtime: goalkit
+mva_status: not-complete
+control_plane: Harness Runtime
+executor: xlibgate
+source_evidence_ledger: .agent/evidence/ledger.jsonl
+generated_evidence_pack: release/evidence/goalkit/
+blocking_activation: PR-5+
+notes:
+  - "goalkit v0.1.0 is not an independent CLI."
+  - "G12-G16 are PR-4 command-backed checks and remain non-blocking until later Harness activation."

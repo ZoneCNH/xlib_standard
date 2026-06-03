@@ -117,6 +117,25 @@ groups:
       - downstream-baseline
       - downstream-adoption
 
+
+  - id: goalkit_pr4_command_backed_non_blocking
+    phase: GOALKIT
+    implementation_status: implemented
+    mva_status: not-complete
+    evidence_strength: command_backed_non_blocking
+    control_plane: Harness Runtime
+    executor: xlibgate
+    source_evidence_ledger: .agent/evidence/ledger.jsonl
+    generated_evidence_pack: release/evidence/goalkit/
+    note: "G12-G16 command equivalents exist for PR-4 verification, but remain non-blocking and do not complete the goalkit v0.1.0 MVA."
+    commands:
+      - goal-acceptance
+      - goal-delivery
+      - goal-handover
+      - goal-downstream-adoption
+      - goal-certify
+      - goal-runtime-final
+
 forbidden_gate_interpretations:
   - state: registered
     rule: "registered command != passed gate"

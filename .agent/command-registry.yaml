@@ -191,20 +191,23 @@ commands:
     phase: P1
     target: p1-governance-check
   - name: goal-acceptance
-    phase: P1
-    target: p1-governance-check
+    phase: GOALKIT
+    target: goal-acceptance
   - name: goal-delivery
-    phase: P1
-    target: p1-governance-check
+    phase: GOALKIT
+    target: goal-delivery
   - name: goal-handover
-    phase: P1
-    target: p1-governance-check
-  - name: goal-downstream
-    phase: P1
-    target: p1-governance-check
+    phase: GOALKIT
+    target: goal-handover
+  - name: goal-downstream-adoption
+    phase: GOALKIT
+    target: goal-downstream-adoption
   - name: goal-certify
-    phase: P1
-    target: p1-governance-check
+    phase: GOALKIT
+    target: goal-certify
+  - name: goal-runtime-final
+    phase: GOALKIT
+    target: goal-runtime-final
   - name: naming
     phase: P1
     target: p1-governance-check

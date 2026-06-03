@@ -184,3 +184,33 @@ forbidden:
   - "hidden global clients"
   - "business-domain models in xlib-standard, kernel, or generated base libraries"
   - "legacy baselib-template/foundationx as primary identity outside migration context"
+
+goalkit_v0_1_0:
+  mva_status: not-complete
+  control_plane: Harness Runtime
+  executor: xlibgate
+  source_evidence_ledger: .agent/evidence/ledger.jsonl
+  generated_evidence_pack: release/evidence/goalkit/
+  blocking_activation: PR-5+
+  notes:
+    - "goalkit v0.1.0 is not a standalone external CLI."
+    - "G12-G16 are PR-4 command-backed checks and are not release-blocking gates yet."
+  gates:
+    - id: G12_ACCEPTANCE
+      command: "GOWORK=off make goal-acceptance"
+      blocking: false
+    - id: G13_DELIVERY
+      command: "GOWORK=off make goal-delivery"
+      blocking: false
+    - id: G14_HANDOVER
+      command: "GOWORK=off make goal-handover"
+      blocking: false
+    - id: G15_DOWNSTREAM_ADOPTION
+      command: "GOWORK=off make goal-downstream-adoption"
+      blocking: false
+    - id: G16_CERTIFY
+      command: "GOWORK=off make goal-certify"
+      blocking: false
+    - id: G12_G16_FINAL
+      command: "GOWORK=off make goal-runtime-final"
+      blocking: false
