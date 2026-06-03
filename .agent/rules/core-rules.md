@@ -82,7 +82,7 @@ Release
 
 ### **[P0]** `RULE-CORE-005`：Harness 是机器裁判
 
-<sub>level: P0 · status: active · enforced_by: `xlibgate governance-check` · exit: 1 · source: §1 L124</sub>
+<sub>level: P0 · status: active · enforced_by: `make governance-check` · exit: 1 · source: §1 L124</sub>
 
 Harness 负责判断是否允许进入下一阶段。
 

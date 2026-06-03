@@ -72,13 +72,13 @@ P0_PREFIXES = {
     "WAIVER", "VIOLATION",
 }
 
-# ---- enforced_by 映射: id 前缀 -> xlibgate 子命令 ----
+# ---- enforced_by 映射: id 前缀 -> 可执行 gate 命令 ----
 ENFORCED_BY = {
     "CORE-001": ("xlibgate evidence-check", 8),
     "CORE-002": ("xlibgate context-fast-check", 1),
     "CORE-003": ("xlibgate acceptance-matrix", 1),
     "CORE-004": ("xlibgate traceability-check", 9),
-    "CORE-005": ("xlibgate governance-check", 1),
+    "CORE-005": ("make governance-check", 1),
     "CORE-006": ("xlibgate self-improving-check", 1),
     "WORKTREE": ("xlibgate worktree-guard", 5),
     "WORKTREE-AUTO": ("xlibgate worktree-guard", 5),
@@ -303,8 +303,8 @@ ENFORCED_BY = {
     "RULE-BLOAT": ("xlibgate docs-check", 1),
     "RULE-PATCH": ("xlibgate docs-check", 1),
     "COMPILER": ("xlibgate cli-contract", 1),
-    "GLOSSARY": ("xlibgate governance-check", 1),
-    "CODE": ("xlibgate governance-check", 1),
+    "GLOSSARY": ("make governance-check", 1),
+    "CODE": ("make governance-check", 1),
     # Goal 测试 / Golden / 违规样例
     "GOAL-TEST": ("xlibgate governance-fixture-test", 1),
     "GOLDEN": ("xlibgate governance-fixture-test", 1),
@@ -320,9 +320,9 @@ ENFORCED_BY = {
     "NAMING": ("xlibgate naming", 1),
     "SIMPLICITY": ("xlibgate minimal-kernel", 1),
     # P0: WAIVER / VIOLATION / STOP 走 governance-check
-    "WAIVER": ("xlibgate governance-check", 1),
-    "VIOLATION": ("xlibgate governance-check", 1),
-    "STOP": ("xlibgate governance-check", 1),
+    "WAIVER": ("make governance-check", 1),
+    "VIOLATION": ("make governance-check", 1),
+    "STOP": ("make governance-check", 1),
     "HUMAN": ("xlibgate pr-template", 1),
     # Version 同 changelog 已绑过的方向
     "VERSION": ("xlibgate changelog", 1),

@@ -173,9 +173,9 @@ rules:
     source_section: 1
     source_section_title: "第一性原理铁律"
     source_line: 106
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate traceability-check"
+    exit_code: 9
+    status: active
   - id: RULE-CORE-005
     level: P0
     title: "Harness 是机器裁判"
@@ -902,7 +902,7 @@ rules:
     source_section: 145
     source_section_title: "Agent Stop Conditions 规则"
     source_line: 6006
-    enforced_by: "xlibgate governance-check"
+    enforced_by: "make governance-check"
     exit_code: 1
     status: active
   - id: RULE-STOP-002
@@ -911,7 +911,7 @@ rules:
     source_section: 145
     source_section_title: "Agent Stop Conditions 规则"
     source_line: 6023
-    enforced_by: "xlibgate governance-check"
+    enforced_by: "make governance-check"
     exit_code: 1
     status: active
   - id: RULE-SUPPLY-001
@@ -938,43 +938,43 @@ rules:
     source_section: 36
     source_section_title: "Traceability 强制规则"
     source_line: 1824
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate traceability-check"
+    exit_code: 9
+    status: active
   - id: RULE-TRACE-002
     level: P0
     title: "Traceability 缺链必须阻断 Release"
     source_section: 36
     source_section_title: "Traceability 强制规则"
     source_line: 1842
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate traceability-check"
+    exit_code: 9
+    status: active
   - id: RULE-TRACE-ALG-001
     level: P0
     title: "Traceability Check 必须检查完整链路"
     source_section: 123
     source_section_title: "Traceability 检查算法规则"
     source_line: 5300
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate traceability-check"
+    exit_code: 9
+    status: active
   - id: RULE-TRACE-ALG-002
     level: P0
     title: "Traceability 缺链退出码必须固定"
     source_section: 123
     source_section_title: "Traceability 检查算法规则"
     source_line: 5320
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate traceability-check"
+    exit_code: 9
+    status: active
   - id: RULE-VIOLATION-001
     level: P0
     title: "违规必须进入统一处理流程"
     source_section: 98
     source_section_title: "Policy Violation 处理规则"
     source_line: 4245
-    enforced_by: "xlibgate governance-check"
+    enforced_by: "make governance-check"
     exit_code: 1
     status: active
   - id: RULE-VIOLATION-002
@@ -983,7 +983,7 @@ rules:
     source_section: 98
     source_section_title: "Policy Violation 处理规则"
     source_line: 4262
-    enforced_by: "xlibgate governance-check"
+    enforced_by: "make governance-check"
     exit_code: 1
     status: active
   - id: RULE-WAIVER-001
@@ -992,7 +992,7 @@ rules:
     source_section: 97
     source_section_title: "Exception / Waiver 规则"
     source_line: 4202
-    enforced_by: "xlibgate governance-check"
+    enforced_by: "make governance-check"
     exit_code: 1
     status: active
   - id: RULE-WAIVER-002
@@ -1001,7 +1001,7 @@ rules:
     source_section: 97
     source_section_title: "Exception / Waiver 规则"
     source_line: 4221
-    enforced_by: "xlibgate governance-check"
+    enforced_by: "make governance-check"
     exit_code: 1
     status: active
   - id: RULE-WORKTREE-001
@@ -1523,7 +1523,7 @@ rules:
     source_section: 54
     source_section_title: "Rule as Code 规则"
     source_line: 2537
-    enforced_by: "xlibgate governance-check"
+    enforced_by: "make governance-check"
     exit_code: 1
     status: active
   - id: RULE-CODE-002
@@ -1532,7 +1532,7 @@ rules:
     source_section: 54
     source_section_title: "Rule as Code 规则"
     source_line: 2570
-    enforced_by: "xlibgate governance-check"
+    enforced_by: "make governance-check"
     exit_code: 1
     status: active
   - id: RULE-COMPAT-001
@@ -2270,7 +2270,7 @@ rules:
     source_section: 199
     source_section_title: "Glossary 规则"
     source_line: 7965
-    enforced_by: "xlibgate governance-check"
+    enforced_by: "make governance-check"
     exit_code: 1
     status: active
   - id: RULE-GLOSSARY-002
@@ -2279,7 +2279,7 @@ rules:
     source_section: 199
     source_section_title: "Glossary 规则"
     source_line: 7988
-    enforced_by: "xlibgate governance-check"
+    enforced_by: "make governance-check"
     exit_code: 1
     status: active
   - id: RULE-GOAL-FREEZE-001
