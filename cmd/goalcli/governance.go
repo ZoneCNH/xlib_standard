@@ -1615,6 +1615,11 @@ func appendAgentIndexClassificationGaps(indexPath string, entries []agentIndexEn
 			"authority":  "source_of_truth",
 			"mutability": "hand_written",
 		},
+		".agent/registries/physical-migration-manifest.yaml": {
+			"layer":      "registry",
+			"authority":  "source_of_truth",
+			"mutability": "hand_written",
+		},
 		".agent/rules/registry.yaml": {
 			"authority":  "validated_mirror",
 			"mutability": "generated",
@@ -1725,7 +1730,8 @@ func appendHarnessAliasGaps(path string, gaps *[]string) {
 	for _, entry := range entries {
 		byID[entry.value] = entry
 	}
-	requiredAliases := map[string]string{
+	// 组合 gate 通过 refs 引用原子 gate，不再使用 alias_of
+	requiredRefs := map[string]string{
 		"governance_chain":            "governance_check",
 		"governance_release_scope":    "governance_check",
 		"p1_governance_chain":         "p1_governance_check",
@@ -1733,18 +1739,22 @@ func appendHarnessAliasGaps(path string, gaps *[]string) {
 		"p2_runtime_chain":            "p2_runtime_check",
 		"p2_runtime_release_scope":    "p2_runtime_check",
 	}
-	for alias, target := range requiredAliases {
-		entry, ok := byID[alias]
+	for composite, target := range requiredRefs {
+		entry, ok := byID[composite]
 		if !ok {
-			*gaps = append(*gaps, path+" missing required gate alias "+alias)
+			*gaps = append(*gaps, path+" missing required composite gate "+composite)
 			continue
 		}
 		if _, ok := byID[target]; !ok {
-			*gaps = append(*gaps, path+" "+alias+" alias_of missing target "+target)
+			*gaps = append(*gaps, path+" "+composite+" refs missing target "+target)
 		}
-		requireYAMLBlockValue(path, alias, entry.block, "alias_of", target, gaps)
+		if !blockHasNonEmptyYAMLValue(entry.block, "refs") {
+			*gaps = append(*gaps, path+" "+composite+" missing refs field")
+		} else if refsVal, ok := blockYAMLValue(entry.block, "refs"); ok && !strings.Contains(refsVal, target) {
+			*gaps = append(*gaps, path+" "+composite+" refs must reference "+target)
+		}
 		if !blockHasNonEmptyYAMLValue(entry.block, "semantic_role") {
-			*gaps = append(*gaps, path+" "+alias+" missing semantic_role")
+			*gaps = append(*gaps, path+" "+composite+" missing semantic_role")
 		}
 	}
 }
@@ -1850,6 +1860,7 @@ func requiredAgentIndexPaths() []string {
 		".agent/registries/command-registry.yaml",
 		".agent/registries/issue-registry.yaml",
 		".agent/registries/generated-artifacts.yaml",
+		".agent/registries/physical-migration-manifest.yaml",
 		".agent/registries/command-implementation-status.yaml",
 		".agent/registries/makefile-target-registry.yaml",
 		".agent/registries/makefile-baseline.yaml",
@@ -1965,10 +1976,11 @@ func appendHarnessGateLinkSemanticsGaps(path string, gaps *[]string) {
 		return
 	}
 	text := string(content)
+	// DAG 模式：组合 gate 使用 refs 引用原子 gate
 	required := []string{
 		"gate_link_semantics:",
-		"duplicate_command_links: aliases",
-		"duplicate_entries_do_not_create_new_authorities: true",
+		"dag_mode: true",
+		"composite_gates_use_refs: true",
 		"authority_source: required_gates[].id",
 	}
 	for _, needle := range required {
@@ -2616,12 +2628,39 @@ func appendRulesRegistryEnforcedByGaps(registryPath string, registryText string,
 }
 
 func extractRegistryEnforcedByValues(text string) []string {
-	re := regexp.MustCompile(`(?m)^\s*enforced_by:\s*(.+)$`)
+	lines := strings.Split(text, "\n")
+	reInline := regexp.MustCompile(`^\s*enforced_by:\s+(.+)$`)
+	reCommand := regexp.MustCompile(`^\s*command:\s+(.+)$`)
 	var values []string
-	for _, match := range re.FindAllStringSubmatch(text, -1) {
-		value := trimYAMLScalar(match[1])
-		if value != "" && value != "[]" {
-			values = append(values, value)
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if m := reInline.FindStringSubmatch(line); m != nil {
+			// 内联标量格式: enforced_by: "goalcli subcommand"
+			value := trimYAMLScalar(m[1])
+			if value != "" && value != "[]" {
+				values = append(values, value)
+			}
+			continue
+		}
+		if trimmed == "enforced_by:" {
+			// dict block 格式: 后续行中提取 command 字段
+			baseIndent := len(line) - len(strings.TrimLeft(line, " "))
+			for _, next := range lines[i+1:] {
+				if strings.TrimSpace(next) == "" {
+					continue
+				}
+				nextIndent := len(next) - len(strings.TrimLeft(next, " "))
+				if nextIndent <= baseIndent {
+					break
+				}
+				if cm := reCommand.FindStringSubmatch(next); cm != nil {
+					cmd := trimYAMLScalar(cm[1])
+					if cmd != "" {
+						values = append(values, cmd)
+					}
+					break
+				}
+			}
 		}
 	}
 	return values

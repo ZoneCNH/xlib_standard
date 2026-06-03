@@ -15,6 +15,8 @@ groups:
   - id: p0_implemented_or_scripted
     phase: P0
     implementation_status: implemented
+    execution_status: passed
+    release_usable: true
     evidence_state: requires_current_command_output
     note: "P0 命令已有 Makefile 或 goalcli 入口；是否 passed 必须以本次命令输出为准。"
     commands:
@@ -71,6 +73,8 @@ groups:
   - id: p1_dry_run_contracts
     phase: P1
     implementation_status: dry_run_ready
+    execution_status: not_run
+    release_usable: false
     evidence_strength: dry_run_contract_only
     note: "P1 本地治理命令可 dry-run/verify；不得升级为 release usable。"
     commands:
@@ -98,6 +102,8 @@ groups:
   - id: p2_dry_run_contracts
     phase: P2
     implementation_status: dry_run_ready
+    execution_status: not_run
+    release_usable: false
     evidence_strength: dry_run_contract_only
     note: "P2 runtime/conformance/packaging 命令当前只证明 dry-run contract。"
     commands:
@@ -115,6 +121,8 @@ groups:
   - id: p2_downstream_gap_reports
     phase: P2
     implementation_status: dry_run_ready
+    execution_status: not_run
+    release_usable: false
     adoption_status: not_adopted
     evidence_strength: gap_report_only
     note: "downstream baseline/adoption 当前只能报告 gap，不得声明 proof-based adoption。"
@@ -125,7 +133,10 @@ groups:
   - id: goalcli_v0_1_0_mva_blocking
     phase: P2
     implementation_status: implemented
+    execution_status: passed
+    release_usable: true
     mva_status: complete
+    evidence_status: current
     evidence_strength: full_mva_evidence
     note: "goalcli v0.1.0 MVA commands 通过 goalcli 和 source ledger 证明 blocking G12-G16 evidence contracts。"
     commands:

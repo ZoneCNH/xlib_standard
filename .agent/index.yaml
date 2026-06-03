@@ -7,6 +7,13 @@ control_plane:
     - .agent/*.yaml and cmd/goalcli
     - release/manifest/ and release/evidence/
   physical_migration: true
+  ssot_boundaries:
+    command-registry.yaml: "命令身份、phase、目标、允许参数/上下文。"
+    harness.yaml: "gate DAG 和执行组合。"
+    rules/registry.yaml: "规则身份和规范化 enforcement 引用。"
+    issue-registry.yaml: "traceability 视图，不作为 readiness 证明。"
+    release-required-gates.yaml: "harness + evidence 派生的 release-readiness 视图。"
+    generated-artifacts.yaml: "所有 generated/validated mirror 的白名单。"
 files:
   - path: .agent/runtime/goal-runtime.md
     layer: runtime_contract
@@ -60,21 +67,21 @@ files:
   - path: .agent/registries/command-implementation-status.yaml
     layer: registry
     authority: validated_mirror
-    mutability: hand_written
+    mutability: generated
     owner: gate-runtime
     validator: command-registry
     purpose: 命令实现状态镜像。
   - path: .agent/registries/makefile-target-registry.yaml
     layer: registry
     authority: validated_mirror
-    mutability: hand_written
+    mutability: generated
     owner: ci
     validator: makefile-baseline
     purpose: Makefile target 表面镜像。
   - path: .agent/registries/makefile-baseline.yaml
     layer: registry
     authority: validated_mirror
-    mutability: hand_written
+    mutability: generated
     owner: ci
     validator: makefile-baseline
     purpose: Makefile 必需 target baseline。
@@ -123,7 +130,7 @@ files:
   - path: .agent/traceability/traceability-matrix.md
     layer: traceability
     authority: validated_mirror
-    mutability: hand_written
+    mutability: generated
     owner: governance
     validator: governance-check
     purpose: Goal 到 gate 的可追溯矩阵。
@@ -151,7 +158,7 @@ files:
   - path: .agent/release/release-template.md
     layer: documentation
     authority: validated_mirror
-    mutability: hand_written
+    mutability: generated
     owner: release
     validator: docs-check
     purpose: 发布说明模板。
@@ -270,7 +277,7 @@ files:
   - path: .agent/registries/downstream-adoption-status.yaml
     layer: registry
     authority: validated_mirror
-    mutability: hand_written
+    mutability: generated
     owner: downstream
     validator: standard-impact-check
     purpose: 下游采用状态镜像。
@@ -326,7 +333,7 @@ files:
   - path: .agent/evidence/evidence-template.md
     layer: evidence
     authority: validated_mirror
-    mutability: hand_written
+    mutability: generated
     owner: release
     validator: docs-check
     purpose: 证据模板。
@@ -940,3 +947,19 @@ files:
     owner: governance
     validator: governance-check
     purpose: Issue 59 Phase 3/4 .agent 物理分类迁移清单、路径引用扫描与兼容例外。
+
+  - path: .agent/research/phase0-baseline-report.md
+    layer: documentation
+    authority: source_of_truth
+    mutability: hand_written
+    owner: governance
+    validator: docs-check
+    purpose: Phase 0 基线报告。
+
+  - path: .agent/rules/enforcement-normalization.yaml
+    layer: policy
+    authority: source_of_truth
+    mutability: hand_written
+    owner: governance
+    validator: governance-check
+    purpose: 规则 enforced_by 字段归一化映射表。

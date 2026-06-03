@@ -84,9 +84,10 @@ fi
 mkdir -p "$out_abs"
 out_dir="$out_abs"
 
-(
-  cd "$repo_root"
-  tar \
+copy_from_live_tree() {
+  (
+    cd "$repo_root"
+    tar \
     --exclude='./.git' \
     --exclude='./.omx' \
     --exclude='./.worktree' \
@@ -106,10 +107,44 @@ out_dir="$out_abs"
     --exclude='./release/debt/latest.md' \
     --exclude='./release/debt/latest.json.sha256' \
     -cf - .
-) | (
-  cd "$out_dir"
-  tar -xf -
-)
+  ) | (
+    cd "$out_dir"
+    tar -xf -
+  )
+}
+
+prune_render_omissions() {
+  rm -rf "$out_dir/.agent/inbox"
+  rm -rf "$out_dir/docs/adr"
+  rm -f "$out_dir/docs/goal.md"
+  rm -f "$out_dir/release/manifest/latest.json"
+  rm -f "$out_dir/release/manifest/latest.json.sha256"
+  rm -f "$out_dir/release/debt/latest.json"
+  rm -f "$out_dir/release/debt/latest.md"
+  rm -f "$out_dir/release/debt/latest.json.sha256"
+}
+
+copy_from_git_archive() {
+  git -C "$repo_root" archive --format=tar HEAD | (
+    cd "$out_dir"
+    tar -xf -
+  )
+  prune_render_omissions
+}
+
+use_git_archive=0
+if [[ "${XLIB_RENDER_FORCE_GIT_ARCHIVE:-0}" == "1" ]]; then
+  use_git_archive=1
+elif git -C "$repo_root" rev-parse --is-inside-work-tree >/dev/null 2>&1 && \
+  [[ -z "$(git -C "$repo_root" status --porcelain=v1 --untracked-files=no)" ]]; then
+  use_git_archive=1
+fi
+
+if [[ "$use_git_archive" == "1" ]]; then
+  copy_from_git_archive
+else
+  copy_from_live_tree
+fi
 
 # Raw inbox archives are intentionally omitted from rendered downstream repos.
 # Keep the rendered control-plane index aligned with that reduced file set.

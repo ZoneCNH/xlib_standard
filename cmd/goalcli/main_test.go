@@ -3141,7 +3141,7 @@ artifacts:
 }
 
 func validHarnessAliasFixture() string {
-	return `schema_version: "2.9.3"
+	return `schema_version: "3.1"
 required_gates:
   - id: governance_check
     command: "GOWORK=off make governance-check"
@@ -3153,38 +3153,32 @@ required_gates:
     command: "GOWORK=off make p2-runtime-check"
     purpose: "fixture"
   - id: governance_chain
-    command: "GOWORK=off make governance-check"
+    refs: [governance_check]
     purpose: "fixture"
-    alias_of: governance_check
     semantic_role: "fixture"
   - id: p1_governance_chain
-    command: "GOWORK=off make p1-governance-check"
+    refs: [p1_governance_check]
     purpose: "fixture"
-    alias_of: p1_governance_check
     semantic_role: "fixture"
   - id: p2_runtime_chain
-    command: "GOWORK=off make p2-runtime-check"
+    refs: [p2_runtime_check]
     purpose: "fixture"
-    alias_of: p2_runtime_check
     semantic_role: "fixture"
   - id: governance_release_scope
-    command: "GOWORK=off make governance-check"
+    refs: [governance_check]
     purpose: "fixture"
-    alias_of: governance_check
     semantic_role: "fixture"
   - id: p1_governance_release_scope
-    command: "GOWORK=off make p1-governance-check"
+    refs: [p1_governance_check]
     purpose: "fixture"
-    alias_of: p1_governance_check
     semantic_role: "fixture"
   - id: p2_runtime_release_scope
-    command: "GOWORK=off make p2-runtime-check"
+    refs: [p2_runtime_check]
     purpose: "fixture"
-    alias_of: p2_runtime_check
     semantic_role: "fixture"
 gate_link_semantics:
-  duplicate_command_links: aliases
-  duplicate_entries_do_not_create_new_authorities: true
+  dag_mode: true
+  composite_gates_use_refs: true
   authority_source: required_gates[].id
 `
 }

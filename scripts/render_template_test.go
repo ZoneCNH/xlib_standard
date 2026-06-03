@@ -57,3 +57,41 @@ func TestRenderTemplatePrunesOmittedAgentInboxIndexEntries(t *testing.T) {
 		t.Fatalf("rendered agent inbox should be omitted, stat err=%v", err)
 	}
 }
+
+func TestRenderTemplateGitArchiveSkipsUntrackedFiles(t *testing.T) {
+	const markerName = ".xlib-render-untracked-marker-test"
+
+	markerPath := filepath.Join("..", markerName)
+	if err := os.WriteFile(markerPath, []byte("do not render\n"), 0o600); err != nil {
+		t.Fatalf("write untracked marker: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = os.Remove(markerPath)
+	})
+
+	outDir := filepath.Join(t.TempDir(), "kernel")
+	cmd := exec.Command(
+		"bash",
+		"render_template.sh",
+		"--module-name",
+		"kernel",
+		"--module-path",
+		"github.com/ZoneCNH/kernel",
+		"--package-name",
+		"kernel",
+		"--out",
+		outDir,
+	)
+	cmd.Env = append(os.Environ(), "XLIB_RENDER_FORCE_GIT_ARCHIVE=1")
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("render template with git archive: %v\n%s", err, output)
+	}
+	if _, err := os.Stat(filepath.Join(outDir, markerName)); !os.IsNotExist(err) {
+		t.Fatalf("git archive render should skip untracked marker, stat err=%v", err)
+	}
+	if _, err := os.Stat(filepath.Join(outDir, "docs", "goal.md")); !os.IsNotExist(err) {
+		t.Fatalf("git archive render should prune docs/goal.md, stat err=%v", err)
+	}
+}
