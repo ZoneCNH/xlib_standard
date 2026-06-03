@@ -3010,8 +3010,8 @@ func writeValidAgentIndexFixture(t *testing.T, root string) {
 		".agent/rules/agent-runtime-rules.md":         "fixture\n",
 		".agent/rules/core-rules.md":                  "fixture\n",
 		".agent/rules/schema-registry-rules.md":       "fixture\n",
-		".agent/command-implementation-status.yaml":   commandImplementationStatusFixture(),
-		".agent/execution-context.yaml":               executionContextFixture(),
+		".agent/registries/command-implementation-status.yaml": commandImplementationStatusFixture(),
+		".agent/policies/execution-context.yaml":               executionContextFixture(),
 	}
 	for _, path := range requiredAgentIndexPaths() {
 		if _, ok := files[path]; ok {
@@ -3059,7 +3059,6 @@ func testAgentIndexLayer(path string) string {
 		path == ".agent/registries/issue-registry.yaml" ||
 		path == ".agent/registries/command-implementation-status.yaml" ||
 		path == ".agent/registries/generated-artifacts.yaml" ||
-		path == ".agent/registries/physical-migration-manifest.yaml" ||
 		path == ".agent/registries/makefile-target-registry.yaml" ||
 		path == ".agent/registries/makefile-baseline.yaml":
 		return "registry"

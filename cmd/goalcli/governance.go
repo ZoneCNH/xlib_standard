@@ -1860,7 +1860,6 @@ func requiredAgentIndexPaths() []string {
 		".agent/registries/command-registry.yaml",
 		".agent/registries/issue-registry.yaml",
 		".agent/registries/generated-artifacts.yaml",
-		".agent/registries/physical-migration-manifest.yaml",
 		".agent/registries/command-implementation-status.yaml",
 		".agent/registries/makefile-target-registry.yaml",
 		".agent/registries/makefile-baseline.yaml",
