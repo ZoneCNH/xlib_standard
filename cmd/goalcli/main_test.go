@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -2686,6 +2687,92 @@ func TestVersionConstantsTrackChangelogRelease(t *testing.T) {
 	}
 }
 
+func TestAgentPhysicalMigrationManifestGuardsNewPaths(t *testing.T) {
+	root := repoRoot(t)
+	manifestRel := ".agent/registries/physical-migration-manifest.yaml"
+	manifest := readText(t, filepath.Join(root, filepath.FromSlash(manifestRel)))
+	if !strings.Contains(manifest, "status: physical_migration_applied") {
+		t.Fatalf("%s missing physical migration applied status", manifestRel)
+	}
+	index := readText(t, filepath.Join(root, ".agent", "index.yaml"))
+	if !strings.Contains(index, "physical_migration: true") {
+		t.Fatalf(".agent/index.yaml missing physical_migration marker")
+	}
+
+	type migration struct {
+		oldPath string
+		newPath string
+	}
+	var migrations []migration
+	var currentOld string
+	for _, line := range strings.Split(manifest, "\n") {
+		line = strings.TrimSpace(line)
+		line = strings.TrimPrefix(line, "- ")
+		switch {
+		case strings.HasPrefix(line, "old_path: "):
+			currentOld = strings.TrimSpace(strings.TrimPrefix(line, "old_path: "))
+		case strings.HasPrefix(line, "new_path: ") && currentOld != "":
+			migrations = append(migrations, migration{
+				oldPath: currentOld,
+				newPath: strings.TrimSpace(strings.TrimPrefix(line, "new_path: ")),
+			})
+			currentOld = ""
+		}
+	}
+	if len(migrations) == 0 {
+		t.Fatalf("%s contains no old_path/new_path migrations", manifestRel)
+	}
+
+	oldPaths := make([]string, 0, len(migrations))
+	for _, migration := range migrations {
+		oldPaths = append(oldPaths, migration.oldPath)
+		if _, err := os.Stat(filepath.Join(root, filepath.FromSlash(migration.newPath))); err != nil {
+			t.Fatalf("new migrated path %s missing: %v", migration.newPath, err)
+		}
+		if _, err := os.Stat(filepath.Join(root, filepath.FromSlash(migration.oldPath))); !errors.Is(err, os.ErrNotExist) {
+			t.Fatalf("old migrated path %s still exists: %v", migration.oldPath, err)
+		}
+	}
+
+	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, err := filepath.Rel(root, path)
+		if err != nil {
+			return err
+		}
+		rel = filepath.ToSlash(rel)
+		if d.IsDir() {
+			switch rel {
+			case ".git", ".omx", ".worktree", "vendor", "node_modules":
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if rel == manifestRel || strings.HasPrefix(rel, "release/evidence/") {
+			return nil
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		if bytes.Contains(data, []byte{0}) {
+			return nil
+		}
+		text := string(data)
+		for _, oldPath := range oldPaths {
+			if strings.Contains(text, oldPath) {
+				t.Fatalf("%s still references migrated old path %s outside manifest/release evidence compatibility records", rel, oldPath)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("walk repo: %v", err)
+	}
+}
+
 func writeGateScript(t *testing.T, root string, relative string) {
 	t.Helper()
 	writeExecutable(t, root, relative, printCommandScript())
@@ -2784,8 +2871,8 @@ esac
 
 func writeMakefileBaselineFixture(t *testing.T, root string, duplicate string) {
 	t.Helper()
-	if err := os.MkdirAll(filepath.Join(root, ".agent"), 0o755); err != nil {
-		t.Fatalf("mkdir .agent: %v", err)
+	if err := os.MkdirAll(filepath.Join(root, ".agent", "registries"), 0o755); err != nil {
+		t.Fatalf("mkdir .agent registries: %v", err)
 	}
 	targets := requiredMakefileTargets()
 	var makefile strings.Builder

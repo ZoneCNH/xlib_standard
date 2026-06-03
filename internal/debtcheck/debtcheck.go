@@ -715,6 +715,7 @@ func skipPath(root, path string) bool {
 		strings.HasPrefix(relPath, ".agent/policies/debt/") ||
 		strings.HasPrefix(relPath, ".agent/registries/debt/") ||
 		strings.HasPrefix(relPath, ".agent/archive/debt/") ||
+		strings.HasPrefix(relPath, ".agent/archive/inbox/") ||
 		strings.HasPrefix(relPath, ".agent/inbox/") ||
 		strings.HasPrefix(relPath, ".agent/archive/inbox/") ||
 		strings.HasPrefix(relPath, "internal/debtcheck/")
