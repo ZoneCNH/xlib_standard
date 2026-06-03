@@ -2771,12 +2771,12 @@ func TestAgentPhysicalMigrationManifestGuardsNewPaths(t *testing.T) {
 		rel = filepath.ToSlash(rel)
 		if d.IsDir() {
 			switch rel {
-			case ".git", ".omx", ".worktree", "vendor", "node_modules":
+			case ".git", ".omc", ".omx", ".worktree", "vendor", "node_modules", "reports":
 				return filepath.SkipDir
 			}
 			return nil
 		}
-		if rel == manifestRel || strings.HasPrefix(rel, "release/evidence/") {
+		if rel == manifestRel || strings.HasPrefix(rel, "release/evidence/") || isGeneratedReleaseArtifact(rel) {
 			return nil
 		}
 		data, err := os.ReadFile(path)
@@ -2796,6 +2796,21 @@ func TestAgentPhysicalMigrationManifestGuardsNewPaths(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatalf("walk repo: %v", err)
+	}
+}
+
+func isGeneratedReleaseArtifact(path string) bool {
+	switch path {
+	case "release/manifest/latest.json",
+		"release/manifest/latest.json.sha256",
+		"release/standard-impact/latest.md",
+		"release/downstream-sync/latest.md",
+		"release/debt/latest.json",
+		"release/debt/latest.md",
+		"release/debt/latest.json.sha256":
+		return true
+	default:
+		return false
 	}
 }
 

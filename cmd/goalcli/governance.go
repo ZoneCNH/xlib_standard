@@ -1222,8 +1222,10 @@ func validatePlannedCommandFile(command string, path string, content []byte) []s
 
 func releaseReadyDecisionDetails(args []string, fileContents map[string]string, gaps *[]string) []string {
 	context := fallback(flagValue(args, "context", ""), "release_verify")
-	dryRun := flagProvided(args, "dry-run")
-	requireReadiness := plannedCommandVerifyRequested(args) && !dryRun
+	verifyRequested := plannedCommandVerifyRequested(args)
+	dryRunRequested := flagProvided(args, "dry-run")
+	requireContract := verifyRequested
+	requireReadiness := verifyRequested && !dryRunRequested
 	details := []string{"context=" + context}
 	if requireContract && context != "release_verify" {
 		*gaps = append(*gaps, "release-ready requires context release_verify; got "+context)
@@ -1240,7 +1242,7 @@ func releaseReadyDecisionDetails(args []string, fileContents map[string]string, 
 	if requiredGates == 0 {
 		verdict = "gap"
 		if requireContract {
-			*gaps = append(*gaps, ".agent/release-required-gates.yaml gates must include required release gates")
+			*gaps = append(*gaps, ".agent/release/release-required-gates.yaml gates must include required release gates")
 		}
 	} else if blockedGates > 0 {
 		verdict = "not_ready"
@@ -1249,13 +1251,13 @@ func releaseReadyDecisionDetails(args []string, fileContents map[string]string, 
 		}
 	}
 
-	evidenceFields := countYAMLListItems(fileContents[".agent/release-required-gates.yaml"], "required_release_evidence")
+	evidenceFields := countYAMLListItems(fileContents[".agent/release/release-required-gates.yaml"], "required_release_evidence")
 	if requireContract && evidenceFields == 0 {
-		*gaps = append(*gaps, ".agent/release-required-gates.yaml missing required_release_evidence items")
+		*gaps = append(*gaps, ".agent/release/release-required-gates.yaml missing required_release_evidence items")
 	}
-	replayReady := strings.Contains(fileContents[".agent/evidence-replay.yaml"], "replay:") && strings.Contains(fileContents[".agent/evidence-replay.yaml"], "strict: true")
+	replayReady := strings.Contains(fileContents[".agent/evidence/evidence-replay.yaml"], "replay:") && strings.Contains(fileContents[".agent/evidence/evidence-replay.yaml"], "strict: true")
 	if requireContract && !replayReady {
-		*gaps = append(*gaps, ".agent/evidence-replay.yaml replay must be strict")
+		*gaps = append(*gaps, ".agent/evidence/evidence-replay.yaml replay must be strict")
 	}
 
 	mode := "readiness_gate"
