@@ -65,7 +65,7 @@ rules:
     source_section: 14
     source_section_title: "Commit 规则"
     source_line: 872
-    enforced_by: "git-hooks/pre-commit"
+    enforced_by: ".githooks/pre-commit"
     exit_code: 1
     status: active
   - id: RULE-COMMIT-002
@@ -74,7 +74,7 @@ rules:
     source_section: 14
     source_section_title: "Commit 规则"
     source_line: 886
-    enforced_by: "git-hooks/pre-commit"
+    enforced_by: ".githooks/pre-commit"
     exit_code: 1
     status: active
   - id: RULE-COMMIT-003
@@ -83,7 +83,7 @@ rules:
     source_section: 14
     source_section_title: "Commit 规则"
     source_line: 901
-    enforced_by: "git-hooks/pre-commit"
+    enforced_by: ".githooks/pre-commit"
     exit_code: 1
     status: active
   - id: RULE-COMMIT-004
@@ -92,7 +92,7 @@ rules:
     source_section: 14
     source_section_title: "Commit 规则"
     source_line: 907
-    enforced_by: "git-hooks/pre-commit"
+    enforced_by: ".githooks/pre-commit"
     exit_code: 1
     status: active
   - id: RULE-COMMIT-AUTO-001
@@ -101,7 +101,7 @@ rules:
     source_section: 39
     source_section_title: "Commit 自动化规则"
     source_line: 1946
-    enforced_by: "git-hooks/pre-commit"
+    enforced_by: ".githooks/pre-commit"
     exit_code: 1
     status: active
   - id: RULE-COMMIT-AUTO-002
@@ -110,7 +110,7 @@ rules:
     source_section: 39
     source_section_title: "Commit 自动化规则"
     source_line: 1961
-    enforced_by: "git-hooks/pre-commit"
+    enforced_by: ".githooks/pre-commit"
     exit_code: 1
     status: active
   - id: RULE-COMMIT-AUTO-003
@@ -119,7 +119,7 @@ rules:
     source_section: 39
     source_section_title: "Commit 自动化规则"
     source_line: 1976
-    enforced_by: "git-hooks/pre-commit"
+    enforced_by: ".githooks/pre-commit"
     exit_code: 1
     status: active
   - id: RULE-COMMIT-EVID-001
@@ -173,16 +173,16 @@ rules:
     source_section: 1
     source_section_title: "第一性原理铁律"
     source_line: 106
-    enforced_by: "xlibgate traceability-check"
-    exit_code: 9
-    status: active
+    enforced_by: ""
+    exit_code: 0
+    status: indexed
   - id: RULE-CORE-005
     level: P0
     title: "Harness 是机器裁判"
     source_section: 1
     source_section_title: "第一性原理铁律"
     source_line: 124
-    enforced_by: "xlibgate governance-check"
+    enforced_by: "make governance-check"
     exit_code: 1
     status: active
   - id: RULE-CORE-006
@@ -380,7 +380,7 @@ rules:
     source_section: 11
     source_section_title: "Harness 规则"
     source_line: 695
-    enforced_by: "xlibgate governance-check"
+    enforced_by: "make governance-check"
     exit_code: 1
     status: active
   - id: RULE-HARNESS-002
@@ -389,7 +389,7 @@ rules:
     source_section: 11
     source_section_title: "Harness 规则"
     source_line: 720
-    enforced_by: "xlibgate governance-check"
+    enforced_by: "make governance-check"
     exit_code: 1
     status: active
   - id: RULE-HARNESS-003
@@ -398,7 +398,7 @@ rules:
     source_section: 11
     source_section_title: "Harness 规则"
     source_line: 737
-    enforced_by: "xlibgate governance-check"
+    enforced_by: "make governance-check"
     exit_code: 1
     status: active
   - id: RULE-HARNESS-004
@@ -407,7 +407,7 @@ rules:
     source_section: 11
     source_section_title: "Harness 规则"
     source_line: 751
-    enforced_by: "xlibgate governance-check"
+    enforced_by: "make governance-check"
     exit_code: 1
     status: active
   - id: RULE-HARNESS-TEST-001
@@ -542,7 +542,7 @@ rules:
     source_section: 41
     source_section_title: "Merge 规则"
     source_line: 2043
-    enforced_by: "xlibgate pr-check"
+    enforced_by: "make pr-check"
     exit_code: 1
     status: active
   - id: RULE-MERGE-002
@@ -551,7 +551,7 @@ rules:
     source_section: 41
     source_section_title: "Merge 规则"
     source_line: 2059
-    enforced_by: "xlibgate pr-check"
+    enforced_by: "make pr-check"
     exit_code: 1
     status: active
   - id: RULE-PR-001
@@ -614,7 +614,7 @@ rules:
     source_section: 126
     source_section_title: "PR Check 规则"
     source_line: 5404
-    enforced_by: "xlibgate pr-template"
+    enforced_by: "make pr-check"
     exit_code: 1
     status: active
   - id: RULE-PR-CHECK-002
@@ -623,7 +623,7 @@ rules:
     source_section: 126
     source_section_title: "PR Check 规则"
     source_line: 5422
-    enforced_by: "xlibgate pr-template"
+    enforced_by: "make pr-check"
     exit_code: 1
     status: active
   - id: RULE-PR-LIFECYCLE-001
@@ -794,7 +794,7 @@ rules:
     source_section: 104
     source_section_title: "Secret Scan 规则"
     source_line: 4434
-    enforced_by: "scripts/check_secrets.sh"
+    enforced_by: "xlibgate secrets"
     exit_code: 7
     status: active
   - id: RULE-SECRET-002
@@ -803,7 +803,7 @@ rules:
     source_section: 104
     source_section_title: "Secret Scan 规则"
     source_line: 4451
-    enforced_by: "scripts/check_secrets.sh"
+    enforced_by: "xlibgate secrets"
     exit_code: 7
     status: active
   - id: RULE-SECRET-CHECK-001
@@ -812,7 +812,7 @@ rules:
     source_section: 125
     source_section_title: "Secret Check 规则"
     source_line: 5360
-    enforced_by: "scripts/check_secrets.sh"
+    enforced_by: "xlibgate secrets"
     exit_code: 7
     status: active
   - id: RULE-SECRET-CHECK-002
@@ -821,7 +821,7 @@ rules:
     source_section: 125
     source_section_title: "Secret Check 规则"
     source_line: 5381
-    enforced_by: "scripts/check_secrets.sh"
+    enforced_by: "xlibgate secrets"
     exit_code: 7
     status: active
   - id: RULE-SECURITY-001
@@ -830,7 +830,7 @@ rules:
     source_section: 21
     source_section_title: "Security 规则"
     source_line: 1181
-    enforced_by: "scripts/check_secrets.sh"
+    enforced_by: "xlibgate secrets"
     exit_code: 7
     status: active
   - id: RULE-SECURITY-002
@@ -839,7 +839,7 @@ rules:
     source_section: 21
     source_section_title: "Security 规则"
     source_line: 1197
-    enforced_by: "scripts/check_secrets.sh"
+    enforced_by: "xlibgate secrets"
     exit_code: 7
     status: active
   - id: RULE-SECURITY-003
@@ -848,7 +848,7 @@ rules:
     source_section: 21
     source_section_title: "Security 规则"
     source_line: 1207
-    enforced_by: "scripts/check_secrets.sh"
+    enforced_by: "xlibgate secrets"
     exit_code: 7
     status: active
   - id: RULE-STATE-001
@@ -938,36 +938,36 @@ rules:
     source_section: 36
     source_section_title: "Traceability 强制规则"
     source_line: 1824
-    enforced_by: "xlibgate traceability-check"
-    exit_code: 9
-    status: active
+    enforced_by: ""
+    exit_code: 0
+    status: indexed
   - id: RULE-TRACE-002
     level: P0
     title: "Traceability 缺链必须阻断 Release"
     source_section: 36
     source_section_title: "Traceability 强制规则"
     source_line: 1842
-    enforced_by: "xlibgate traceability-check"
-    exit_code: 9
-    status: active
+    enforced_by: ""
+    exit_code: 0
+    status: indexed
   - id: RULE-TRACE-ALG-001
     level: P0
     title: "Traceability Check 必须检查完整链路"
     source_section: 123
     source_section_title: "Traceability 检查算法规则"
     source_line: 5300
-    enforced_by: "xlibgate traceability-check"
-    exit_code: 9
-    status: active
+    enforced_by: ""
+    exit_code: 0
+    status: indexed
   - id: RULE-TRACE-ALG-002
     level: P0
     title: "Traceability 缺链退出码必须固定"
     source_section: 123
     source_section_title: "Traceability 检查算法规则"
     source_line: 5320
-    enforced_by: "xlibgate traceability-check"
-    exit_code: 9
-    status: active
+    enforced_by: ""
+    exit_code: 0
+    status: indexed
   - id: RULE-VIOLATION-001
     level: P0
     title: "违规必须进入统一处理流程"
@@ -1478,7 +1478,7 @@ rules:
     source_section: 65
     source_section_title: "CI Gate 编排规则"
     source_line: 3060
-    enforced_by: "xlibgate fast"
+    enforced_by: "xlibgate context-fast-check"
     exit_code: 1
     status: active
   - id: RULE-CI-002
@@ -1487,7 +1487,7 @@ rules:
     source_section: 65
     source_section_title: "CI Gate 编排规则"
     source_line: 3089
-    enforced_by: "xlibgate fast"
+    enforced_by: "xlibgate context-fast-check"
     exit_code: 1
     status: active
   - id: RULE-CLASS-001
@@ -2540,7 +2540,7 @@ rules:
     source_section: 117
     source_section_title: "Git Hooks 安装规则"
     source_line: 5000
-    enforced_by: "xlibgate doctor-hooks"
+    enforced_by: ".githooks/pre-commit"
     exit_code: 1
     status: active
   - id: RULE-HOOKS-002
@@ -2549,7 +2549,7 @@ rules:
     source_section: 117
     source_section_title: "Git Hooks 安装规则"
     source_line: 5018
-    enforced_by: "xlibgate doctor-hooks"
+    enforced_by: ".githooks/pre-commit"
     exit_code: 1
     status: active
   - id: RULE-ID-001
