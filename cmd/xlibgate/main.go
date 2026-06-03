@@ -107,6 +107,8 @@ func run(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) int
 		return runExternal(stdin, stdout, stderr, "./scripts/check_secrets.sh")
 	case "standard-impact-check":
 		return runExternal(stdin, stdout, stderr, "./scripts/check_standard_impact.sh")
+	case "self-improving-check", "retro-check":
+		return runSelfImprovingCheck(args[0], args[1:], stdout, stderr)
 	case "traceability-check":
 		return runTraceabilityCheck(args[1:], stdout, stderr)
 	case "help", "-h", "--help":
@@ -246,6 +248,7 @@ commands:
   release-final-check
   release-ready
   render-check <rendered-dir>
+  retro-check [--root <path>] [--strict]
   rules-consistency-check
   runtime-file-ownership
   runtime-health
@@ -254,6 +257,7 @@ commands:
   secrets
   security
   security-debt [debt args]
+  self-improving-check [--root <path>] [--strict]
   self-healing-skeleton
   standard-impact-check
   supply-chain

@@ -77,9 +77,9 @@ ENFORCED_BY = {
     "CORE-001": ("xlibgate evidence-check", 8),
     "CORE-002": ("xlibgate context-fast-check", 1),
     "CORE-003": ("xlibgate acceptance-matrix", 1),
-    "CORE-004": ("", 0),  # GAP: no traceability-check subcommand exists yet
-    "CORE-005": ("make governance-check", 1),
-    "CORE-006": ("", 0),  # Self-improving: no direct command yet
+    "CORE-004": ("xlibgate traceability-check", 9),
+    "CORE-005": ("xlibgate governance-check", 1),
+    "CORE-006": ("xlibgate self-improving-check", 1),
     "WORKTREE": ("xlibgate worktree-guard", 5),
     "WORKTREE-AUTO": ("xlibgate worktree-guard", 5),
     "WORKTREE-CLEAN": ("xlibgate worktree-guard", 5),
@@ -92,8 +92,8 @@ ENFORCED_BY = {
     "EVIDENCE-ANTI-FAKE": ("xlibgate evidence-check", 8),
     "EVID-ALG": ("xlibgate evidence-check", 8),
     "EVIDENCE-ALG": ("xlibgate evidence-check", 8),
-    "TRACE": ("", 0),  # GAP: no traceability-check subcommand exists yet
-    "TRACE-ALG": ("", 0),  # GAP
+    "TRACE": ("xlibgate traceability-check", 9),
+    "TRACE-ALG": ("xlibgate traceability-check", 9),
     "RELEASE": ("xlibgate release-evidence-check", 10),
     "RELEASE-AUTO": ("xlibgate release-final-check", 10),
     "RELEASE-CHECK": ("xlibgate release-evidence-check", 10),
@@ -150,9 +150,9 @@ ENFORCED_BY = {
     "SCORE-V14": ("xlibgate score", 1),
     "AUDIT": ("xlibgate goal-certify", 1),
     "AUDIT-CHECK": ("xlibgate goal-certify", 1),
-    "RETRO": ("", 0),
-    "RETRO-CHECK": ("", 0),
-    "SI": ("", 0),
+    "RETRO": ("xlibgate self-improving-check", 1),
+    "RETRO-CHECK": ("xlibgate self-improving-check", 1),
+    "SI": ("xlibgate self-improving-check", 1),
     "SCHEMA": ("xlibgate policy-schema", 6),
     "SCHEMA-MIN": ("xlibgate policy-schema", 6),
     "CONTRACT": ("xlibgate contracts", 1),

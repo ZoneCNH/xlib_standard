@@ -368,10 +368,11 @@ task-check:
 pr-check: worktree-check lint test
 	@echo "pr-check: worktree + lint + test 全部通过。"
 
-.PHONY: retro-check
-retro-check:
-	@echo "retro-check: 验证 Retrospective 存在..."
-	@echo "retro-check: 通过（语义检查由 Agent 执行）。"
+.PHONY: retro-check self-improving-check
+retro-check: self-improving-check
+
+self-improving-check:
+	$(XLIBGATE) self-improving-check
 
 install-hooks:
 	@git config core.hooksPath .githooks
