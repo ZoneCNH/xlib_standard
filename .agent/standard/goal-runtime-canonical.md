@@ -18,6 +18,8 @@
 
 ## 1. 八条铁律（不可违反，违反必阻断）
 
+> **机器消费层**：见 [`.agent/rules/iron-rules.md`](../rules/iron-rules.md) + [`.agent/rules/registry.yaml`](../rules/registry.yaml)（PR #34 引入）。本节为叙事/解释层，两者交叉互证：iron-rules 把 RULE-EVIDENCE-001 并入第 1 条，本节单独列为第 8 条，编号映射在每行的"机器化实现"列保持稳定。
+
 | ID | 铁律 | 机器化实现 |
 |---|---|---|
 | RULE-CORE-001 | 没有 Evidence 不允许 DONE | `xlibgate evidence-check` / `make evidence-check` |
