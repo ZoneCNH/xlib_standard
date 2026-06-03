@@ -197,7 +197,9 @@ func TestRunDispatchesExternalCommands(t *testing.T) {
 		{name: "release-final-check", args: []string{"release-final-check"}, wantStdout: "make release-final-check"},
 		{name: "render-check", args: []string{"render-check", "rendered"}, wantStdout: "check_rendered_template.sh rendered"},
 		{name: "rules-verify", args: []string{"rules-verify"}, wantStdout: "python3 scripts/verify_rules.py"},
-		{name: "secrets", args: []string{"secrets"}, wantStdout: "check_secrets.sh"},
+		{name: "legacy secrets", args: []string{"secrets", "fixture-root"}, wantStdout: "check_secrets.sh fixture-root"},
+		{name: "secret-check", args: []string{"secret-check", "fixture-root"}, wantStdout: "check_secrets.sh fixture-root"},
+		{name: "secret check", args: []string{"secret", "check", "fixture-root"}, wantStdout: "check_secrets.sh fixture-root"},
 		{name: "security", args: []string{"security"}, wantStdout: "check_secrets.sh"},
 		{name: "standard-impact-check", args: []string{"standard-impact-check"}, wantStdout: "check_standard_impact.sh"},
 	}
@@ -215,6 +217,252 @@ func TestRunDispatchesExternalCommands(t *testing.T) {
 				t.Fatalf("stdout = %q; want containing %q", stdout.String(), tt.wantStdout)
 			}
 		})
+	}
+}
+
+func TestRunSecretCommandRejectsUnknownSubcommand(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+
+	got := run([]string{"secret", "scan"}, strings.NewReader(""), &stdout, &stderr)
+
+	if got != 2 {
+		t.Fatalf("secret scan exit = %d, stderr %q, stdout %q; want 2", got, stderr.String(), stdout.String())
+	}
+	if !strings.Contains(stderr.String(), `unknown secret command "scan"`) {
+		t.Fatalf("stderr = %q; want unknown secret subcommand", stderr.String())
+	}
+}
+
+func TestSecretCheckScriptWritesReportsAndUsesExitSeven(t *testing.T) {
+	root := t.TempDir()
+	copySecretCheckScript(t, root)
+	secret := "api_token=" + "ghp_" + strings.Repeat("A", 36)
+	if err := os.WriteFile(filepath.Join(root, "leak.env"), []byte(secret+"\n"), 0o644); err != nil {
+		t.Fatalf("write leak fixture: %v", err)
+	}
+	chdir(t, root)
+
+	var stdout, stderr bytes.Buffer
+	got := run([]string{"secret-check"}, strings.NewReader(""), &stdout, &stderr)
+
+	if got != 7 {
+		t.Fatalf("secret-check exit = %d, stderr %q, stdout %q; want 7", got, stderr.String(), stdout.String())
+	}
+	if !strings.Contains(stderr.String(), "reports/secret-check.json") {
+		t.Fatalf("stderr = %q; want report path", stderr.String())
+	}
+	report := readSecretCheckReport(t, filepath.Join(root, "reports", "secret-check.json"))
+	if report.Status != "failed" {
+		t.Fatalf("report status = %q; want failed", report.Status)
+	}
+	if len(report.Findings) != 1 {
+		t.Fatalf("findings = %#v; want one finding", report.Findings)
+	}
+	if strings.Contains(report.Findings[0].Excerpt, "AAAAAAAA") {
+		t.Fatalf("excerpt leaked token material: %q", report.Findings[0].Excerpt)
+	}
+	if text := readText(t, filepath.Join(root, "reports", "secret-check.txt")); !strings.Contains(text, "FAIL: secret-check") {
+		t.Fatalf("text report = %q; want failure summary", text)
+	}
+}
+
+func TestSecretCheckScriptAllowsMaskedExamples(t *testing.T) {
+	root := t.TempDir()
+	copySecretCheckScript(t, root)
+	if err := os.WriteFile(filepath.Join(root, "example.env"), []byte("token=********\nsecret=<redacted>\n"), 0o644); err != nil {
+		t.Fatalf("write masked fixture: %v", err)
+	}
+	chdir(t, root)
+
+	var stdout, stderr bytes.Buffer
+	got := run([]string{"secret", "check"}, strings.NewReader(""), &stdout, &stderr)
+
+	if got != 0 {
+		t.Fatalf("secret check exit = %d, stderr %q, stdout %q; want 0", got, stderr.String(), stdout.String())
+	}
+	report := readSecretCheckReport(t, filepath.Join(root, "reports", "secret-check.json"))
+	if report.Status != "passed" {
+		t.Fatalf("report status = %q; want passed", report.Status)
+	}
+	if len(report.Findings) != 0 {
+		t.Fatalf("findings = %#v; want none", report.Findings)
+	}
+	if text := readText(t, filepath.Join(root, "reports", "secret-check.txt")); !strings.Contains(text, "PASS: secret-check") {
+		t.Fatalf("text report = %q; want pass summary", text)
+	}
+}
+
+func copySecretCheckScript(t *testing.T, root string) {
+	t.Helper()
+	source := filepath.Join(repoRoot(t), "scripts", "check_secrets.sh")
+	data, err := os.ReadFile(source)
+	if err != nil {
+		t.Fatalf("read secret check script: %v", err)
+	}
+	path := filepath.Join(root, "scripts", "check_secrets.sh")
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatalf("mkdir scripts: %v", err)
+	}
+	if err := os.WriteFile(path, data, 0o755); err != nil {
+		t.Fatalf("write secret check script: %v", err)
+	}
+}
+
+func readSecretCheckReport(t *testing.T, path string) struct {
+	Status   string `json:"status"`
+	Findings []struct {
+		RuleID  string `json:"rule_id"`
+		File    string `json:"file"`
+		Line    int    `json:"line"`
+		Excerpt string `json:"excerpt"`
+	} `json:"findings"`
+} {
+	t.Helper()
+	var report struct {
+		Status   string `json:"status"`
+		Findings []struct {
+			RuleID  string `json:"rule_id"`
+			File    string `json:"file"`
+			Line    int    `json:"line"`
+			Excerpt string `json:"excerpt"`
+		} `json:"findings"`
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read secret check report: %v", err)
+	}
+	if err := json.Unmarshal(data, &report); err != nil {
+		t.Fatalf("unmarshal secret check report: %v", err)
+	}
+	return report
+}
+
+func TestRunSecurityDefaultsToSecretScanOnly(t *testing.T) {
+	_, callLog := setupSecurityFixture(t)
+	var stdout, stderr bytes.Buffer
+
+	got := run([]string{"security"}, strings.NewReader(""), &stdout, &stderr)
+
+	if got != 0 {
+		t.Fatalf("security exit = %d, stderr %q, stdout %q; want 0", got, stderr.String(), stdout.String())
+	}
+	if calls := readText(t, callLog); calls != "check_secrets.sh\n" {
+		t.Fatalf("security calls = %q; want secret scan only by default", calls)
+	}
+}
+
+func TestRunSecurityOptInExecutesVulnerabilityScanBeforeSecrets(t *testing.T) {
+	_, callLog := setupSecurityFixture(t)
+	t.Setenv("XLIB_ENABLE_VULNCHECK", "1")
+	var stdout, stderr bytes.Buffer
+
+	got := run([]string{"security"}, strings.NewReader(""), &stdout, &stderr)
+
+	if got != 0 {
+		t.Fatalf("security exit = %d, stderr %q, stdout %q; want 0", got, stderr.String(), stdout.String())
+	}
+	if calls := readText(t, callLog); calls != "govulncheck ./...\ncheck_secrets.sh\n" {
+		t.Fatalf("security calls = %q; want vulnerability scan before secrets when opt-in is enabled", calls)
+	}
+}
+
+func TestRunSecurityOptInStopsWhenVulnerabilityScanFails(t *testing.T) {
+	_, callLog := setupSecurityFixture(t)
+	t.Setenv("XLIB_ENABLE_VULNCHECK", "1")
+	t.Setenv("GOVULNCHECK_EXIT", "7")
+	var stdout, stderr bytes.Buffer
+
+	got := run([]string{"security"}, strings.NewReader(""), &stdout, &stderr)
+
+	if got != 7 {
+		t.Fatalf("security exit = %d, stderr %q, stdout %q; want 7", got, stderr.String(), stdout.String())
+	}
+	if calls := readText(t, callLog); calls != "govulncheck ./...\n" {
+		t.Fatalf("security calls = %q; want short-circuit after opt-in govulncheck", calls)
+	}
+}
+
+func TestEvaluateWorktreeGateRejectsMainBranchLocalWrite(t *testing.T) {
+	setupPRCheckFixture(t, "main")
+
+	details, gaps := evaluateWorktreeGate("local_write")
+
+	if !gapsContainSubstring(gaps, "local_write is forbidden on main") {
+		t.Fatalf("gaps = %#v; want main branch local_write rejection", gaps)
+	}
+	if !slicesContain(details, "branch=main") {
+		t.Fatalf("details = %#v; want branch=main", details)
+	}
+}
+
+func TestRunPRCheckExecutesLintBeforeTest(t *testing.T) {
+	_, callLog := setupPRCheckFixture(t, "feature/demo")
+	var stdout, stderr bytes.Buffer
+
+	got := run([]string{"pr-check", "--context", "local_write"}, strings.NewReader(""), &stdout, &stderr)
+
+	if got != 0 {
+		t.Fatalf("pr-check exit = %d, stderr %q, stdout %q; want 0", got, stderr.String(), stdout.String())
+	}
+	if calls := readText(t, callLog); calls != "lint\ntest\n" {
+		t.Fatalf("make calls = %q; want lint before test", calls)
+	}
+}
+
+func TestRunPRCheckStopsOnLintFailure(t *testing.T) {
+	_, callLog := setupPRCheckFixture(t, "feature/demo")
+	t.Setenv("MAKE_LINT_EXIT", "5")
+	var stdout, stderr bytes.Buffer
+
+	got := run([]string{"pr-check", "--context", "local_write"}, strings.NewReader(""), &stdout, &stderr)
+
+	if got != 1 {
+		t.Fatalf("pr-check exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "make lint exited 5") {
+		t.Fatalf("stdout = %q; want lint failure gap", stdout.String())
+	}
+	if calls := readText(t, callLog); calls != "lint\n" {
+		t.Fatalf("make calls = %q; want lint only", calls)
+	}
+}
+
+func TestRunPRCheckReportsTestFailure(t *testing.T) {
+	_, callLog := setupPRCheckFixture(t, "feature/demo")
+	t.Setenv("MAKE_TEST_EXIT", "6")
+	var stdout, stderr bytes.Buffer
+
+	got := run([]string{"pr-check", "--context", "local_write"}, strings.NewReader(""), &stdout, &stderr)
+
+	if got != 1 {
+		t.Fatalf("pr-check exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "make test exited 6") {
+		t.Fatalf("stdout = %q; want test failure gap", stdout.String())
+	}
+	if calls := readText(t, callLog); calls != "lint\ntest\n" {
+		t.Fatalf("make calls = %q; want lint then test", calls)
+	}
+}
+
+func TestRunPRCheckSkipsMakeWhenGateFails(t *testing.T) {
+	_, callLog := setupPRCheckFixture(t, "main")
+	var stdout, stderr bytes.Buffer
+
+	got := run([]string{"pr-check", "--context", "local_write"}, strings.NewReader(""), &stdout, &stderr)
+
+	if got != 1 {
+		t.Fatalf("pr-check exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "local_write is forbidden on main") {
+		t.Fatalf("stdout = %q; want worktree gate gap", stdout.String())
+	}
+	data, err := os.ReadFile(callLog)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("read call log: %v", err)
+	}
+	if len(data) > 0 {
+		t.Fatalf("make calls = %q; want none", string(data))
 	}
 }
 
@@ -705,6 +953,27 @@ func TestMakefileBaselineRequiresExecutionContext(t *testing.T) {
 	}
 }
 
+func TestMakefileBaselineRejectsDuplicateRegistryTargets(t *testing.T) {
+	root := t.TempDir()
+	writeMakefileBaselineFixture(t, root, "fmt")
+	chdir(t, root)
+	var stdout, stderr bytes.Buffer
+
+	got := runMakefileBaseline(nil, &stdout, &stderr)
+
+	if got == 0 {
+		t.Fatal("runMakefileBaseline accepted duplicate registry targets; want failure")
+	}
+	for _, want := range []string{
+		".agent/makefile-target-registry.yaml duplicate target fmt",
+		".agent/makefile-baseline.yaml duplicate target fmt",
+	} {
+		if !strings.Contains(stdout.String(), want) {
+			t.Fatalf("stdout = %q; want %q", stdout.String(), want)
+		}
+	}
+}
+
 func TestCommandRegistryRequiresCompleteGovernanceSurface(t *testing.T) {
 	root := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(root, ".agent"), 0o755); err != nil {
@@ -733,6 +1002,59 @@ func TestCommandRegistryRequiresCompleteGovernanceSurface(t *testing.T) {
 	}
 	if !slicesContain(report.Gaps, ".agent/command-registry.yaml missing name: execution-context") {
 		t.Fatalf("gaps = %#v; want missing execution-context registry entry", report.Gaps)
+	}
+}
+
+func TestTraceabilityCheckMetadataIsSynchronized(t *testing.T) {
+	root := repoRoot(t)
+	for _, check := range []struct {
+		path   string
+		needle string
+	}{
+		{
+			path:   "docs/standard/goalcli-cli-contract.md",
+			needle: "- `traceability-check [--matrix .agent/traceability-matrix.md] [--json]`",
+		},
+		{
+			path:   ".agent/command-registry.yaml",
+			needle: "  - name: traceability-check\n",
+		},
+		{
+			path:   ".agent/command-implementation-status.yaml",
+			needle: "      - traceability-check\n",
+		},
+	} {
+		t.Run(check.path, func(t *testing.T) {
+			content, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(check.path)))
+			if err != nil {
+				t.Fatalf("read %s: %v", check.path, err)
+			}
+			if !strings.Contains(string(content), check.needle) {
+				t.Fatalf("%s missing %q", check.path, check.needle)
+			}
+		})
+	}
+}
+
+func TestImplementationStatusIncludesImplementedP0CheckTargets(t *testing.T) {
+	root := repoRoot(t)
+	content, err := os.ReadFile(filepath.Join(root, ".agent", "command-implementation-status.yaml"))
+	if err != nil {
+		t.Fatalf("read command implementation status: %v", err)
+	}
+	status := string(content)
+	for _, command := range []string{
+		"worktree-check",
+		"context-check",
+		"spec-check",
+		"design-check",
+		"task-check",
+		"pr-check",
+		"traceability-check",
+	} {
+		if !strings.Contains(status, "\n      - "+command+"\n") {
+			t.Errorf("implementation status missing implemented P0 command %q", command)
+		}
 	}
 }
 
@@ -862,7 +1184,7 @@ func TestRunGovernanceCommands(t *testing.T) {
 		}
 		if report.Command != "version" ||
 			report.Status != "passed" ||
-			!slicesContain(report.Details, "xlib-standard release v0.4.6") ||
+			!slicesContain(report.Details, "xlib-standard release v0.4.7") ||
 			!slicesContain(report.Details, "goalcli governance runtime v2.9.3") {
 			t.Fatalf("report = %#v; want version gate report", report)
 		}
@@ -870,7 +1192,7 @@ func TestRunGovernanceCommands(t *testing.T) {
 
 	t.Run("artifact gate passes when required files exist", func(t *testing.T) {
 		root := t.TempDir()
-		commandSurface := strings.Join(commandRegistryRequiredCommands(), "\n")
+		commandSurface := strings.Join(goalcliCLIContractNeedles(), "\n")
 		registrySurface := strings.Join(requiredCommandRegistryNeedles(), "\n")
 		files := map[string]string{
 			"docs/standard/goalcli-cli-contract.md": "goalcli\n" + commandSurface + "\n",
@@ -903,7 +1225,7 @@ func TestRunGovernanceCommands(t *testing.T) {
 
 	t.Run("cli contract requires full command surface in docs and registry", func(t *testing.T) {
 		root := t.TempDir()
-		fullRegistry := strings.Join(commandRegistryRequiredCommands(), "\n") + "\n"
+		fullRegistry := strings.Join(goalcliCLIContractNeedles(), "\n") + "\n"
 		fullCommandRegistry := strings.Join(requiredCommandRegistryNeedles(), "\n") + "\n"
 		files := map[string]string{
 			"docs/standard/goalcli-cli-contract.md": strings.Replace(fullRegistry, "execution-context\n", "", 1),
@@ -974,6 +1296,7 @@ func TestRunDoctorAllowsRenderedDownstreamWithoutSourceGoal(t *testing.T) {
 	files := map[string]string{
 		"go.mod":                                "module github.com/ZoneCNH/kernel\n\nreplace github.com/ZoneCNH/xlib-standard => ../xlib-standard\n",
 		".agent/harness.yaml":                   "checks: [version, doctor]\n",
+		".agent/index.yaml":                     "schema_version: \"1.0\"\nmodule: xlib-standard\ncontrol_plane:\n  purpose: fixture\nfiles:\n",
 		".agent/issue-registry.yaml":            issueRegistryFixture("P0-001", "P1-001", "P2-001", "CTX-001"),
 		".agent/command-registry.yaml":          "commands: [version, doctor]\n",
 		".agent/makefile-target-registry.yaml":  "targets: []\n",
@@ -1005,13 +1328,10 @@ func TestRunDoctorAllowsRenderedDownstreamWithoutSourceGoal(t *testing.T) {
 func TestCommandRegistryRequiresFullCommandSurface(t *testing.T) {
 	t.Run("accepts complete registry surface", func(t *testing.T) {
 		root := t.TempDir()
-		path := filepath.Join(root, ".agent", "command-registry.yaml")
-		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-			t.Fatalf("mkdir %s: %v", filepath.Dir(path), err)
-		}
-		if err := os.WriteFile(path, []byte(strings.Join(requiredCommandRegistryNeedles(), "\n")+"\n"), 0o644); err != nil {
-			t.Fatalf("write %s: %v", path, err)
-		}
+		writeValidAgentIndexFixture(t, root)
+		writeTestFiles(t, root, map[string]string{
+			".agent/command-registry.yaml": commandRegistryFixture(""),
+		})
 		chdir(t, root)
 
 		var stdout, stderr bytes.Buffer
@@ -1026,14 +1346,10 @@ func TestCommandRegistryRequiresFullCommandSurface(t *testing.T) {
 
 	t.Run("rejects incomplete registry surface", func(t *testing.T) {
 		root := t.TempDir()
-		path := filepath.Join(root, ".agent", "command-registry.yaml")
-		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-			t.Fatalf("mkdir %s: %v", filepath.Dir(path), err)
-		}
-		content := strings.Replace(strings.Join(requiredCommandRegistryNeedles(), "\n")+"\n", "name: goal-certify\n", "", 1)
-		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
-			t.Fatalf("write %s: %v", path, err)
-		}
+		writeValidAgentIndexFixture(t, root)
+		writeTestFiles(t, root, map[string]string{
+			".agent/command-registry.yaml": strings.Replace(commandRegistryFixture(""), "  - name: goal-certify\n", "", 1),
+		})
 		chdir(t, root)
 
 		var stdout, stderr bytes.Buffer
@@ -1043,6 +1359,278 @@ func TestCommandRegistryRequiresFullCommandSurface(t *testing.T) {
 		}
 		if !strings.Contains(stdout.String(), ".agent/command-registry.yaml missing name: goal-certify") {
 			t.Fatalf("stdout = %q; want missing goal-certify gap", stdout.String())
+		}
+	})
+
+	t.Run("rejects duplicate command names", func(t *testing.T) {
+		root := t.TempDir()
+		writeValidAgentIndexFixture(t, root)
+		writeTestFiles(t, root, map[string]string{
+			".agent/command-registry.yaml": commandRegistryFixture("  - name: version\n    phase: P0\n    target: version\n"),
+		})
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		got := run([]string{"command-registry"}, strings.NewReader(""), &stdout, &stderr)
+		if got != 1 {
+			t.Fatalf("command-registry duplicate fixture exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+		}
+		if !strings.Contains(stdout.String(), ".agent/command-registry.yaml duplicate command version") {
+			t.Fatalf("stdout = %q; want duplicate version gap", stdout.String())
+		}
+	})
+
+	t.Run("requires agent index", func(t *testing.T) {
+		root := t.TempDir()
+		writeTestFiles(t, root, map[string]string{
+			".agent/command-registry.yaml": commandRegistryFixture(""),
+		})
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		got := run([]string{"command-registry"}, strings.NewReader(""), &stdout, &stderr)
+		if got != 1 {
+			t.Fatalf("command-registry missing index exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+		}
+		if !strings.Contains(stdout.String(), "missing .agent/index.yaml") {
+			t.Fatalf("stdout = %q; want missing .agent/index.yaml gap", stdout.String())
+		}
+	})
+
+	t.Run("rejects unclassified agent file", func(t *testing.T) {
+		root := t.TempDir()
+		writeValidAgentIndexFixture(t, root)
+		writeTestFiles(t, root, map[string]string{
+			".agent/command-registry.yaml": commandRegistryFixture(""),
+			".agent/untracked.yaml":        "fixture\n",
+		})
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		got := run([]string{"command-registry"}, strings.NewReader(""), &stdout, &stderr)
+		if got != 1 {
+			t.Fatalf("command-registry unclassified fixture exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+		}
+		if !strings.Contains(stdout.String(), ".agent/index.yaml missing file entry .agent/untracked.yaml") {
+			t.Fatalf("stdout = %q; want unclassified .agent file gap", stdout.String())
+		}
+	})
+
+	t.Run("rejects invalid agent index", func(t *testing.T) {
+		root := t.TempDir()
+		writeTestFiles(t, root, map[string]string{
+			".agent/command-registry.yaml": commandRegistryFixture(""),
+			".agent/goal-runtime.md":       "fixture\n",
+			".agent/index.yaml": "schema_version: \"1.0\"\n" +
+				"module: xlib-standard\n" +
+				"control_plane:\n" +
+				"  purpose: fixture\n" +
+				"files:\n" +
+				"  - path: .agent/goal-runtime.md\n" +
+				"    layer: unknown\n" +
+				"    authority: source_of_truth\n" +
+				"    mutability: hand_written\n" +
+				"    owner: governance\n" +
+				"    validator: command-registry\n" +
+				"    purpose: fixture\n",
+		})
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		got := run([]string{"command-registry"}, strings.NewReader(""), &stdout, &stderr)
+		if got != 1 {
+			t.Fatalf("command-registry invalid index exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+		}
+		if !strings.Contains(stdout.String(), ".agent/index.yaml .agent/goal-runtime.md invalid layer unknown") {
+			t.Fatalf("stdout = %q; want invalid layer gap", stdout.String())
+		}
+	})
+
+	t.Run("rejects generated agent file missing artifact registration", func(t *testing.T) {
+		root := t.TempDir()
+		writeValidAgentIndexFixture(t, root)
+		indexPath := filepath.Join(root, ".agent", "index.yaml")
+		index, err := os.ReadFile(indexPath)
+		if err != nil {
+			t.Fatalf("read agent index: %v", err)
+		}
+		index = append(index, []byte("  - path: .agent/generated-scan.yaml\n"+
+			"    layer: evidence\n"+
+			"    authority: validated_mirror\n"+
+			"    mutability: generated\n"+
+			"    owner: governance\n"+
+			"    validator: command-registry\n"+
+			"    purpose: generated fixture\n")...)
+		writeTestFiles(t, root, map[string]string{
+			".agent/index.yaml":            string(index),
+			".agent/generated-scan.yaml":   "generated\n",
+			".agent/command-registry.yaml": commandRegistryFixture(""),
+		})
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		got := run([]string{"command-registry"}, strings.NewReader(""), &stdout, &stderr)
+		if got != 1 {
+			t.Fatalf("command-registry unregistered generated artifact exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+		}
+		if !strings.Contains(stdout.String(), ".agent/index.yaml .agent/generated-scan.yaml mutability generated requires .agent/generated-artifacts.yaml entry") {
+			t.Fatalf("stdout = %q; want generated artifact registration gap", stdout.String())
+		}
+	})
+
+	t.Run("rejects generated artifact registry classified as generated output", func(t *testing.T) {
+		root := t.TempDir()
+		writeValidAgentIndexFixture(t, root)
+		indexPath := filepath.Join(root, ".agent", "index.yaml")
+		index, err := os.ReadFile(indexPath)
+		if err != nil {
+			t.Fatalf("read agent index: %v", err)
+		}
+		indexText := strings.Replace(string(index), "  - path: .agent/generated-artifacts.yaml\n"+
+			"    layer: registry\n"+
+			"    authority: source_of_truth\n"+
+			"    mutability: hand_written\n", "  - path: .agent/generated-artifacts.yaml\n"+
+			"    layer: registry\n"+
+			"    authority: validated_mirror\n"+
+			"    mutability: generated\n", 1)
+		writeTestFiles(t, root, map[string]string{
+			".agent/index.yaml":            indexText,
+			".agent/command-registry.yaml": commandRegistryFixture(""),
+		})
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		got := run([]string{"command-registry"}, strings.NewReader(""), &stdout, &stderr)
+		if got != 1 {
+			t.Fatalf("command-registry generated registry classification exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+		}
+		if !strings.Contains(stdout.String(), ".agent/generated-artifacts.yaml must be indexed as source_of_truth") {
+			t.Fatalf("stdout = %q; want generated-artifacts source_of_truth gap", stdout.String())
+		}
+		if !strings.Contains(stdout.String(), ".agent/generated-artifacts.yaml must be indexed as hand_written") {
+			t.Fatalf("stdout = %q; want generated-artifacts hand_written gap", stdout.String())
+		}
+	})
+
+	t.Run("rejects generated rule mirror classified as source authority", func(t *testing.T) {
+		root := t.TempDir()
+		writeValidAgentIndexFixture(t, root)
+		indexPath := filepath.Join(root, ".agent", "index.yaml")
+		index, err := os.ReadFile(indexPath)
+		if err != nil {
+			t.Fatalf("read agent index: %v", err)
+		}
+		indexText := strings.Replace(string(index), "  - path: .agent/rules/registry.yaml\n"+
+			"    layer: policy\n"+
+			"    authority: validated_mirror\n"+
+			"    mutability: generated\n", "  - path: .agent/rules/registry.yaml\n"+
+			"    layer: policy\n"+
+			"    authority: source_of_truth\n"+
+			"    mutability: hand_written\n", 1)
+		writeTestFiles(t, root, map[string]string{
+			".agent/index.yaml":            indexText,
+			".agent/command-registry.yaml": commandRegistryFixture(""),
+		})
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		got := run([]string{"command-registry"}, strings.NewReader(""), &stdout, &stderr)
+		if got != 1 {
+			t.Fatalf("command-registry generated rule classification exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+		}
+		for _, want := range []string{
+			".agent/index.yaml .agent/rules/registry.yaml must classify authority as validated_mirror",
+			".agent/index.yaml .agent/rules/registry.yaml must classify mutability as generated",
+		} {
+			if !strings.Contains(stdout.String(), want) {
+				t.Fatalf("stdout = %q; want %q", stdout.String(), want)
+			}
+		}
+	})
+
+	t.Run("rejects generated rule mirror missing artifact registration", func(t *testing.T) {
+		root := t.TempDir()
+		writeValidAgentIndexFixture(t, root)
+		artifactsPath := filepath.Join(root, ".agent", "generated-artifacts.yaml")
+		artifacts, err := os.ReadFile(artifactsPath)
+		if err != nil {
+			t.Fatalf("read generated artifacts: %v", err)
+		}
+		missingCoreRule := "  - path: .agent/rules/core-rules.md\n" +
+			"    classification: validated_mirror\n" +
+			"    source_control: generated-only\n" +
+			"    generated_by: \"goalcli rules-verify\"\n" +
+			"    validated_by: command-registry\n"
+		writeTestFiles(t, root, map[string]string{
+			".agent/generated-artifacts.yaml": strings.Replace(string(artifacts), missingCoreRule, "", 1),
+			".agent/command-registry.yaml":    commandRegistryFixture(""),
+		})
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		got := run([]string{"command-registry"}, strings.NewReader(""), &stdout, &stderr)
+		if got != 1 {
+			t.Fatalf("command-registry missing generated rule artifact exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+		}
+		if !strings.Contains(stdout.String(), ".agent/index.yaml .agent/rules/core-rules.md mutability generated requires .agent/generated-artifacts.yaml entry") {
+			t.Fatalf("stdout = %q; want generated rule artifact registration gap", stdout.String())
+		}
+	})
+
+	t.Run("rejects rules registry unknown enforcer", func(t *testing.T) {
+		root := t.TempDir()
+		writeValidAgentIndexFixture(t, root)
+		writeTestFiles(t, root, map[string]string{
+			".agent/command-registry.yaml": commandRegistryFixture(""),
+			".agent/rules/registry.yaml":   validRulesRegistryFixture("goalcli ghost-command"),
+		})
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		got := run([]string{"command-registry"}, strings.NewReader(""), &stdout, &stderr)
+		if got != 1 {
+			t.Fatalf("command-registry unknown rule enforcer exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+		}
+		if !strings.Contains(stdout.String(), ".agent/rules/registry.yaml RULE-TEST-001 enforced_by goalcli ghost-command is not tied to a known goalcli command, Makefile target, script, or hook") {
+			t.Fatalf("stdout = %q; want unknown rule enforcer gap", stdout.String())
+		}
+	})
+
+	t.Run("rejects harness alias without semantic role", func(t *testing.T) {
+		root := t.TempDir()
+		writeValidAgentIndexFixture(t, root)
+		writeTestFiles(t, root, map[string]string{
+			".agent/command-registry.yaml": commandRegistryFixture(""),
+			".agent/harness.yaml":          strings.Replace(validHarnessAliasFixture(), "    semantic_role: \"fixture\"\n", "", 1),
+		})
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		got := run([]string{"command-registry"}, strings.NewReader(""), &stdout, &stderr)
+		if got != 1 {
+			t.Fatalf("command-registry missing harness alias semantic role exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+		}
+		if !strings.Contains(stdout.String(), ".agent/harness.yaml governance_chain missing semantic_role") {
+			t.Fatalf("stdout = %q; want harness alias semantic_role gap", stdout.String())
+		}
+	})
+
+	t.Run("requires harness gate link semantics", func(t *testing.T) {
+		root := t.TempDir()
+		writeValidAgentIndexFixture(t, root)
+		writeTestFiles(t, root, map[string]string{
+			".agent/command-registry.yaml": commandRegistryFixture(""),
+			".agent/harness.yaml":          "required_gates: []\n",
+		})
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		got := run([]string{"command-registry"}, strings.NewReader(""), &stdout, &stderr)
+		if got != 1 {
+			t.Fatalf("command-registry harness semantics exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+		}
+		if !strings.Contains(stdout.String(), ".agent/harness.yaml missing gate_link_semantics:") {
+			t.Fatalf("stdout = %q; want harness gate_link_semantics gap", stdout.String())
 		}
 	})
 }
@@ -1358,6 +1946,53 @@ func TestPlannedCommandVerifyPassesWithManifestCoverage(t *testing.T) {
 	}
 }
 
+func TestRuntimeFileOwnershipControlPlaneIndexIsGoalcliValidated(t *testing.T) {
+	chdir(t, filepath.Join("..", ".."))
+
+	files := plannedCommandFiles["runtime-file-ownership"]
+	if len(files) != 1 || files[0] != ".agent/runtime-file-ownership.yaml" {
+		t.Fatalf("runtime-file-ownership files = %#v; want .agent/runtime-file-ownership.yaml", files)
+	}
+	markers := plannedCommandMarkers("runtime-file-ownership", ".agent/runtime-file-ownership.yaml")
+	for _, marker := range []string{"schema_version:", "owners:", "owner:", "review_required:", "rationale:"} {
+		if !slicesContain(markers, marker) {
+			t.Fatalf("runtime-file-ownership markers = %#v; want %q", markers, marker)
+		}
+	}
+
+	content, err := os.ReadFile(".agent/runtime-file-ownership.yaml")
+	if err != nil {
+		t.Fatalf("read runtime ownership manifest: %v", err)
+	}
+	for _, ownerPath := range []string{`".agent/"`, `"cmd/goalcli/"`} {
+		if !strings.Contains(string(content), ownerPath) {
+			t.Fatalf(".agent/runtime-file-ownership.yaml missing control-plane owner path %s", ownerPath)
+		}
+	}
+
+	var stdout, stderr bytes.Buffer
+	got := run([]string{"runtime-file-ownership", "--dry-run", "--verify"}, strings.NewReader(""), &stdout, &stderr)
+	if got != 0 {
+		t.Fatalf("verified runtime-file-ownership exit = %d, stderr %q, stdout %q; want 0", got, stderr.String(), stdout.String())
+	}
+	var report gateReport
+	if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
+		t.Fatalf("stdout is not gateReport JSON: %v; stdout %q", err, stdout.String())
+	}
+	if report.Status != "passed" {
+		t.Fatalf("report status = %q; want passed; report %#v", report.Status, report)
+	}
+	if !slicesContain(report.Details, "found .agent/runtime-file-ownership.yaml") {
+		t.Fatalf("details = %#v; want runtime ownership manifest detail", report.Details)
+	}
+	if !slicesContain(report.Details, "local dry-run verifier satisfied manifest coverage") {
+		t.Fatalf("details = %#v; want verify detail", report.Details)
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("stderr = %q; want empty stderr", stderr.String())
+	}
+}
+
 func TestDownstreamGapVerifyIsBlocking(t *testing.T) {
 	chdir(t, filepath.Join("..", ".."))
 
@@ -1382,6 +2017,117 @@ func TestDownstreamGapVerifyIsBlocking(t *testing.T) {
 	}
 }
 
+func TestEvidenceReplayFixtureBackedGatePasses(t *testing.T) {
+	chdir(t, filepath.Join("..", ".."))
+
+	var stdout, stderr bytes.Buffer
+	got := run([]string{"evidence-replay", "--verify"}, strings.NewReader(""), &stdout, &stderr)
+	if got != 0 {
+		t.Fatalf("evidence replay exit = %d, stderr %q, stdout %q; want 0", got, stderr.String(), stdout.String())
+	}
+	var report gateReport
+	if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
+		t.Fatalf("stdout is not gateReport JSON: %v; stdout %q", err, stdout.String())
+	}
+	if report.Status != "passed" {
+		t.Fatalf("report status = %q; want passed; report %#v", report.Status, report)
+	}
+	for _, detail := range []string{"checksum verified", "hash chain verified", "expected command status verified"} {
+		if !slicesContain(report.Details, detail) {
+			t.Fatalf("details = %#v; want %q", report.Details, detail)
+		}
+	}
+	if !gapsContainSubstring(report.Details, "replayed ledger=testkit/governance/fixtures/evidence-replay/passed/ledger.jsonl") {
+		t.Fatalf("details = %#v; want replayed fixture ledger", report.Details)
+	}
+}
+
+func TestEvidenceReplayRejectsChecksumAndHashMismatch(t *testing.T) {
+	chdir(t, filepath.Join("..", ".."))
+	fixture := copyEvidenceReplayFixture(t)
+	artifact := filepath.Join(fixture, "artifacts", "runtime-health.out")
+	if err := os.WriteFile(artifact, []byte("tampered runtime-health output\n"), 0o644); err != nil {
+		t.Fatalf("tamper artifact: %v", err)
+	}
+	ledger := filepath.Join(fixture, "ledger.jsonl")
+	content, err := os.ReadFile(ledger)
+	if err != nil {
+		t.Fatalf("read copied ledger: %v", err)
+	}
+	content = []byte(strings.Replace(string(content), `"previous_hash":"cd168fe5bec5dc0e90de912a62fb7d76d850e77eb106c9c32c73f39e894e390a"`, `"previous_hash":"0000000000000000000000000000000000000000000000000000000000000000"`, 1))
+	if err := os.WriteFile(ledger, content, 0o644); err != nil {
+		t.Fatalf("tamper ledger: %v", err)
+	}
+
+	var stdout, stderr bytes.Buffer
+	got := run([]string{"evidence-replay", "--input", fixture, "--verify"}, strings.NewReader(""), &stdout, &stderr)
+	if got != 1 {
+		t.Fatalf("tampered evidence replay exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+	}
+	var report gateReport
+	if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
+		t.Fatalf("stdout is not gateReport JSON: %v; stdout %q", err, stdout.String())
+	}
+	if report.Status != "failed" {
+		t.Fatalf("report status = %q; want failed; report %#v", report.Status, report)
+	}
+	if !gapsContainSubstring(report.Gaps, "checksum mismatch") {
+		t.Fatalf("gaps = %#v; want checksum mismatch", report.Gaps)
+	}
+	if !gapsContainSubstring(report.Gaps, "hash chain mismatch") {
+		t.Fatalf("gaps = %#v; want hash chain mismatch", report.Gaps)
+	}
+}
+
+func TestEvidenceReplayMissingOrStaleEvidenceBlocks(t *testing.T) {
+	chdir(t, filepath.Join("..", ".."))
+	missingFixture := t.TempDir()
+
+	var missingStdout, missingStderr bytes.Buffer
+	got := run([]string{"evidence-replay", "--input", missingFixture, "--verify"}, strings.NewReader(""), &missingStdout, &missingStderr)
+	if got != 1 {
+		t.Fatalf("missing evidence replay exit = %d, stderr %q, stdout %q; want 1", got, missingStderr.String(), missingStdout.String())
+	}
+	var missingReport gateReport
+	if err := json.Unmarshal(missingStdout.Bytes(), &missingReport); err != nil {
+		t.Fatalf("stdout is not gateReport JSON: %v; stdout %q", err, missingStdout.String())
+	}
+	if missingReport.Status != "gap" || !gapsContainSubstring(missingReport.Gaps, "missing evidence replay expected status") {
+		t.Fatalf("missing report = %#v; want missing expected status gap", missingReport)
+	}
+
+	staleFixture := copyEvidenceReplayFixture(t)
+	staleExpected := `{"schema_version":"goalcli-evidence-replay/v1","generated_at":"2000-01-01T00:00:00Z","max_age_hours":1,"commands":{"release-ready":"passed","runtime-health":"passed","attest-conformance":"passed"}}`
+	if err := os.WriteFile(filepath.Join(staleFixture, "expected-status.json"), []byte(staleExpected), 0o644); err != nil {
+		t.Fatalf("write stale expected status: %v", err)
+	}
+	var staleStdout, staleStderr bytes.Buffer
+	got = run([]string{"evidence-replay", "--input", staleFixture, "--verify"}, strings.NewReader(""), &staleStdout, &staleStderr)
+	if got != 1 {
+		t.Fatalf("stale evidence replay exit = %d, stderr %q, stdout %q; want 1", got, staleStderr.String(), staleStdout.String())
+	}
+	var staleReport gateReport
+	if err := json.Unmarshal(staleStdout.Bytes(), &staleReport); err != nil {
+		t.Fatalf("stdout is not gateReport JSON: %v; stdout %q", err, staleStdout.String())
+	}
+	if staleReport.Status != "gap" || !gapsContainSubstring(staleReport.Gaps, "stale evidence replay fixture") {
+		t.Fatalf("stale report = %#v; want stale gap", staleReport)
+	}
+}
+
+func TestDownstreamAdoptionProofContractIsDocumented(t *testing.T) {
+	chdir(t, filepath.Join("..", ".."))
+
+	for _, path := range []string{".agent/downstream-adoption-status.yaml", "contracts/downstream-adoption-proof.schema.json", "docs/standard/downstream-registry.md"} {
+		if !slicesContain(plannedCommandFiles["downstream-adoption"], path) {
+			t.Fatalf("downstream-adoption files = %#v; want %s", plannedCommandFiles["downstream-adoption"], path)
+		}
+	}
+	assertFileContainsAll(t, ".agent/downstream-adoption-status.yaml", "proof_contract:", "source_repo", "gate_outputs", "rollback")
+	assertFileContainsAll(t, "contracts/downstream-adoption-proof.schema.json", "source_repo", "source_commit", "gate_outputs", "rollback")
+	assertFileContainsAll(t, "docs/standard/downstream-registry.md", "Proof contract", "source_repo", "gate_outputs", "rollback")
+}
+
 func TestDownstreamGapWithoutVerifyIsBlocking(t *testing.T) {
 	chdir(t, filepath.Join("..", ".."))
 
@@ -1400,6 +2146,46 @@ func TestDownstreamGapWithoutVerifyIsBlocking(t *testing.T) {
 	}
 	if !strings.Contains(stderr.String(), "cannot satisfy a release gate") {
 		t.Fatalf("stderr = %q; want release gate blocker", stderr.String())
+	}
+}
+
+func copyEvidenceReplayFixture(t *testing.T) string {
+	t.Helper()
+	source := filepath.Join("testkit", "governance", "fixtures", "evidence-replay", "passed")
+	target := t.TempDir()
+	for _, relative := range []string{
+		"expected-status.json",
+		"ledger.jsonl",
+		filepath.Join("artifacts", "release-ready.out"),
+		filepath.Join("artifacts", "runtime-health.out"),
+		filepath.Join("artifacts", "attest-conformance.out"),
+	} {
+		data, err := os.ReadFile(filepath.Join(source, relative))
+		if err != nil {
+			t.Fatalf("read fixture %s: %v", relative, err)
+		}
+		destination := filepath.Join(target, relative)
+		if err := os.MkdirAll(filepath.Dir(destination), 0o755); err != nil {
+			t.Fatalf("mkdir fixture %s: %v", relative, err)
+		}
+		if err := os.WriteFile(destination, data, 0o644); err != nil {
+			t.Fatalf("write fixture %s: %v", relative, err)
+		}
+	}
+	return target
+}
+
+func assertFileContainsAll(t *testing.T, path string, needles ...string) {
+	t.Helper()
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read %s: %v", path, err)
+	}
+	text := string(content)
+	for _, needle := range needles {
+		if !strings.Contains(text, needle) {
+			t.Fatalf("%s missing %q", path, needle)
+		}
 	}
 }
 
@@ -1443,6 +2229,132 @@ roles:
 	}
 	if !gapsContainSubstring(report.Gaps, ".agent/team-contract.yaml missing semantic marker rule:") {
 		t.Fatalf("gaps = %#v; want semantic marker gap", report.Gaps)
+	}
+}
+
+func TestRuntimeFileOwnershipRequiresControlPlaneSemanticMarkers(t *testing.T) {
+	root := t.TempDir()
+	writeTestFiles(t, root, map[string]string{
+		".agent/runtime-file-ownership.yaml": `schema_version: "2.9.3"
+owners:
+  ".agent/":
+    owner: governance
+    rationale: control plane
+`,
+	})
+	chdir(t, root)
+
+	var stdout, stderr bytes.Buffer
+	got := run([]string{"runtime-file-ownership", "--dry-run", "--verify"}, strings.NewReader(""), &stdout, &stderr)
+	if got != 1 {
+		t.Fatalf("runtime ownership semantic exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+	}
+	var report gateReport
+	if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
+		t.Fatalf("stdout is not gateReport JSON: %v; stdout %q", err, stdout.String())
+	}
+	if !gapsContainSubstring(report.Gaps, ".agent/runtime-file-ownership.yaml missing semantic marker review_required:") {
+		t.Fatalf("gaps = %#v; want missing review_required marker gap", report.Gaps)
+	}
+}
+
+func TestExecutionContextRequiresSemanticValidation(t *testing.T) {
+	root := t.TempDir()
+	writeTestFiles(t, root, map[string]string{
+		".agent/execution-context.yaml": `schema_version: "2.9.3"
+contexts:
+  local_write:
+    write_scope: worktree
+    mutates_files: true
+    release_evidence: false
+    requires_gowork: off
+  local_readonly:
+    write_scope: read_only
+    mutates_files: false
+    release_evidence: false
+    requires_gowork: off
+  ci_pull_request:
+    write_scope: read_only
+    mutates_files: false
+    release_evidence: false
+    requires_gowork: off
+  ci_main_verify:
+    write_scope: read_only
+    mutates_files: false
+    release_evidence: false
+    requires_gowork: off
+  release_magic:
+    write_scope: release_read_only
+    mutates_files: false
+    release_evidence: true
+    requires_gowork: off
+`,
+		"contracts/execution-context.schema.json": `{
+  "type": "object",
+  "properties": {
+    "context": {"type": "string"}
+  }
+}`,
+	})
+	chdir(t, root)
+
+	var stdout, stderr bytes.Buffer
+	got := run([]string{"execution-context", "--dry-run", "--verify"}, strings.NewReader(""), &stdout, &stderr)
+	if got != 1 {
+		t.Fatalf("execution-context semantic exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+	}
+	var report gateReport
+	if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
+		t.Fatalf("stdout is not gateReport JSON: %v; stdout %q", err, stdout.String())
+	}
+	if !gapsContainSubstring(report.Gaps, ".agent/execution-context.yaml unknown context release_magic") ||
+		!gapsContainSubstring(report.Gaps, ".agent/execution-context.yaml missing context release_verify") {
+		t.Fatalf("gaps = %#v; want semantic execution-context gaps", report.Gaps)
+	}
+}
+
+func TestReleaseReadyVerifyExplainsReadinessDecision(t *testing.T) {
+	chdir(t, filepath.Join("..", ".."))
+
+	var stdout, stderr bytes.Buffer
+	got := run([]string{"release-ready", "--verify"}, strings.NewReader(""), &stdout, &stderr)
+	if got != 1 {
+		t.Fatalf("release-ready exit = %d, stderr %q, stdout %q; want 1 because current release gates are not release_usable", got, stderr.String(), stdout.String())
+	}
+	var report gateReport
+	if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
+		t.Fatalf("stdout is not gateReport JSON: %v; stdout %q", err, stdout.String())
+	}
+	for _, want := range []string{
+		"context=release_verify",
+		"verdict=not_ready",
+		"required_gates=",
+		"evidence_replay=strict:true",
+		"reasons=release-ready uses required gate release_usable state, strict evidence replay, and release_verify context",
+	} {
+		if !detailsContainSubstring(report.Details, want) {
+			t.Fatalf("details = %#v; want %q", report.Details, want)
+		}
+	}
+	if !gapsContainSubstring(report.Gaps, "release-ready verdict not_ready") {
+		t.Fatalf("gaps = %#v; want not_ready verdict gap", report.Gaps)
+	}
+}
+
+func TestReleaseReadyVerifyRequiresReleaseContext(t *testing.T) {
+	chdir(t, filepath.Join("..", ".."))
+
+	var stdout, stderr bytes.Buffer
+	got := run([]string{"release-ready", "--verify", "--context", "local_write"}, strings.NewReader(""), &stdout, &stderr)
+	if got != 1 {
+		t.Fatalf("release-ready local_write exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+	}
+	var report gateReport
+	if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
+		t.Fatalf("stdout is not gateReport JSON: %v; stdout %q", err, stdout.String())
+	}
+	if !gapsContainSubstring(report.Gaps, "release-ready requires context release_verify; got local_write") {
+		t.Fatalf("gaps = %#v; want release context gap", report.Gaps)
 	}
 }
 
@@ -1515,6 +2427,7 @@ func TestPlannedCommandRejectsInvalidArgs(t *testing.T) {
 		{name: "unknown flag", args: []string{"agent-team-contract", "--bogus"}, wantStderr: "invalid arguments"},
 		{name: "invalid context", args: []string{"agent-team-contract", "--context", "bad_context"}, wantStderr: `invalid context "bad_context"`},
 		{name: "positional arg", args: []string{"agent-team-contract", "extra"}, wantStderr: `unexpected positional argument "extra"`},
+		{name: "runtime ownership positional arg", args: []string{"runtime-file-ownership", "extra"}, wantStderr: `unexpected positional argument "extra"`},
 	}
 
 	for _, tt := range tests {
@@ -1756,22 +2669,135 @@ func TestVersionConstantsTrackChangelogRelease(t *testing.T) {
 
 func writeGateScript(t *testing.T, root string, relative string) {
 	t.Helper()
+	writeExecutable(t, root, relative, printCommandScript())
+}
+
+func writePathTool(t *testing.T, root string, name string) {
+	t.Helper()
+	writeExecutable(t, root, name, printCommandScript())
+}
+
+func writeExecutable(t *testing.T, root string, relative string, body string) {
+	t.Helper()
 	path := filepath.Join(root, filepath.FromSlash(relative))
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatalf("mkdir %s: %v", filepath.Dir(path), err)
 	}
-	body := "#!/bin/sh\nprintf '%s' \"$(basename \"$0\")\"\nfor arg in \"$@\"; do printf ' %s' \"$arg\"; done\nprintf '\\n'\n"
 	if err := os.WriteFile(path, []byte(body), 0o755); err != nil {
 		t.Fatalf("write %s: %v", path, err)
 	}
 }
 
-func writePathTool(t *testing.T, root string, name string) {
+func printCommandScript() string {
+	return "#!/bin/sh\nprintf '%s' \"$(basename \"$0\")\"\nfor arg in \"$@\"; do printf ' %s' \"$arg\"; done\nprintf '\\n'\n"
+}
+
+func setupSecurityFixture(t *testing.T) (string, string) {
 	t.Helper()
-	path := filepath.Join(root, name)
-	body := "#!/bin/sh\nprintf '%s' \"$(basename \"$0\")\"\nfor arg in \"$@\"; do printf ' %s' \"$arg\"; done\nprintf '\\n'\n"
-	if err := os.WriteFile(path, []byte(body), 0o755); err != nil {
-		t.Fatalf("write %s: %v", path, err)
+	root := t.TempDir()
+	callLog := filepath.Join(root, "calls.log")
+	writeExecutable(t, root, "govulncheck", fmt.Sprintf(`#!/bin/sh
+printf 'govulncheck %%s\n' "$*" >> %q
+exit "${GOVULNCHECK_EXIT:-0}"
+`, callLog))
+	writeExecutable(t, root, "scripts/check_secrets.sh", fmt.Sprintf(`#!/bin/sh
+printf 'check_secrets.sh\n' >> %q
+exit "${SECRETS_EXIT:-0}"
+`, callLog))
+	chdir(t, root)
+	t.Setenv("PATH", root+string(os.PathListSeparator)+os.Getenv("PATH"))
+	return root, callLog
+}
+
+func setupPRCheckFixture(t *testing.T, branch string) (string, string) {
+	t.Helper()
+	root := t.TempDir()
+	callLog := filepath.Join(root, "make.log")
+	top := filepath.Join(root, ".worktree", "worker")
+	common := filepath.Join(root, ".git", "worktrees", "worker")
+	writeFakeGit(t, root, branch, top, common)
+	writeFakeMake(t, root)
+	chdir(t, root)
+	t.Setenv("PATH", root+string(os.PathListSeparator)+os.Getenv("PATH"))
+	return root, callLog
+}
+
+func writeFakeGit(t *testing.T, root string, branch string, top string, common string) {
+	t.Helper()
+	body := fmt.Sprintf(`#!/bin/sh
+if [ "$1" = "rev-parse" ] && [ "$2" = "--show-toplevel" ]; then
+  printf '%%s\n' %q
+  exit 0
+fi
+if [ "$1" = "rev-parse" ] && [ "$2" = "--path-format=absolute" ] && [ "$3" = "--git-common-dir" ]; then
+  printf '%%s\n' %q
+  exit 0
+fi
+if [ "$1" = "rev-parse" ] && [ "$2" = "--abbrev-ref" ] && [ "$3" = "HEAD" ]; then
+  printf '%%s\n' %q
+  exit 0
+fi
+printf 'unsupported git command: %%s\n' "$*" >&2
+exit 2
+`, top, common, branch)
+	writeExecutable(t, root, "git", body)
+}
+
+func writeFakeMake(t *testing.T, root string) {
+	t.Helper()
+	callLog := filepath.Join(root, "make.log")
+	body := fmt.Sprintf(`#!/bin/sh
+printf '%%s\n' "$1" >> %q
+case "$1" in
+  lint)
+    exit "${MAKE_LINT_EXIT:-0}"
+    ;;
+  test)
+    exit "${MAKE_TEST_EXIT:-0}"
+    ;;
+  *)
+    exit 0
+    ;;
+esac
+`, callLog)
+	writeExecutable(t, root, "make", body)
+}
+
+func writeMakefileBaselineFixture(t *testing.T, root string, duplicate string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Join(root, ".agent"), 0o755); err != nil {
+		t.Fatalf("mkdir .agent: %v", err)
+	}
+	targets := requiredMakefileTargets()
+	var makefile strings.Builder
+	makefile.WriteString(".PHONY:")
+	for _, target := range targets {
+		makefile.WriteString(" " + target)
+	}
+	makefile.WriteString("\n")
+	for _, target := range targets {
+		makefile.WriteString(target + ":\n")
+	}
+	if err := os.WriteFile(filepath.Join(root, "Makefile"), []byte(makefile.String()), 0o644); err != nil {
+		t.Fatalf("write Makefile: %v", err)
+	}
+	var registry strings.Builder
+	registry.WriteString("schema_version: \"2.9.3\"\nmodule: xlib-standard\ntargets:\n")
+	for _, target := range targets {
+		registry.WriteString("  - " + target + "\n")
+	}
+	registry.WriteString("  - " + duplicate + "\n")
+	if err := os.WriteFile(filepath.Join(root, ".agent", "makefile-target-registry.yaml"), []byte(registry.String()), 0o644); err != nil {
+		t.Fatalf("write makefile target registry: %v", err)
+	}
+	var baseline strings.Builder
+	baseline.WriteString("schema_version: \"2.9.3\"\nmodule: xlib-standard\nbaseline_targets:\n")
+	for _, target := range targets {
+		baseline.WriteString("  " + target + ": fixture\n")
+	}
+	baseline.WriteString("  " + duplicate + ": duplicate\n")
+	if err := os.WriteFile(filepath.Join(root, ".agent", "makefile-baseline.yaml"), []byte(baseline.String()), 0o644); err != nil {
+		t.Fatalf("write makefile baseline: %v", err)
 	}
 }
 
@@ -1786,6 +2812,219 @@ func writeTestFiles(t *testing.T, root string, files map[string]string) {
 			t.Fatalf("write %s: %v", path, err)
 		}
 	}
+}
+
+func commandRegistryFixture(extra string) string {
+	var b strings.Builder
+	b.WriteString("schema_version: \"2.9.3\"\nmodule: xlib-standard\ncommands:\n")
+	for _, command := range commandRegistryRequiredCommands() {
+		b.WriteString("  - name: ")
+		b.WriteString(command)
+		b.WriteString("\n")
+		b.WriteString("    phase: P0\n")
+		b.WriteString("    target: ")
+		b.WriteString(command)
+		b.WriteString("\n")
+	}
+	b.WriteString(extra)
+	return b.String()
+}
+
+func writeValidAgentIndexFixture(t *testing.T, root string) {
+	t.Helper()
+	files := map[string]string{
+		".agent/generated-artifacts.yaml":       validGeneratedArtifactsFixture(),
+		".agent/harness.yaml":                   validHarnessAliasFixture(),
+		".agent/index.yaml":                     validAgentIndexFixture(),
+		".agent/rules/registry.yaml":            validRulesRegistryFixture("goalcli version"),
+		".agent/rules/agent-runtime-rules.md":   "fixture\n",
+		".agent/rules/core-rules.md":            "fixture\n",
+		".agent/rules/schema-registry-rules.md": "fixture\n",
+	}
+	for _, path := range requiredAgentIndexPaths() {
+		if _, ok := files[path]; ok {
+			continue
+		}
+		if path == ".agent/command-registry.yaml" {
+			continue
+		}
+		files[path] = "fixture\n"
+	}
+	writeTestFiles(t, root, files)
+}
+
+func validAgentIndexFixture() string {
+	var b strings.Builder
+	b.WriteString("schema_version: \"1.0\"\nmodule: xlib-standard\ncontrol_plane:\n  purpose: fixture\nfiles:\n")
+	for _, path := range requiredAgentIndexPaths() {
+		b.WriteString("  - path: ")
+		b.WriteString(path)
+		b.WriteString("\n")
+		b.WriteString("    layer: ")
+		b.WriteString(testAgentIndexLayer(path))
+		b.WriteString("\n")
+		b.WriteString("    authority: ")
+		b.WriteString(testAgentIndexAuthority(path))
+		b.WriteString("\n")
+		b.WriteString("    mutability: ")
+		b.WriteString(testAgentIndexMutability(path))
+		b.WriteString("\n")
+		b.WriteString("    owner: governance\n")
+		b.WriteString("    validator: command-registry\n")
+		b.WriteString("    purpose: fixture\n")
+	}
+	return b.String()
+}
+
+func testAgentIndexLayer(path string) string {
+	switch {
+	case strings.Contains(path, "evidence"):
+		return "evidence"
+	case strings.HasPrefix(path, ".agent/rules/"):
+		return "policy"
+	case path == ".agent/command-registry.yaml" ||
+		path == ".agent/index.yaml" ||
+		path == ".agent/issue-registry.yaml" ||
+		path == ".agent/command-implementation-status.yaml" ||
+		path == ".agent/generated-artifacts.yaml" ||
+		path == ".agent/makefile-target-registry.yaml" ||
+		path == ".agent/makefile-baseline.yaml":
+		return "registry"
+	case path == ".agent/harness.yaml" || path == ".agent/release-required-gates.yaml":
+		return "machine_contract"
+	case path == ".agent/runtime-file-ownership.yaml" ||
+		path == ".agent/execution-context.yaml" ||
+		path == ".agent/policy-schema.yaml":
+		return "policy"
+	case path == ".agent/traceability-matrix.md" ||
+		path == ".agent/risk-register.md" ||
+		path == ".agent/decision-log.md":
+		return "traceability"
+	case path == ".agent/retrospective.md":
+		return "archive"
+	case path == ".agent/release-template.md" || path == ".agent/agent-teams.md":
+		return "documentation"
+	default:
+		return "runtime_contract"
+	}
+}
+
+func testAgentIndexAuthority(path string) string {
+	switch path {
+	case ".agent/rules/registry.yaml", ".agent/rules/agent-runtime-rules.md", ".agent/rules/core-rules.md", ".agent/rules/schema-registry-rules.md":
+		return "validated_mirror"
+	default:
+		return "source_of_truth"
+	}
+}
+
+func testAgentIndexMutability(path string) string {
+	switch path {
+	case ".agent/rules/registry.yaml", ".agent/rules/agent-runtime-rules.md", ".agent/rules/core-rules.md", ".agent/rules/schema-registry-rules.md":
+		return "generated"
+	default:
+		return "hand_written"
+	}
+}
+
+func validGeneratedArtifactsFixture() string {
+	return `schema_version: "1.0"
+classification:
+  artifact_class: generated_artifact_inventory
+  authority: source_of_truth
+  validated_by: release-evidence-check
+artifacts:
+  - path: release/manifest/latest.json
+    classification: generated_artifact
+    source_control: generated-only
+    generated_by: "GOWORK=off make evidence"
+    validated_by: release-evidence-check
+  - path: release/manifest/latest.json.sha256
+    classification: generated_artifact
+    source_control: generated-only
+    generated_by: "GOWORK=off make evidence"
+    validated_by: release-evidence-check
+  - path: .agent/rules/registry.yaml
+    classification: validated_mirror
+    source_control: generated-only
+    generated_by: "goalcli rules-verify"
+    validated_by: command-registry
+  - path: .agent/rules/agent-runtime-rules.md
+    classification: validated_mirror
+    source_control: generated-only
+    generated_by: "goalcli rules-verify"
+    validated_by: command-registry
+  - path: .agent/rules/core-rules.md
+    classification: validated_mirror
+    source_control: generated-only
+    generated_by: "goalcli rules-verify"
+    validated_by: command-registry
+  - path: .agent/rules/schema-registry-rules.md
+    classification: validated_mirror
+    source_control: generated-only
+    generated_by: "goalcli rules-verify"
+    validated_by: command-registry
+`
+}
+
+func validHarnessAliasFixture() string {
+	return `schema_version: "2.9.3"
+required_gates:
+  - id: governance_check
+    command: "GOWORK=off make governance-check"
+    purpose: "fixture"
+  - id: p1_governance_check
+    command: "GOWORK=off make p1-governance-check"
+    purpose: "fixture"
+  - id: p2_runtime_check
+    command: "GOWORK=off make p2-runtime-check"
+    purpose: "fixture"
+  - id: governance_chain
+    command: "GOWORK=off make governance-check"
+    purpose: "fixture"
+    alias_of: governance_check
+    semantic_role: "fixture"
+  - id: p1_governance_chain
+    command: "GOWORK=off make p1-governance-check"
+    purpose: "fixture"
+    alias_of: p1_governance_check
+    semantic_role: "fixture"
+  - id: p2_runtime_chain
+    command: "GOWORK=off make p2-runtime-check"
+    purpose: "fixture"
+    alias_of: p2_runtime_check
+    semantic_role: "fixture"
+  - id: governance_release_scope
+    command: "GOWORK=off make governance-check"
+    purpose: "fixture"
+    alias_of: governance_check
+    semantic_role: "fixture"
+  - id: p1_governance_release_scope
+    command: "GOWORK=off make p1-governance-check"
+    purpose: "fixture"
+    alias_of: p1_governance_check
+    semantic_role: "fixture"
+  - id: p2_runtime_release_scope
+    command: "GOWORK=off make p2-runtime-check"
+    purpose: "fixture"
+    alias_of: p2_runtime_check
+    semantic_role: "fixture"
+gate_link_semantics:
+  duplicate_command_links: aliases
+  duplicate_entries_do_not_create_new_authorities: true
+  authority_source: required_gates[].id
+`
+}
+
+func validRulesRegistryFixture(enforcedBy string) string {
+	return `generated_from: .worktree/goal-patch.md
+rules:
+  - id: RULE-TEST-001
+    status: active
+    enforced_by: ` + enforcedBy + `
+  - id: RULE-TEST-002
+    status: indexed
+`
 }
 
 func issueRegistryFixture(ids ...string) string {
@@ -1809,6 +3048,15 @@ func issueRegistryFixture(ids ...string) string {
 func gapsContainSubstring(gaps []string, want string) bool {
 	for _, gap := range gaps {
 		if strings.Contains(gap, want) {
+			return true
+		}
+	}
+	return false
+}
+
+func detailsContainSubstring(details []string, want string) bool {
+	for _, detail := range details {
+		if strings.Contains(detail, want) {
 			return true
 		}
 	}
@@ -2057,4 +3305,67 @@ func TestRulesConsistencyCheckDetectsDriftAndUnregistered(t *testing.T) {
 	if !strings.Contains(out, "漂移：") {
 		t.Errorf("want drift gap; stdout=%q", out)
 	}
+}
+
+func TestRulesConsistencyCheckValidatesEnforcedByReferences(t *testing.T) {
+	writeFixture := func(t *testing.T, root string, registry string) {
+		t.Helper()
+		canonical := "## 1. 八条铁律\n| ID | 铁律 | 实现 |\n|---|---|---|\n" +
+			"| RULE-CORE-001 | x | y |\n\n## 2. 其他\n"
+		iron := "## 七律\n1. (RULE-CORE-001).\n"
+		writeTestFiles(t, root, map[string]string{
+			".agent/standard/goal-runtime-canonical.md": canonical,
+			".agent/rules/iron-rules.md":                iron,
+			".agent/rules/registry.yaml":                registry,
+			".agent/makefile-target-registry.yaml":      "targets:\n  - governance-check\n",
+			".githooks/pre-commit":                      "#!/bin/sh\n",
+		})
+	}
+
+	t.Run("accepts canonical goalcli make and hook enforcers", func(t *testing.T) {
+		root := t.TempDir()
+		writeFixture(t, root, "rules:\n"+
+			"  - id: RULE-CORE-001\n    enforced_by: goalcli evidence-check\n"+
+			"  - id: RULE-EVIDENCE-001\n    enforced_by: make governance-check\n"+
+			"  - id: RULE-MERGE-001\n    enforced_by: .githooks/pre-commit\n")
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		got := runRulesConsistencyCheck(nil, &stdout, &stderr)
+		if got != 0 {
+			t.Fatalf("got exit=%d stderr=%q stdout=%q; want 0", got, stderr.String(), stdout.String())
+		}
+	})
+
+	t.Run("rejects unknown goalcli enforcer", func(t *testing.T) {
+		root := t.TempDir()
+		writeFixture(t, root, "rules:\n"+
+			"  - id: RULE-CORE-001\n    enforced_by: goalcli ghost-command\n")
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		got := runRulesConsistencyCheck(nil, &stdout, &stderr)
+		if got != 1 {
+			t.Fatalf("got exit=%d stderr=%q stdout=%q; want 1", got, stderr.String(), stdout.String())
+		}
+		if !strings.Contains(stdout.String(), ".agent/rules/registry.yaml enforced_by goalcli ghost-command references unknown goalcli command ghost-command") {
+			t.Fatalf("stdout = %q; want unknown goalcli enforcer gap", stdout.String())
+		}
+	})
+
+	t.Run("rejects unknown make enforcer target", func(t *testing.T) {
+		root := t.TempDir()
+		writeFixture(t, root, "rules:\n"+
+			"  - id: RULE-CORE-001\n    enforced_by: make missing-target\n")
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		got := runRulesConsistencyCheck(nil, &stdout, &stderr)
+		if got != 1 {
+			t.Fatalf("got exit=%d stderr=%q stdout=%q; want 1", got, stderr.String(), stdout.String())
+		}
+		if !strings.Contains(stdout.String(), ".agent/rules/registry.yaml enforced_by make missing-target references unknown make target missing-target") {
+			t.Fatalf("stdout = %q; want unknown make enforcer gap", stdout.String())
+		}
+	})
 }

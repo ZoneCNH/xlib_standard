@@ -14,7 +14,7 @@
   2 - registry.yaml 解析失败
 
 用法:
-  python3 scripts/verify_rules.py
+  goalcli rules-verify
 """
 from __future__ import annotations
 

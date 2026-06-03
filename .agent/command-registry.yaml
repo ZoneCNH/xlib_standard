@@ -52,36 +52,24 @@ commands:
   - name: makefile-baseline
     phase: P0
     target: makefile-baseline
+  - name: audit-goal
+    phase: P0
+    target: audit-goal
+  - name: dashboard-generate
+    phase: P0
+    target: dashboard-generate
+  - name: traceability-check
+    phase: P0
+    target: traceability-check
   - name: boundary
     phase: P0
     target: boundary
-  - name: architecture
-    phase: P0
-    target: architecture
-  - name: domain
-    phase: P0
-    target: domain
-  - name: docs-drift
-    phase: P0
-    target: docs-drift
-  - name: dependency-debt
-    phase: P0
-    target: dependency-debt
-  - name: testing-debt
-    phase: P0
-    target: testing-debt
-  - name: implementation-debt
-    phase: P0
-    target: implementation-debt
-  - name: security-debt
-    phase: P0
-    target: security-debt
-  - name: debt
-    phase: P0
-    target: debt
   - name: contracts
     phase: P0
     target: contracts
+  - name: schema-check
+    phase: P0
+    target: schema-check
   - name: dependency-check
     phase: P0
     target: dependency-check
@@ -115,6 +103,9 @@ commands:
   - name: downstream-debt
     phase: P0
     target: downstream-debt
+  - name: downstream-sync-plan
+    phase: P0
+    target: downstream-sync-plan
   - name: debt-evidence
     phase: P0
     target: debt-evidence

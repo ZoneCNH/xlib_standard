@@ -73,6 +73,7 @@ debt-evidence-hash:
 debt-evidence-checksum-check:
 	$(GOALCLI) debt-evidence-checksum-check
 
+.PHONY: secret-check
 .PHONY: security
 
 architecture:
@@ -99,6 +100,10 @@ security-debt:
 downstream-debt:
 	$(GOALCLI) downstream-debt
 
+.PHONY: downstream-sync-plan
+downstream-sync-plan: standard-impact-check
+	$(GOALCLI) downstream-sync-plan
+
 debt:
 	$(GOALCLI) debt --config .agent/debt/rules.yaml --exceptions .agent/debt/exceptions.yaml --dependency-purpose .agent/debt/dependency-purpose.yaml --mode enforce --min-score 9.8
 
@@ -114,6 +119,9 @@ debt-patch-suggest:
 
 debt-lifecycle-check:
 	$(GOALCLI) debt lifecycle-check
+
+secret-check:
+	$(GOALCLI) secret-check
 
 security:
 	$(GOALCLI) security
@@ -203,6 +211,14 @@ command-registry:
 makefile-baseline:
 	$(GOALCLI) makefile-baseline
 
+.PHONY: audit-goal
+audit-goal:
+	$(GOALCLI) audit-goal
+
+.PHONY: dashboard-generate
+dashboard-generate:
+	$(GOALCLI) dashboard-generate
+
 .PHONY: agent-team-contract scope-lock pr-template acceptance-matrix runtime-health upgrade-standard conformance-profile downstream-registry self-healing-skeleton goal-runtime github-governance supply-chain changelog governance-fixture-test autoresearch policy-schema github-settings toolchain evidence-artifacts naming
 agent-team-contract scope-lock pr-template acceptance-matrix runtime-health upgrade-standard conformance-profile downstream-registry self-healing-skeleton goal-runtime github-governance supply-chain changelog governance-fixture-test autoresearch policy-schema github-settings toolchain evidence-artifacts naming:
 	$(GOALCLI) $@ --dry-run --verify
@@ -245,7 +261,7 @@ traceability-check:
 	$(GOALCLI) traceability-check
 
 .PHONY: governance-check
-governance-check: require-gowork-off main-guard worktree-guard evidence-check boundary architecture domain security security-debt contracts docs-check cli-contract issue-registry command-registry makefile-baseline rules-consistency-check debt traceability-check
+governance-check: require-gowork-off main-guard worktree-guard evidence-check boundary architecture domain security security-debt contracts docs-check cli-contract issue-registry command-registry makefile-baseline audit-goal rules-consistency-check debt traceability-check
 
 .PHONY: rules-consistency-check
 rules-consistency-check:
@@ -268,6 +284,10 @@ context-profile-check:
 .PHONY: context-schema-check
 context-schema-check:
 	$(GOALCLI) context-schema-check
+
+.PHONY: schema-check
+schema-check:
+	$(GOALCLI) schema validate --all --report reports/schema-check.json
 
 .PHONY: context-lite
 context-lite: require-gowork-off governance-check
@@ -295,7 +315,7 @@ context-standard-check: context-standard
 context-full-check: context-full
 
 .PHONY: ci
-ci: doctor-hooks-local fmt vet lint test race boundary architecture domain security security-debt contracts governance-check debt score rules-verify
+ci: doctor-hooks-local fmt vet lint test race boundary architecture domain secret-check security security-debt contracts governance-check debt score rules-verify
 
 .PHONY: ci-extended
 ci-extended: ci property golden fuzz-smoke docs-drift

@@ -24,13 +24,16 @@
 - `spec-check`
 - `design-check`
 - `task-check`
-- `pr-check`
+- `pr-check --context local_write|local_readonly|ci_pull_request|ci_main_verify|release_verify`
 - `evidence-check`
 - `done-assertion`
 - `cli-contract`
 - `issue-registry`
 - `command-registry`
 - `makefile-baseline`
+- `audit-goal`
+- `dashboard-generate`
+- `traceability-check [--matrix .agent/traceability-matrix.md] [--json]`
 - `context-profile`
 - `context-profile-check`
 - `context-schema-check`
@@ -55,6 +58,7 @@
 - `secrets`
 - `security`
 - `standard-impact-check`
+- `downstream-sync-plan`
 - `debt`
 - `architecture`
 - `domain`
@@ -67,6 +71,12 @@
 - `debt-evidence`
 - `debt-evidence-checksum-check`
 - `debt-evidence-hash`
+
+## 下游同步计划命令
+
+`goalcli downstream-sync-plan [--impact-report <path>] [--output <path>|-] [--workspace-root <path>] [--format markdown|json]` 读取 `release/standard-impact/latest.md` 的同步判定，默认生成 `release/downstream-sync/latest.md`，并在 stdout 输出符合 `contracts/goalcli-report.schema.json` 的 JSON report。传入 `--output -` 时才把 markdown/json 计划写入 stdout。
+
+该命令只生成本地同步计划和命令清单，不修改 downstream 仓库，不更新 `.agent/downstream-adoption-status.yaml` 或 `.agent/truth-state.yaml`，不得作为 proof-based adoption。计划必须列出 `kernel`、L1、L2 和 `x.go` 的 blocked/not_required 结论，并保留 `adoption_claim=not_claimed`。
 
 ## P1 commands
 
@@ -116,11 +126,23 @@
 
 Goalcli MVA commands（`goal-acceptance`、`goal-delivery`、`goal-handover`、`goal-downstream-adoption`、`goal-certify` 和 `goal-runtime-final`）用于证明 `goalcli v0.1.0` 的 G12-G16 evidence contracts，并且只在 goalcli MVA evidence scope 内是 blocking gate。它们不会创建第二套并列 goalcli 执行面，也不会修改 downstream 仓库。source authority 是 `cmd/goalcli` 执行面和 `.agent/evidence/ledger.jsonl`；`release/evidence/goalcli/` 下的 generated packs 只是派生产物。root goalcli plan 仍是 roadmap authority，完成证据来自同一 `GOAL_ID` 下已调和的 source ledger 和 final report。
 
+## Goal audit command
+
+`goalcli audit-goal [--matrix .agent/traceability-matrix.md] [--json]` 是本地只读聚合审计入口，用于一次性验证 goal、REQ、task、issue、evidence 与 release readiness 的关键链路。它复用 `context-check`、`spec-check`、`design-check`、`task-check`、`evidence-check`、`cli-contract`、`issue-registry`、`command-registry`、`makefile-baseline` 和 `traceability-check`，并以 `--dry-run --verify` 调用 `goal-acceptance`、`goal-delivery`、`goal-handover`、`goal-downstream-adoption`、`goal-certify`、`goal-runtime-final`。
+
+该命令不传入 `--write-evidence`，不会写 `.agent/evidence/ledger.jsonl`，也不会修改 downstream 仓库。所有组件通过时返回 `0`；任一组件发现 gap 时返回 `1` 并在 `gaps` 中记录组件名、退出码和摘要；非法参数返回 `2`。
+
+## Goal dashboard command
+
+`goalcli dashboard-generate [--goal-id <id>] [--matrix .agent/traceability-matrix.md] [--format json|markdown]` 基于 `audit-goal` 的同一组本地只读 component checks 生成稳定 dashboard。默认输出 JSON，符合 `contracts/goalcli-dashboard.schema.json`；传入 `--format markdown` 时输出确定性的 Markdown 表格，便于人工审阅和 release handoff。
+
+该命令不包含时间戳、随机 ID 或外部状态字段，不传入 `--write-evidence`，不会写 `.agent/evidence/ledger.jsonl`，也不会修改 downstream 仓库。所有组件通过时返回 `0`；任一组件发现 gap 时返回 `1`，在 `components` 中保留组件顺序和状态，并在 `gaps` 中记录组件名、退出码和稳定摘要；非法参数或未知 format 返回 `2`。
+
 ## Debt governance commands
 
-Debt governance commands are P0 release-blocking gates. `goalcli debt` runs the full debt scanner, while `architecture`, `domain`, `docs-drift`, `dependency-debt`, `security-debt`, `testing-debt`, `implementation-debt`, and `downstream-debt` run focused slices of the same policy. The scanner reuses existing local scripts for boundary, docs, dependency diff, and secret checks; scanner failures return non-zero and cannot be treated as passed evidence.
+Debt governance commands 是 P0 release-blocking gates。`goalcli debt` 运行完整 debt scanner，`architecture`、`domain`、`docs-drift`、`dependency-debt`、`security-debt`、`testing-debt`、`implementation-debt` 和 `downstream-debt` 运行同一策略的聚焦切片。scanner 复用本地 boundary、docs、dependency diff 和 secret checks；scanner 失败必须返回非 0，不能作为 passed evidence。
 
-`goalcli debt-evidence` writes generated evidence to `release/debt/latest.json`, `release/debt/latest.md`, and `release/debt/latest.json.sha256`. These latest evidence files are reproducible release artifacts and are intentionally ignored by git. P0 debt rules are not exceptable: policy files under `.agent/debt/` must not introduce P0 exception markers, and release verification must fail if debt status is not `passed`.
+`goalcli debt-evidence` 将生成的 evidence 写入 `release/debt/latest.json`、`release/debt/latest.md` 和 `release/debt/latest.json.sha256`。这些 latest evidence 文件是可复现 release artifacts，并且故意被 git 忽略。P0 debt rules 不允许例外：`.agent/debt/` 下的 policy 文件不得引入 P0 exception markers，且 release verification 必须在 debt status 不是 `passed` 时失败。
 
 ## Goalcli v0.1.0 MVA runtime commands
 
@@ -146,6 +168,8 @@ goalcli MVA commands 是由 `.agent/harness.yaml` 背书的本地 `cmd/goalcli` 
 
 ## 语义校验
 
+`schema-check` 必须提供 `goalcli schema validate --all` 兼容入口并生成 `reports/schema-check.json`，用于校验 repo-local schema-bearing artifacts。
+
 `issue-registry` 不只是文件存在检查。它必须校验 `.agent/issue-registry.yaml` 中每个条目都具备非空 `title`、`command` 和 `evidence`，`status` 必须为 `implemented`，ID 必须匹配 `P0|P1|P2|CTX-###`、全局唯一，并且每个前缀从 `001` 连续编号。`context-profile-check` 复用该 registry 语义，不能用空文件或非连续 ID 作为通过证据。
 
 planned command 的 dry-run 也必须读取对应文件并检查语义 marker。当前强制 marker 包括：`agent-team-contract` 的 `schema_version:`、`roles:`、`rule:`；`acceptance-matrix` 的 `schema_version:`、`acceptance:`；`runtime-health` 的 `schema_version:`、`checks:`、`toolchain`；goalcli MVA 命令在 `.agent/harness.yaml` 中的 `goalcli_mva_gates:`、对应 `G12_ACCEPTANCE`/`G13_DELIVERY`/`G14_HANDOVER`/`G15_DOWNSTREAM_ADOPTION`/`G16_CERTIFY`/`G12_G16_FINAL` 与命令名；`execution-context` 的 `schema_version:`、`contexts:`、`local_write`、`ci_pull_request`、`release_verify`。这些命令不得退化为单纯路径存在检查。
@@ -157,6 +181,7 @@ Context Runtime v4.0 新增可叠加的 profile baseline，但不替换现有 P0
 - `context-profile --profile lite|standard|full|release`
 - `context-profile-check`
 - `context-schema-check`
+- `schema-check`
 - `context-lite`
 - `context-standard`
 - `context-full`

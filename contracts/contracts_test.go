@@ -102,12 +102,15 @@ func TestMetricsContractDocumentsPublicConstants(t *testing.T) {
 func TestGoalRuntimeSchemasAreValidJSON(t *testing.T) {
 	for _, path := range []string{
 		"goalcli-report.schema.json",
+		"goalcli-dashboard.schema.json",
 		"issue-registry.schema.json",
 		"command-registry.schema.json",
+		"layer-governance.schema.json",
 		"execution-context.schema.json",
 		"conformance-attestation.schema.json",
 		"policy.schema.json",
 		"execution-evidence.schema.json",
+		"downstream-adoption-proof.schema.json",
 	} {
 		t.Run(path, func(t *testing.T) {
 			content, err := os.ReadFile(path)
@@ -156,6 +159,25 @@ func TestExecutionEvidenceContractRequiredFields(t *testing.T) {
 	}
 	if got := schema.Properties["exit_code"].Type; got != "integer" {
 		t.Fatalf("exit_code type = %q, want integer", got)
+	}
+}
+
+func TestDownstreamAdoptionProofContractRequiredFields(t *testing.T) {
+	schema := readSchema(t, "downstream-adoption-proof.schema.json")
+	requireFields(t, schema.Required,
+		"schema_version",
+		"source_repo",
+		"source_commit",
+		"downstream_repo",
+		"downstream_commit",
+		"mode",
+		"gate_outputs",
+		"rollback",
+	)
+	mode := sortedStrings(schema.Properties["mode"].Enum...)
+	expectedMode := sortedStrings("patch-only", "dry-run", "pr-plan")
+	if !reflect.DeepEqual(mode, expectedMode) {
+		t.Fatalf("mode enum drift:\nactual:   %#v\nexpected: %#v", mode, expectedMode)
 	}
 }
 

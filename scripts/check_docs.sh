@@ -23,14 +23,19 @@ required_files=(
   "docs/standard/goalcli-cli-contract.md"
   "docs/standard/dod.md"
   "docs/standard/downstream-compatibility.md"
+  "docs/standard/layer-governance-rules.md"
   "docs/downstream-sync-policy.md"
+  "docs/private-business-consumer-guide.md"
+  "docs/adr/ADR-20260604-001-layer-governance.md"
   "docs/scorecard.md"
+  ".agent/layer-governance.yaml"
   ".agent/standard/goal-runtime-canonical.md"
   ".agent/standard/goalcli-mapping.md"
   ".agent/standard/audit-2026-06-03.md"
   ".agent/rules/iron-rules.md"
   ".agent/rules/registry.yaml"
   ".agent/rules/README.md"
+  "contracts/layer-governance.schema.json"
 )
 
 for file in "${required_files[@]}"; do
@@ -72,6 +77,40 @@ require_text "docs/standard/README.md" "release/manifest/latest.json"
 require_text "docs/standard/README.md" "release/manifest/latest.json.sha256"
 require_text "docs/standard/README.md" "FUZZ_SMOKE_TIME"
 require_text "docs/standard/README.md" "../downstream-sync-policy.md"
+require_text "docs/standard/README.md" "layer-governance-rules.md"
+require_text "docs/standard/layer-governance-rules.md" "xlib-standard"
+require_text "docs/standard/layer-governance-rules.md" 'L3 | `x.go`'
+require_text "docs/standard/layer-governance-rules.md" "L3 私有"
+require_text "docs/standard/layer-governance-rules.md" "natsx"
+require_text "docs/standard/layer-governance-rules.md" "GOPRIVATE"
+require_text "docs/standard/layer-governance-rules.md" "P0 没有临时例外"
+require_text "docs/standard/layer-governance-rules.md" "/home/k8s/secrets/env/*"
+require_text "docs/standard/layer-governance-rules.md" "owner"
+require_text "docs/standard/layer-governance-rules.md" "回滚方案"
+require_text "docs/downstream-matrix.md" '`natsx`'
+require_text ".agent/downstream-adoption-status.yaml" "name: natsx"
+require_text "docs/standard/downstream-compatibility.md" '`natsx`'
+require_text "docs/adr/ADR-20260604-001-layer-governance.md" "L3 私有"
+require_text "docs/adr/ADR-20260604-001-layer-governance.md" "docs-check"
+require_text ".agent/rule-patches.md" "ADR-20260604-001"
+require_text "docs/downstream-sync-policy.md" "private-business-consumer-guide.md"
+require_text "docs/private-business-consumer-guide.md" "L3 私有业务系统"
+require_text "docs/private-business-consumer-guide.md" "GOPRIVATE"
+require_text "docs/private-business-consumer-guide.md" "GONOSUMDB"
+require_text "docs/private-business-consumer-guide.md" "go list -m all"
+require_text "docs/private-business-consumer-guide.md" "go mod why -m"
+require_text "docs/private-business-consumer-guide.md" "go test ./..."
+require_text "docs/private-business-consumer-guide.md" "/home/k8s/secrets/env/*"
+require_text "docs/private-business-consumer-guide.md" "脱敏"
+require_text "docs/private-business-consumer-guide.md" "不得提交"
+require_text "docs/private-business-consumer-guide.md" "owner"
+require_text ".agent/layer-governance.yaml" "dependency_direction"
+require_text ".agent/layer-governance.yaml" "natsx"
+require_text ".agent/layer-governance.yaml" "market-data"
+require_text ".agent/layer-governance.yaml" "public_release"
+require_text "contracts/layer-governance.schema.json" "xlib-standard layer governance registry"
+require_text "contracts/layer-governance.schema.json" "L3>L2>L1>L0>Standard"
+require_text "cmd/goalcli/schema_check.go" ".agent/layer-governance.yaml"
 require_text "docs/downstream-sync-policy.md" "xlib-standard"
 require_text "docs/downstream-sync-policy.md" "kernel"
 require_text "docs/downstream-sync-policy.md" "corekit"
@@ -151,14 +190,47 @@ require_text "Makefile" '$(GOALCLI) release-evidence-checksum-check'
 require_text "scripts/run_fuzz_smoke.sh" 'fuzz_time="${FUZZ_SMOKE_TIME:-10s}"'
 require_text ".github/workflows/ci.yml" "make release-check"
 require_text ".github/workflows/ci.yml" "release/manifest/latest.json.sha256"
+require_text ".github/workflows/ci.yml" 'XLIB_ENABLE_VULNCHECK: ${{ vars.XLIB_ENABLE_VULNCHECK }}'
+require_text ".github/workflows/ci.yml" "env.XLIB_ENABLE_VULNCHECK == '1'"
 require_text ".github/workflows/release.yml" "make release-final-check"
 require_text ".github/workflows/release.yml" "release/manifest/latest.json.sha256"
 require_text ".github/workflows/release.yml" "ARTIFACT_URL"
+require_text ".github/workflows/release.yml" 'XLIB_ENABLE_VULNCHECK: ${{ vars.XLIB_ENABLE_VULNCHECK }}'
+require_text ".github/workflows/release.yml" "env.XLIB_ENABLE_VULNCHECK == '1'"
 require_text ".github/workflows/release.yml" "contents: write"
 require_text ".github/workflows/release.yml" "gh release create"
 require_text ".github/workflows/release.yml" "gh release edit"
 require_text ".github/workflows/release.yml" "gh release view"
 require_text ".github/workflows/release.yml" "--verify-tag"
+require_text ".github/workflows/security.yml" 'XLIB_ENABLE_VULNCHECK: ${{ vars.XLIB_ENABLE_VULNCHECK }}'
+require_text ".github/workflows/security.yml" "env.XLIB_ENABLE_VULNCHECK == '1'"
+require_text ".github/workflows/release-auto-patch.yml" "branches: [main]"
+require_text ".github/workflows/release-auto-patch.yml" "contents: write"
+require_text ".github/workflows/release-auto-patch.yml" "fetch-depth: 0"
+require_text ".github/workflows/release-auto-patch.yml" "release-auto-patch-main"
+require_text ".github/workflows/release-auto-patch.yml" 'XLIB_ENABLE_VULNCHECK: ${{ vars.XLIB_ENABLE_VULNCHECK }}'
+require_text ".github/workflows/release-auto-patch.yml" "env.XLIB_ENABLE_VULNCHECK == '1'"
+require_text ".github/workflows/release-auto-patch.yml" "git tag --points-at"
+require_text ".github/workflows/release-auto-patch.yml" "already_released=true"
+require_text ".github/workflows/release-auto-patch.yml" "git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname"
+require_text ".github/workflows/release-auto-patch.yml" 'next_patch=$((patch + 1))'
+require_text ".github/workflows/release-auto-patch.yml" "GOWORK=off make release-final-check"
+require_text ".github/workflows/release-auto-patch.yml" "git tag -a"
+require_text ".github/workflows/release-auto-patch.yml" 'git push origin "refs/tags/${RELEASE_TAG}"'
+require_text ".github/workflows/release-auto-patch.yml" "gh release create"
+require_text ".github/workflows/release-auto-patch.yml" "gh release edit"
+require_text ".github/workflows/release-auto-patch.yml" "gh release view"
+require_text ".github/workflows/release-auto-patch.yml" "--verify-tag"
+require_text ".github/workflows/release-auto-patch.yml" ".url | length > 0"
+require_text ".github/workflows/release-auto-patch.yml" "govulncheck@v1.3.0"
+require_text "docs/release.md" ".github/workflows/release-auto-patch.yml"
+require_text "docs/release.md" "vX.Y.(Z+1)"
+require_text "docs/release.md" "GOWORK=off make release-final-check"
+require_text "docs/release.md" "already_released=true"
+require_text "docs/release.md" "release-auto-patch-main"
+require_text "docs/standard/release-standard.md" ".github/workflows/release-auto-patch.yml"
+require_text "docs/standard/release-standard.md" "vX.Y.(Z+1)"
+require_text "docs/standard/release-standard.md" "already_released=true"
 require_text ".github/workflows/ci.yml" "ARTIFACT_URL"
 
 
@@ -289,6 +361,14 @@ requirements = {
         "baselib-template",
         "Standard 规则的独立来源",
         "Go 基础库模板中的实现仓库",
+    ],
+    "docs/standard/layer-governance-rules.md": [
+        "xlib-standard",
+        "kernel",
+        "natsx",
+        "L3 私有",
+        "GOPRIVATE",
+        "P0 没有临时例外",
     ],
     "docs/standard/module-boundary.md": [
         "xlib-standard",

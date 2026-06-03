@@ -116,6 +116,7 @@ Goal 或 Release 级完成声明必须覆盖以下字段，缺失项要写入 `k
 - 禁止把 skipped required gate 记录为 passed。
 - 禁止在 dirty workspace 下宣称 release-final ready。
 - 禁止删除失败 Evidence。
+- 禁止把 `goal-downstream-adoption`、`goal-runtime-final` 或 downstream sync plan 中的本地 Evidence 解读为真实 downstream 仓库已采用、已发布或 proof-based adoption；没有外部 downstream 仓库 Evidence 时，必须保留 `adoption_claim=not_claimed`、`downstream_adoption_scope=local_contract_only`、`proof_based_adoption=false`、`downstream_repo_write=false`。
 
 ## 失败 Evidence
 

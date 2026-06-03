@@ -26,7 +26,7 @@
 - `make test`：运行全部单元测试（覆盖 `pkg/`、`internal/`、`contracts/`、`testkit/`、`examples/`）。
 - `make race`：使用 race detector 运行测试。
 - `make lint`：执行 `golangci-lint run ./...`；缺少 `golangci-lint` 时必须失败。
-- `make security`：执行 `govulncheck ./...` 和 `scripts/check_secrets.sh`；缺少 `govulncheck` 时必须失败。
+- `make security`：委托 `goalcli security` 编排漏洞扫描和密钥扫描；缺少 `govulncheck` 时必须失败。
 
 ### 运行单个测试
 
@@ -58,7 +58,7 @@ go test ./... -run 'Test.*Golden|Test.*Snapshot'       # golden 测试
 ```bash
 GOWORK=off make release-check
 XLIB_CONTEXT=release_verify GOWORK=off make release-final-check
-XLIB_CONTEXT=release_verify GOWORK=off make release-preflight VERSION=v0.4.6
+XLIB_CONTEXT=release_verify GOWORK=off make release-preflight VERSION=v0.4.7
 make evidence                                    # 生成 release/manifest/latest.json
 ```
 

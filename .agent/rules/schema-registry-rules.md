@@ -216,7 +216,7 @@ Task 中必须包含：
 ```yaml
 files_to_change:
   - .agent/rules/07-worktree-rules.md
-  - scripts/harness/no-main-dev.sh
+  - cmd/goalcli/governance.go
   - Makefile
 ```
 

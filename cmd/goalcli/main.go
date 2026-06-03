@@ -17,6 +17,8 @@ func main() {
 
 var exit = os.Exit
 
+const enableVulncheckEnv = "XLIB_ENABLE_VULNCHECK"
+
 func run(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) int {
 	if len(args) == 0 {
 		write(stderr, usage)
@@ -53,12 +55,20 @@ func run(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) int
 		return runCommandRegistry(args[1:], stdout, stderr)
 	case "makefile-baseline":
 		return runMakefileBaseline(args[1:], stdout, stderr)
+	case "audit-goal":
+		return runAuditGoal(args[1:], stdout, stderr)
+	case "dashboard-generate":
+		return runDashboardGenerate(args[1:], stdout, stderr)
 	case "context-profile":
 		return runContextProfile(args[1:], stdout, stderr)
 	case "context-profile-check":
 		return runContextProfileCheck("context-profile-check", args[1:], stdout, stderr)
 	case "context-schema-check":
 		return runContextProfileCheck("context-schema-check", args[1:], stdout, stderr)
+	case "schema":
+		return runSchemaCommand(args[1:], stdout, stderr)
+	case "schema-check":
+		return runSchemaCheck(args[1:], stdout, stderr)
 	case "context-lite", "context-standard", "context-full", "context-release", "context-fast-check", "context-standard-check", "context-full-check":
 		return runContextProfileAlias(args[0], args[1:], stdout, stderr)
 	case "debt":
@@ -79,6 +89,8 @@ func run(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) int
 		return runDebtAlias("security", "warn", args[1:], stdout, stderr)
 	case "downstream-debt":
 		return runDebtAlias("downstream", "warn", args[1:], stdout, stderr)
+	case "downstream-sync-plan":
+		return runDownstreamSyncPlan(args[1:], stdout, stderr)
 	case "goal-acceptance", "goal-delivery", "goal-handover", "goal-downstream-adoption", "goal-certify", "goal-runtime-final":
 		return runGoalRuntimeCommand(args[0], args[1:], stdout, stderr)
 	case "minimal-kernel", "done-assertion", "agent-team-contract", "scope-lock", "pr-template", "acceptance-matrix", "runtime-health", "goal-runtime", "naming", "upgrade-standard", "conformance-profile", "downstream-registry", "self-healing-skeleton", "policy-schema", "github-settings", "toolchain", "evidence-artifacts", "install-runtime", "upgrade-runtime", "release-ready", "evidence-replay", "attest-conformance", "pack-standard", "pack-gate", "pack-evidence", "runtime-file-ownership", "downstream-baseline", "downstream-adoption", "autoresearch", "changelog", "github-governance", "governance-fixture-test", "supply-chain", "execution-context":
@@ -118,12 +130,13 @@ func run(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) int
 	case "score":
 		return runScore(args[1:], stdout, stderr)
 	case "secrets":
-		return runExternal(stdin, stdout, stderr, "./scripts/check_secrets.sh")
+		return runExternal(stdin, stdout, stderr, "./scripts/check_secrets.sh", args[1:]...)
+	case "secret-check":
+		return runExternal(stdin, stdout, stderr, "./scripts/check_secrets.sh", args[1:]...)
+	case "secret":
+		return runSecretCommand(args[1:], stdin, stdout, stderr)
 	case "security":
-		return runExternalSequence(stdin, stdout, stderr,
-			externalCommand{name: "govulncheck", args: []string{"./..."}},
-			externalCommand{name: "./scripts/check_secrets.sh"},
-		)
+		return runSecurity(stdin, stdout, stderr)
 	case "standard-impact-check":
 		return runExternal(stdin, stdout, stderr, "./scripts/check_standard_impact.sh")
 	case "self-improving-check", "retro-check":
@@ -135,6 +148,34 @@ func run(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) int
 		return 0
 	default:
 		write(stderr, "unknown command %q\n", args[0])
+		return 2
+	}
+}
+
+func runSecurity(stdin io.Reader, stdout io.Writer, stderr io.Writer) int {
+	if os.Getenv(enableVulncheckEnv) == "1" {
+		return runExternalSequence(stdin, stdout, stderr,
+			externalCommand{name: "govulncheck", args: []string{"./..."}},
+			externalCommand{name: "./scripts/check_secrets.sh"},
+		)
+	}
+	write(stderr, "security: govulncheck suspended; set %s=1 to run vulnerability scan\n", enableVulncheckEnv)
+	return runExternal(stdin, stdout, stderr, "./scripts/check_secrets.sh")
+}
+
+func runSecretCommand(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) int {
+	if len(args) == 0 {
+		write(stderr, "usage: goalcli secret check [root]\n")
+		return 2
+	}
+	switch args[0] {
+	case "check":
+		return runExternal(stdin, stdout, stderr, "./scripts/check_secrets.sh", args[1:]...)
+	case "help", "-h", "--help":
+		write(stdout, "usage: goalcli secret check [root]\n")
+		return 0
+	default:
+		write(stderr, "unknown secret command %q\n", args[0])
 		return 2
 	}
 }
@@ -209,6 +250,8 @@ commands:
   agent-team-contract [--dry-run]
   acceptance-matrix
   architecture [debt args]
+  audit-goal [--goal-id <id>] [--matrix .agent/traceability-matrix.md] [--json]
+  dashboard-generate [--goal-id <id>] [--matrix .agent/traceability-matrix.md] [--format json|markdown]
   attest-conformance [--profile <name>]
   autoresearch
   boundary
@@ -225,6 +268,8 @@ commands:
   context-profile-check [--json]
   context-release
   context-schema-check [--json]
+  schema validate --all|--fixture <dir> [--report <path>] [--json]
+  schema-check [--all|--fixture <dir>] [--report <path>] [--json]
   context-standard
   context-standard-check
   contracts
@@ -247,6 +292,7 @@ commands:
   downstream-baseline
   downstream-registry
   downstream-debt [debt args]
+  downstream-sync-plan [--impact-report <path>] [--output <path>|-] [--workspace-root <path>] [--format markdown|json]
   evidence
   evidence-artifacts
   evidence-check
@@ -291,7 +337,9 @@ commands:
   runtime-health
   scope-lock
   score [--min <score>]
-  secrets
+  secret check [root]
+  secret-check [root]
+  secrets [root]
   security
   security-debt [debt args]
   self-improving-check [--root <path>] [--strict]

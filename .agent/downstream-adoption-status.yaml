@@ -23,6 +23,20 @@ current_registry:
     proof_based_adoption: false
     evidence_state: registry_gap_only
 
+proof_contract:
+  schema: contracts/downstream-adoption-proof.schema.json
+  current_proof: absent_gap
+  required_fields:
+    - source_repo
+    - source_commit
+    - downstream_repo
+    - downstream_commit
+    - mode
+    - gate_outputs
+    - rollback
+  gate_outputs: "Each blocking downstream command must include command, status, artifact_path, and sha256."
+  rollback: "Proof must document rollback strategy, owner, and commands before adoption can be called proof-based."
+
 standard_target_libraries:
   - name: kernel
     registry_state: standard_target_declared
@@ -52,6 +66,10 @@ standard_target_libraries:
     registry_state: standard_target_declared
     adoption_status: not_adopted
     evidence_state: not_run
+  - name: natsx
+    registry_state: standard_target_declared
+    adoption_status: not_adopted
+    evidence_state: not_run
   - name: taosx
     registry_state: standard_target_declared
     adoption_status: not_adopted
@@ -76,3 +94,5 @@ forbidden_upgrades:
   - "baseline_scanned != adopted"
   - "patch_only != proof_based_adoption"
   - "standard_target_declared != downstream implemented"
+  - "proof_contract_absent != adopted"
+  - "gate_outputs_missing != proof_based_adoption"

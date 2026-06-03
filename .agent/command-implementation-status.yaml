@@ -23,14 +23,23 @@ groups:
       - minimal-kernel
       - main-guard
       - worktree-guard
+      - worktree-check
+      - context-check
+      - spec-check
+      - design-check
+      - task-check
+      - pr-check
       - evidence-check
       - done-assertion
       - cli-contract
       - issue-registry
       - command-registry
       - makefile-baseline
+      - audit-goal
+      - traceability-check
       - boundary
       - contracts
+      - schema-check
       - dependency-check
       - docs-check
       - debt
@@ -42,6 +51,7 @@ groups:
       - testing-debt
       - implementation-debt
       - downstream-debt
+      - downstream-sync-plan
       - debt-evidence
       - debt-evidence-checksum-check
       - debt-evidence-hash
