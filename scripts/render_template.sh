@@ -111,6 +111,26 @@ out_dir="$out_abs"
   tar -xf -
 )
 
+# Raw inbox archives are intentionally omitted from rendered downstream repos.
+# Keep the rendered control-plane index aligned with that reduced file set.
+index_path="$out_dir/.agent/index.yaml"
+if [[ -f "$index_path" ]]; then
+  awk '
+    /^  - path: \.agent\/inbox\// {
+      skip = 1
+      next
+    }
+    skip && /^    / {
+      next
+    }
+    {
+      skip = 0
+      print
+    }
+  ' "$index_path" > "$index_path.tmp"
+  mv "$index_path.tmp" "$index_path"
+fi
+
 if [[ "$package_name" != "templatex" ]]; then
   mkdir -p "$out_dir/pkg"
   mv "$out_dir/pkg/templatex" "$out_dir/pkg/$package_name"
