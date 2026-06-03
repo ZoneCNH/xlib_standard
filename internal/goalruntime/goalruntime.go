@@ -43,8 +43,6 @@ var gateDescriptions = map[string]string{
 }
 
 var requiredAuthorityPaths = []string{
-	".worktree/goalkit-v0.1.0-plan.md",
-	".omx/context/goalkit-v0.1.0-team-20260603T005302Z.md",
 	"docs/standard/xlibgate-cli-contract.md",
 	".agent/harness.yaml",
 	".agent/command-registry.yaml",

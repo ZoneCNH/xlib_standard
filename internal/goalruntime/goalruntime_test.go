@@ -71,8 +71,8 @@ func TestEvaluateReportsMissingAuthorityPaths(t *testing.T) {
 	if len(report.Gaps) == 0 {
 		t.Fatalf("gaps is empty; want missing authority paths")
 	}
-	if !containsSubstring(report.Gaps, ".worktree/goalkit-v0.1.0-plan.md") {
-		t.Fatalf("gaps = %#v; want root plan gap", report.Gaps)
+	if !containsSubstring(report.Gaps, "docs/standard/xlibgate-cli-contract.md") {
+		t.Fatalf("gaps = %#v; want authority path gap", report.Gaps)
 	}
 	if report.MVAStatus != "not-complete" {
 		t.Fatalf("mva_status = %q; want not-complete when authority is missing", report.MVAStatus)
@@ -185,8 +185,6 @@ func TestWriteEvidenceRejectsIncompleteReport(t *testing.T) {
 func writeAuthorityFixture(t *testing.T, root string) {
 	t.Helper()
 	for _, path := range []string{
-		".worktree/goalkit-v0.1.0-plan.md",
-		".omx/context/goalkit-v0.1.0-team-20260603T005302Z.md",
 		"docs/standard/xlibgate-cli-contract.md",
 		".agent/harness.yaml",
 		".agent/command-registry.yaml",
