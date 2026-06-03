@@ -932,10 +932,11 @@ files:
     owner: release
     validator: upgrade-runtime
     purpose: 标准升级说明。
-  - path: .agent/registries/physical-migration-manifest.yaml
-    layer: registry
+
+  - path: .agent/physical-migration-manifest.yaml
+    layer: policy
     authority: source_of_truth
     mutability: hand_written
     owner: governance
-    validator: command-registry
-    purpose: .agent 物理迁移兼容别名清单。
+    validator: governance-check
+    purpose: Issue 59 Phase 3 .agent 物理分类迁移清单、路径引用扫描与兼容例外。
