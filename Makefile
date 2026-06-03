@@ -246,8 +246,12 @@ goal-certify: require-gowork-off
 goal-runtime-final: require-gowork-off goal-acceptance goal-delivery goal-handover goal-downstream-adoption goal-certify
 	$(XLIBGATE) $@ --goal-id "$(GOAL_ID)" --mode "$(GOAL_RUNTIME_MODE)" --json --write-evidence
 
+.PHONY: traceability-check
+traceability-check:
+	$(XLIBGATE) traceability-check
+
 .PHONY: governance-check
-governance-check: require-gowork-off main-guard worktree-guard evidence-check boundary architecture domain security security-debt contracts docs-check cli-contract issue-registry command-registry makefile-baseline rules-consistency-check debt
+governance-check: require-gowork-off main-guard worktree-guard evidence-check boundary architecture domain security security-debt contracts docs-check cli-contract issue-registry command-registry makefile-baseline rules-consistency-check debt traceability-check
 
 .PHONY: rules-consistency-check
 rules-consistency-check:
