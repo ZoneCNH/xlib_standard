@@ -82,7 +82,7 @@ Generator gate 必须证明模板能生成代表性下游，而不是只证明 `
 
 Secret Gate 必须确认源码、README、测试日志、release manifest、PR 描述和 Evidence 不包含 `/home/k8s/secrets/env/*` 的真实内容。该路径只能在文档中作为调用方部署路径名出现。
 
-Secret scan 会排除 `.git`、`.omc`、`.omx` 和 `vendor` 等本地或第三方目录，避免把 Agent runtime 或 vendored 依赖误判为源码凭据；这些目录一旦内容进入 git 历史、manifest、PR、Issue 或日志，仍按 secret leak 处理。
+Secret scan 会排除 `.git`、`.omc`、`.omx`、`.worktree` 和 `vendor` 等本地或第三方目录，避免把 Agent runtime、OMX/team 临时工作区或 vendored 依赖误判为源码凭据；这些目录一旦内容进入 git 历史、manifest、PR、Issue 或日志，仍按 secret leak 处理。
 
 ## Workflow Supply Chain Gate
 

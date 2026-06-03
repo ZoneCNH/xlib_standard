@@ -320,11 +320,13 @@ goalcli retro generate    goalcli patch propose
 
 ## Makefile Gate 最小集合
 
-```makefile
-make worktree-check    make goal-check      make context-check
-make spec-check        make design-check    make task-check
-make issue-check       make pr-check        make evidence-check
-make release-check     make retro-check     make ci
+```text
+goalcli worktree-check --context local_write
+make goal-check        make context-check   make spec-check
+make design-check      make task-check      make issue-check
+goalcli pr-check --context ci_pull_request
+make evidence-check    make release-check   make retro-check
+make ci
 ```
 
 ---
@@ -368,7 +370,7 @@ make release-check     make retro-check     make ci
 [ ] main 禁止开发
 [ ] main 禁止直接 push
 [ ] 每个 Task 使用独立 worktree
-[ ] make worktree-check 通过
+[ ] goalcli worktree-check --context local_write 通过
 ```
 
 ### PR 验收
@@ -416,7 +418,7 @@ make release-check     make retro-check     make ci
 .agent/harness/gates/release-gate.yaml
 .agent/harness/gates/retro-gate.yaml
 
-scripts/harness/no-main-dev.sh
+goalcli worktree-check --context local_write
 .githooks/pre-commit
 .githooks/pre-push
 .github/workflows/worktree-guard.yml

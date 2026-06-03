@@ -202,7 +202,7 @@
 ### 安全
 
 - 添加 Secret Gate。
-- `make security` 强制运行 `govulncheck ./...` 和密钥扫描；缺少 `govulncheck` 时必须失败。
+- `make security` 强制委托 `goalcli security` 运行漏洞扫描和密钥扫描；缺少 `govulncheck` 时必须失败。
 - 配置脱敏规则覆盖 release Evidence 和日志可见内容。
 - Boundary Gate 同时拦截 `github.com/bytechainx/x.go` 和 `github.com/ZoneCNH/x.go`。
 

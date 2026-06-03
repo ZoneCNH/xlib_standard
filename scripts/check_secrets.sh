@@ -24,6 +24,7 @@ for pattern in "${PATTERNS[@]}"; do
     --exclude-dir=.git \
     --exclude-dir=.omc \
     --exclude-dir=.omx \
+    --exclude-dir=.worktree \
     --exclude-dir=vendor \
     --exclude-dir=inbox \
     --exclude="*.sum" \

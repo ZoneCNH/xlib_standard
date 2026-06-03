@@ -86,7 +86,7 @@ fuzz-smoke
 
 GitHub Actions workflow 引用的第三方 Action 必须固定为 40 位 commit SHA，并用注释保留来源 tag 供审计。CI、Release Check 和 Security workflow 安装 `govulncheck` 时必须使用固定版本；当前基线是 `golang.org/x/vuln/cmd/govulncheck@v1.3.0`，不得在发布门禁中使用 `@latest`。
 
-`make security` 必须同时运行 `govulncheck ./...` 和 `scripts/check_secrets.sh`；不得把漏洞扫描降级为可选检查。
+`make security` 必须委托 `goalcli security` 同时运行漏洞扫描和密钥扫描；不得把漏洞扫描降级为可选检查。
 
 ## Evidence
 

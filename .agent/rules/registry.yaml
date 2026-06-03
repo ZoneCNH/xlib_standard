@@ -542,7 +542,7 @@ rules:
     source_section: 41
     source_section_title: "Merge 规则"
     source_line: 2043
-    enforced_by: "make pr-check"
+    enforced_by: "goalcli pr-check --context ci_pull_request"
     exit_code: 1
     status: active
   - id: RULE-MERGE-002
@@ -551,7 +551,7 @@ rules:
     source_section: 41
     source_section_title: "Merge 规则"
     source_line: 2059
-    enforced_by: "make pr-check"
+    enforced_by: "goalcli pr-check --context ci_pull_request"
     exit_code: 1
     status: active
   - id: RULE-PR-001
@@ -614,7 +614,7 @@ rules:
     source_section: 126
     source_section_title: "PR Check 规则"
     source_line: 5404
-    enforced_by: "make pr-check"
+    enforced_by: "goalcli pr-check --context ci_pull_request"
     exit_code: 1
     status: active
   - id: RULE-PR-CHECK-002
@@ -623,7 +623,7 @@ rules:
     source_section: 126
     source_section_title: "PR Check 规则"
     source_line: 5422
-    enforced_by: "make pr-check"
+    enforced_by: "goalcli pr-check --context ci_pull_request"
     exit_code: 1
     status: active
   - id: RULE-PR-LIFECYCLE-001
@@ -2347,7 +2347,7 @@ rules:
     status: active
   - id: RULE-GOALCLI-001
     level: P1
-    title: "goalcli 必须是 Goal Runtime 的唯一执行入口之一"
+    title: "goalcli 必须是 Goal Runtime 的唯一机器执行入口"
     source_section: 83
     source_section_title: "goalcli 命令契约规则"
     source_line: 3644

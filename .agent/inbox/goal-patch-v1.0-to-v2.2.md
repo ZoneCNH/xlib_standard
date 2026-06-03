@@ -673,8 +673,8 @@ task/<TASK-ID>
 必须有：
 
 ```text
-make worktree-check
-scripts/harness/no-main-dev.sh
+goalcli worktree-check --context local_write
+goalcli worktree-check --context local_write
 .githooks/pre-commit
 .githooks/pre-push
 ```
@@ -909,7 +909,7 @@ temp
 至少：
 
 ```text
-make worktree-check
+goalcli worktree-check --context local_write
 make lint
 make test
 make evidence-check
@@ -1279,14 +1279,14 @@ CI Gate 优先 Go 化
 最小集合：
 
 ```makefile
-make worktree-check
+goalcli worktree-check --context local_write
 make goal-check
 make context-check
 make spec-check
 make design-check
 make task-check
 make issue-check
-make pr-check
+goalcli pr-check --context ci_pull_request
 make evidence-check
 make release-check
 make retro-check
@@ -1375,7 +1375,7 @@ goalcli patch propose
 [ ] main 禁止开发
 [ ] main 禁止直接 push
 [ ] 每个 Task 使用独立 worktree
-[ ] make worktree-check 通过
+[ ] goalcli worktree-check --context local_write 通过
 ```
 
 ---
@@ -1445,7 +1445,7 @@ goalcli patch propose
 .agent/harness/gates/release-gate.yaml
 .agent/harness/gates/retro-gate.yaml
 
-scripts/harness/no-main-dev.sh
+goalcli worktree-check --context local_write
 .githooks/pre-commit
 .githooks/pre-push
 .github/workflows/worktree-guard.yml
@@ -1707,7 +1707,7 @@ rules:
       - release
     check:
       type: executable
-      command: make worktree-check
+      command: goalcli worktree-check --context local_write
     fail_behavior:
       block_commit: true
       block_pr: true
@@ -1933,7 +1933,7 @@ goalcli worktree create \
 ## RULE-WORKTREE-AUTO-003：worktree 创建后必须运行 preflight
 
 ```bash
-make worktree-check
+goalcli worktree-check --context local_write
 make context-check
 ```
 
@@ -1978,7 +1978,7 @@ Evidence: EVID-TASK-GOAL-20260603-001-001-20260603-001
 至少：
 
 ```bash
-make worktree-check
+goalcli worktree-check --context local_write
 make lint
 make test
 make evidence-check
@@ -2557,8 +2557,8 @@ CI Check
 “禁止 main 开发”
 不能只写在文档里
 必须落到：
-- scripts/harness/no-main-dev.sh
-- make worktree-check
+- goalcli worktree-check --context local_write
+- goalcli worktree-check --context local_write
 - .githooks/pre-commit
 - .githooks/pre-push
 - GitHub branch protection
@@ -2577,8 +2577,8 @@ title: No main development
 severity: P0
 domain: worktree
 enforced_by:
-  - make worktree-check
-  - scripts/harness/no-main-dev.sh
+  - goalcli worktree-check --context local_write
+  - goalcli worktree-check --context local_write
   - .githooks/pre-commit
   - .github/workflows/worktree-guard.yml
 evidence:
@@ -2918,7 +2918,7 @@ Task 中必须包含：
 ```yaml
 files_to_change:
   - .agent/rules/07-worktree-rules.md
-  - scripts/harness/no-main-dev.sh
+  - goalcli worktree-check --context local_write
   - Makefile
 ```
 
@@ -3143,7 +3143,7 @@ PR 上至少执行：
 make ci
 make evidence-check
 make traceability-check
-make pr-check
+goalcli pr-check --context ci_pull_request
 ```
 
 ---
@@ -3641,7 +3641,7 @@ release-check:
 
 # 83. goalcli 命令契约规则
 
-## RULE-GOALCLI-001：goalcli 必须是 Goal Runtime 的唯一执行入口之一
+## RULE-GOALCLI-001：goalcli 必须是 Goal Runtime 的唯一机器执行入口
 
 所有自动化动作必须优先通过：
 
@@ -4987,7 +4987,7 @@ CI 应该调用：
 
 ```bash
 make ci
-make pr-check
+goalcli pr-check --context ci_pull_request
 make release-check
 ```
 
@@ -5020,14 +5020,14 @@ echo "Git hooks installed."
 `pre-commit` 不应跑完整 CI，只跑 P0 快速检查：
 
 ```bash
-make worktree-check
+goalcli worktree-check --context local_write
 make secret-check
 ```
 
 `pre-push` 跑：
 
 ```bash
-make worktree-check
+goalcli worktree-check --context local_write
 make traceability-check
 make evidence-check
 ```
@@ -5078,7 +5078,7 @@ jobs:
 
       - name: Run PR gate
         run: |
-          make pr-check
+          goalcli pr-check --context ci_pull_request
 ```
 
 ---
@@ -5621,7 +5621,7 @@ Retro 无 Patch: -5
 ```text
 [ ] goalcli.yaml
 [ ] Makefile gate targets
-[ ] scripts/harness/no-main-dev.sh
+[ ] goalcli worktree-check --context local_write
 [ ] .githooks/pre-commit
 [ ] .githooks/pre-push
 [ ] .github/workflows/worktree-guard.yml
@@ -5950,7 +5950,7 @@ state_transitions:
 ```bash
 git status
 git branch --show-current
-make worktree-check
+goalcli worktree-check --context local_write
 make schema-check
 goalcli goal status --goal <GOAL-ID>
 goalcli task status --task <TASK-ID>
@@ -9948,7 +9948,7 @@ schema-check
 验收：
 
 ```bash
-make worktree-check
+goalcli worktree-check --context local_write
 make secret-check
 make schema-check
 ```
@@ -10018,7 +10018,7 @@ known issues template
 验收：
 
 ```bash
-make pr-check
+goalcli pr-check --context ci_pull_request
 make release-check
 ```
 
@@ -10078,7 +10078,7 @@ dashboard 能显示 Evidence / Traceability / Gate 状态
 01. CONSTITUTION.md
 02. goalcli.yaml
 03. Makefile
-04. scripts/harness/no-main-dev.sh
+04. goalcli worktree-check --context local_write
 05. .githooks/pre-commit
 06. .githooks/pre-push
 07. scripts/git/install-hooks.sh
@@ -10700,7 +10700,7 @@ jobs:
 
       - name: Run PR Gate
         run: |
-          make pr-check
+          goalcli pr-check --context ci_pull_request
 ```
 
 ---
@@ -10749,7 +10749,7 @@ git worktree add \
 
 cd ~/code/.worktrees/xlib-standard/GOAL-20260603-001/TASK-001
 
-make worktree-check
+goalcli worktree-check --context local_write
 ```
 
 ---
@@ -10757,7 +10757,7 @@ make worktree-check
 ## 提交前
 
 ```bash
-make worktree-check
+goalcli worktree-check --context local_write
 make secret-check
 make schema-check
 make evidence-check
@@ -10770,7 +10770,7 @@ make traceability-check
 
 ```bash
 make ci
-make pr-check
+goalcli pr-check --context ci_pull_request
 ```
 
 ---
@@ -10839,7 +10839,7 @@ Evidence: EVID-TASK-GOAL-20260603-001-003-20260603-001
 ## Tests
 ```bash
 make ci
-make pr-check
+goalcli pr-check --context ci_pull_request
 ````
 
 ## Evidence
@@ -10858,7 +10858,7 @@ make pr-check
 
 * Branch:
 * Worktree path:
-* `make worktree-check`: PASS/FAIL
+* `goalcli worktree-check --context local_write`: PASS/FAIL
 
 ## Checklist
 
@@ -11996,7 +11996,7 @@ expected:
 # 293. 第一阶段验收命令
 
 ```bash
-make worktree-check
+goalcli worktree-check --context local_write
 make secret-check
 make schema-check
 make evidence-check
@@ -12089,7 +12089,7 @@ v2.1 只完成一个目标：
 goalcli --version 可运行
 goalcli doctor 可运行
 goalcli worktree check 可运行
-make worktree-check 可运行
+goalcli worktree-check --context local_write 可运行
 main 分支执行失败
 合法 worktree 执行通过
 reports/worktree-check.json 生成
@@ -12222,7 +12222,7 @@ scripts/git/install-hooks.sh
 验收：
 
 ```bash
-make worktree-check
+goalcli worktree-check --context local_write
 scripts/git/install-hooks.sh
 ```
 
@@ -12785,7 +12785,7 @@ audit-check
 #!/usr/bin/env bash
 set -euo pipefail
 
-make worktree-check
+goalcli worktree-check --context local_write
 ```
 
 ## `.githooks/pre-push`
@@ -12794,7 +12794,7 @@ make worktree-check
 #!/usr/bin/env bash
 set -euo pipefail
 
-make worktree-check
+goalcli worktree-check --context local_write
 ```
 
 ## `scripts/git/install-hooks.sh`
@@ -12861,7 +12861,7 @@ jobs:
 本地 main 仓库中执行：
 
 ```bash
-make worktree-check
+goalcli worktree-check --context local_write
 ```
 
 预期失败：
@@ -12885,7 +12885,7 @@ git worktree add \
 
 cd ~/code/.worktrees/xlib-standard/GOAL-20260603-001/TASK-001
 
-make worktree-check
+goalcli worktree-check --context local_write
 ```
 
 预期通过：
@@ -12910,13 +12910,13 @@ cat reports/worktree-check.txt
 ```text
 [ ] goalcli --version 可运行
 [ ] goalcli doctor 可运行
-[ ] make worktree-check 可运行
+[ ] goalcli worktree-check --context local_write 可运行
 [ ] main 分支执行 worktree-check 失败
 [ ] 合法 worktree 执行 worktree-check 通过
 [ ] reports/worktree-check.json 生成
 [ ] reports/worktree-check.txt 生成
-[ ] .githooks/pre-commit 调用 make worktree-check
-[ ] .githooks/pre-push 调用 make worktree-check
+[ ] .githooks/pre-commit 调用 goalcli worktree-check --context local_write
+[ ] .githooks/pre-push 调用 goalcli worktree-check --context local_write
 [ ] worktree-guard.yml 已存在
 [ ] README 或 CONSTITUTION 说明 main 禁止开发
 ```
@@ -12962,7 +12962,7 @@ go run ./cmd/goalcli doctor
 
 # 4. 回到根目录
 cd ../..
-make worktree-check
+goalcli worktree-check --context local_write
 ```
 
 ---
@@ -13621,7 +13621,7 @@ ci:
 #!/usr/bin/env bash
 set -euo pipefail
 
-make worktree-check
+goalcli worktree-check --context local_write
 make secret-check
 ```
 
@@ -13631,7 +13631,7 @@ make secret-check
 #!/usr/bin/env bash
 set -euo pipefail
 
-make worktree-check
+goalcli worktree-check --context local_write
 make secret-check
 ```
 
