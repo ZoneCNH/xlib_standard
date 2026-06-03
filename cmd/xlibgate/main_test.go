@@ -1686,9 +1686,9 @@ func TestRunGuardsAcceptPullRequestContext(t *testing.T) {
 func TestVersionConstantsTrackChangelogRelease(t *testing.T) {
 	root := repoRoot(t)
 	latest := latestChangelogVersion(t, readText(t, filepath.Join(root, "CHANGELOG.md")))
-	_, standardMarkerErr := os.Stat(filepath.Join(root, "docs", "goal.md"))
+	_, standardMarkerErr := os.Stat(filepath.Join(root, "docs", "goal", "goal.md"))
 	if standardMarkerErr != nil && !errors.Is(standardMarkerErr, os.ErrNotExist) {
-		t.Fatalf("stat docs/goal.md: %v", standardMarkerErr)
+		t.Fatalf("stat docs/goal/goal.md: %v", standardMarkerErr)
 	}
 	isStandardSource := standardMarkerErr == nil
 	if projectReleaseVersion != latest {

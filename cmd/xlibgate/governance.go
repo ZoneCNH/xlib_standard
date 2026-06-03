@@ -63,7 +63,7 @@ func runDoctor(args []string, stdout io.Writer, stderr io.Writer) int {
 		"Makefile",
 	}
 	if isXlibStandardSourceModule() {
-		required = append([]string{"docs/goal.md"}, required...)
+		required = append([]string{"docs/goal/goal.md"}, required...)
 	}
 	var gaps []string
 	for _, path := range required {
