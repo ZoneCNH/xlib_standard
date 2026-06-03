@@ -55,6 +55,10 @@ standard-impact-check:
 docs-check:
 	$(XLIBGATE) docs-check
 
+.PHONY: rules-verify
+rules-verify:
+	python3 scripts/verify_rules.py
+
 .PHONY: debt architecture domain docs-drift dependency-debt security-debt testing-debt implementation-debt downstream-debt
 
 .PHONY: debt-evidence
@@ -242,8 +246,12 @@ goal-certify: require-gowork-off
 goal-runtime-final: require-gowork-off goal-acceptance goal-delivery goal-handover goal-downstream-adoption goal-certify
 	$(XLIBGATE) $@ --goal-id "$(GOAL_ID)" --mode "$(GOAL_RUNTIME_MODE)" --json --write-evidence
 
+.PHONY: traceability-check
+traceability-check:
+	$(XLIBGATE) traceability-check
+
 .PHONY: governance-check
-governance-check: require-gowork-off main-guard worktree-guard evidence-check boundary architecture domain security security-debt contracts docs-check cli-contract issue-registry command-registry makefile-baseline rules-consistency-check debt
+governance-check: require-gowork-off main-guard worktree-guard evidence-check boundary architecture domain security security-debt contracts docs-check cli-contract issue-registry command-registry makefile-baseline rules-consistency-check debt traceability-check
 
 .PHONY: rules-consistency-check
 rules-consistency-check:
@@ -293,7 +301,7 @@ context-standard-check: context-standard
 context-full-check: context-full
 
 .PHONY: ci
-ci: doctor-hooks-local fmt vet lint test race boundary architecture domain security security-debt contracts governance-check debt score
+ci: doctor-hooks-local fmt vet lint test race boundary architecture domain security security-debt contracts governance-check debt score rules-verify
 
 .PHONY: ci-extended
 ci-extended: ci property golden fuzz-smoke docs-drift
@@ -360,10 +368,11 @@ task-check:
 pr-check: worktree-check lint test
 	@echo "pr-check: worktree + lint + test 全部通过。"
 
-.PHONY: retro-check
-retro-check:
-	@echo "retro-check: 验证 Retrospective 存在..."
-	@echo "retro-check: 通过（语义检查由 Agent 执行）。"
+.PHONY: retro-check self-improving-check
+retro-check: self-improving-check
+
+self-improving-check:
+	$(XLIBGATE) self-improving-check
 
 install-hooks:
 	@git config core.hooksPath .githooks

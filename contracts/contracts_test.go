@@ -107,6 +107,7 @@ func TestGoalRuntimeSchemasAreValidJSON(t *testing.T) {
 		"execution-context.schema.json",
 		"conformance-attestation.schema.json",
 		"policy.schema.json",
+		"execution-evidence.schema.json",
 	} {
 		t.Run(path, func(t *testing.T) {
 			content, err := os.ReadFile(path)
@@ -133,6 +134,48 @@ func TestExecutionContextContractMatchesGovernanceContexts(t *testing.T) {
 		t.Fatalf("execution context enum drift:\nactual:   %#v\nexpected: %#v", actual, expected)
 	}
 	requireFields(t, schema.Required, "context", "root", "gowork")
+}
+
+func TestExecutionEvidenceContractRequiredFields(t *testing.T) {
+	schema := readSchema(t, "execution-evidence.schema.json")
+	requireFields(t, schema.Required,
+		"evidence_id",
+		"command",
+		"cwd",
+		"branch",
+		"commit",
+		"exit_code",
+		"timestamp",
+		"stdout_sha256",
+		"artifact_path",
+	)
+	confidence := sortedStrings(schema.Properties["confidence"].Enum...)
+	expectedConfidence := sortedStrings("high", "medium", "low")
+	if !reflect.DeepEqual(confidence, expectedConfidence) {
+		t.Fatalf("confidence enum drift:\nactual:   %#v\nexpected: %#v", confidence, expectedConfidence)
+	}
+	if got := schema.Properties["exit_code"].Type; got != "integer" {
+		t.Fatalf("exit_code type = %q, want integer", got)
+	}
+}
+
+func TestExecutionEvidenceContractMatchesEvidenceManifest(t *testing.T) {
+	manifest, err := os.ReadFile("../.agent/evidence-artifacts.yaml")
+	if err != nil {
+		t.Fatalf("read evidence-artifacts.yaml: %v", err)
+	}
+	text := string(manifest)
+	for _, needle := range []string{
+		"contracts/execution-evidence.schema.json",
+		"execution_evidence",
+		"evidence_id",
+		"stdout_sha256",
+		"exit_code",
+	} {
+		if !strings.Contains(text, needle) {
+			t.Fatalf(".agent/evidence-artifacts.yaml missing required marker %q", needle)
+		}
+	}
 }
 
 func requireSchemaFieldMapsToStructField(t *testing.T, schema objectSchema, structType reflect.Type, schemaField string, structField string, schemaType string) {

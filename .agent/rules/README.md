@@ -68,7 +68,10 @@ python3 scripts/render_domain_rules.py    # core-rules.md / schema-registry-rule
 - 总规则数: 419
 - P0 规则: 119
 - P1 规则: 300
-- 已 active (有 enforced_by): 354 (84%)
-- 仅 indexed (待机器化): 65 (16%) — 主要为治理报告/Dashboard/Retro/Design 等需要新建 enforcer 的规则
+- 已 active (有 enforced_by): 363 (87%) — **P0 全部 active (119/119, 100%)**
+- 仅 indexed (待机器化): 56 (13%) — 主要为治理报告/Dashboard/Retro/Design 等需要新建 enforcer 的规则
 
-提高 active 比例是后续 Goal 的核心 KPI。
+`make rules-verify` 强制断言: 任何 `status: active` 的规则其 `enforced_by` 命令必须真实存在
+(xlibgate 子命令 / Makefile target / .githooks / scripts), 否则 CI 失败。
+
+提高 active 比例是后续 Goal 的核心 KPI。当前已知 P0 gap 见 [`iron-rules.md` 的 "已知 P0 Gap" 章节](./iron-rules.md#已知-p0-gap)。

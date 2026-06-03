@@ -169,9 +169,11 @@ func runEvidenceCheck(args []string, stdout io.Writer, stderr io.Writer) int {
 		return invalidInternalArgsExit("evidence-check", err, stderr)
 	}
 	return runRegistryCheck("evidence-check", map[string][]string{
-		".agent/done-assertion.yaml":           {"DONE with evidence", "commit", "gates"},
-		".agent/evidence-artifact-policy.yaml": {"redaction", "sha256", "release/manifest/latest.json"},
-		".agent/harness.yaml":                  {"manifest", "checksum", "required_fields"},
+		".agent/done-assertion.yaml":               {"DONE with evidence", "commit", "gates"},
+		".agent/evidence-artifact-policy.yaml":     {"redaction", "sha256", "release/manifest/latest.json"},
+		".agent/harness.yaml":                      {"manifest", "checksum", "required_fields"},
+		".agent/evidence-artifacts.yaml":           {"release_evidence", "execution_evidence", "schema:", "contracts/execution-evidence.schema.json"},
+		"contracts/execution-evidence.schema.json": {"evidence_id", "stdout_sha256", "commit", "exit_code", "artifact_path"},
 	}, stdout, stderr)
 }
 
@@ -779,6 +781,9 @@ var plannedCommandSemanticMarkers = map[string]map[string][]string{
 	"execution-context": {
 		".agent/execution-context.yaml": {"schema_version:", "contexts:", "local_write", "ci_pull_request", "release_verify"},
 	},
+	"runtime-file-ownership": {
+		".agent/runtime-file-ownership.yaml": {"schema_version:", "owners:", "owner:", "review_required:", "rationale:"},
+	},
 }
 
 func runPlannedCommand(command string, args []string, stdout io.Writer, stderr io.Writer) int {
@@ -1284,124 +1289,124 @@ func emitPlannedReport(stdout io.Writer, stderr io.Writer, command, status strin
 //
 // 用途：PR #36 引入双 SSOT 后，防止两份文档的铁律编号映射悄然漂移。
 func runRulesConsistencyCheck(args []string, stdout io.Writer, stderr io.Writer) int {
-if err := validateInternalCommandArgs("rules-consistency-check", args, internalCommandFlagSpec{boolFlags: []string{"json"}}); err != nil {
-return invalidInternalArgsExit("rules-consistency-check", err, stderr)
-}
+	if err := validateInternalCommandArgs("rules-consistency-check", args, internalCommandFlagSpec{boolFlags: []string{"json"}}); err != nil {
+		return invalidInternalArgsExit("rules-consistency-check", err, stderr)
+	}
 
-canonicalPath := ".agent/standard/goal-runtime-canonical.md"
-ironPath := ".agent/rules/iron-rules.md"
-registryPath := ".agent/rules/registry.yaml"
+	canonicalPath := ".agent/standard/goal-runtime-canonical.md"
+	ironPath := ".agent/rules/iron-rules.md"
+	registryPath := ".agent/rules/registry.yaml"
 
-canonical, err := os.ReadFile(canonicalPath)
-if err != nil {
-write(stderr, "ERROR: read %s: %v\n", canonicalPath, err)
-return 1
-}
-iron, err := os.ReadFile(ironPath)
-if err != nil {
-write(stderr, "ERROR: read %s: %v\n", ironPath, err)
-return 1
-}
-registry, err := os.ReadFile(registryPath)
-if err != nil {
-write(stderr, "ERROR: read %s: %v\n", registryPath, err)
-return 1
-}
+	canonical, err := os.ReadFile(canonicalPath)
+	if err != nil {
+		write(stderr, "ERROR: read %s: %v\n", canonicalPath, err)
+		return 1
+	}
+	iron, err := os.ReadFile(ironPath)
+	if err != nil {
+		write(stderr, "ERROR: read %s: %v\n", ironPath, err)
+		return 1
+	}
+	registry, err := os.ReadFile(registryPath)
+	if err != nil {
+		write(stderr, "ERROR: read %s: %v\n", registryPath, err)
+		return 1
+	}
 
-// 从 canonical 抽"八条铁律"段表格的 RULE-* ID
-canonRules := extractCanonicalIronRuleIDs(string(canonical))
-// 从 iron-rules 抽"七律"段括号内的 RULE-* ID
-ironRules := extractIronRulesIDs(string(iron))
-// 从 registry.yaml 抽所有 - id: RULE-* 行
-registryRules := extractRegistryRuleIDs(string(registry))
+	// 从 canonical 抽"八条铁律"段表格的 RULE-* ID
+	canonRules := extractCanonicalIronRuleIDs(string(canonical))
+	// 从 iron-rules 抽"七律"段括号内的 RULE-* ID
+	ironRules := extractIronRulesIDs(string(iron))
+	// 从 registry.yaml 抽所有 - id: RULE-* 行
+	registryRules := extractRegistryRuleIDs(string(registry))
 
-var gaps []string
+	var gaps []string
 
-if len(canonRules) == 0 {
-gaps = append(gaps, fmt.Sprintf("%s: 未发现八条铁律段的 RULE-* 引用", canonicalPath))
-}
-if len(ironRules) == 0 {
-gaps = append(gaps, fmt.Sprintf("%s: 未发现七律段的 RULE-* 引用", ironPath))
-}
-if len(registryRules) == 0 {
-gaps = append(gaps, fmt.Sprintf("%s: 未发现 RULE-* 登记", registryPath))
-}
+	if len(canonRules) == 0 {
+		gaps = append(gaps, fmt.Sprintf("%s: 未发现八条铁律段的 RULE-* 引用", canonicalPath))
+	}
+	if len(ironRules) == 0 {
+		gaps = append(gaps, fmt.Sprintf("%s: 未发现七律段的 RULE-* 引用", ironPath))
+	}
+	if len(registryRules) == 0 {
+		gaps = append(gaps, fmt.Sprintf("%s: 未发现 RULE-* 登记", registryPath))
+	}
 
-// 两侧引用集合（去重并集）必须各自完全包含在 registry 中
-for id := range canonRules {
-if !registryRules[id] {
-gaps = append(gaps, fmt.Sprintf("%s 引用 %s 未在 %s 登记", canonicalPath, id, registryPath))
-}
-}
-for id := range ironRules {
-if !registryRules[id] {
-gaps = append(gaps, fmt.Sprintf("%s 引用 %s 未在 %s 登记", ironPath, id, registryPath))
-}
-}
+	// 两侧引用集合（去重并集）必须各自完全包含在 registry 中
+	for id := range canonRules {
+		if !registryRules[id] {
+			gaps = append(gaps, fmt.Sprintf("%s 引用 %s 未在 %s 登记", canonicalPath, id, registryPath))
+		}
+	}
+	for id := range ironRules {
+		if !registryRules[id] {
+			gaps = append(gaps, fmt.Sprintf("%s 引用 %s 未在 %s 登记", ironPath, id, registryPath))
+		}
+	}
 
-// canonical 的核心铁律 RULE-* 必须全部出现在 iron-rules 中（canonical ⊆ iron），
-// 但反向不强求：iron-rules 每条会附带多个关联 RULE-*（主+关联），
-// 这些不必都出现在 canonical 表格里。
-for id := range canonRules {
-if !ironRules[id] {
-gaps = append(gaps, fmt.Sprintf("漂移：%s 引用 %s 但 %s 未引用", canonicalPath, id, ironPath))
-}
-}
+	// canonical 的核心铁律 RULE-* 必须全部出现在 iron-rules 中（canonical ⊆ iron），
+	// 但反向不强求：iron-rules 每条会附带多个关联 RULE-*（主+关联），
+	// 这些不必都出现在 canonical 表格里。
+	for id := range canonRules {
+		if !ironRules[id] {
+			gaps = append(gaps, fmt.Sprintf("漂移：%s 引用 %s 但 %s 未引用", canonicalPath, id, ironPath))
+		}
+	}
 
-if len(gaps) > 0 {
-write(stderr, "ERROR: rules-consistency-check found %d gap(s)\n", len(gaps))
-return emitReport(stdout, "rules-consistency-check", "failed", nil, gaps)
-}
-details := []string{
-fmt.Sprintf("canonical=%d iron=%d registry=%d 引用集合一致", len(canonRules), len(ironRules), len(registryRules)),
-}
-return emitReport(stdout, "rules-consistency-check", "passed", details, nil)
+	if len(gaps) > 0 {
+		write(stderr, "ERROR: rules-consistency-check found %d gap(s)\n", len(gaps))
+		return emitReport(stdout, "rules-consistency-check", "failed", nil, gaps)
+	}
+	details := []string{
+		fmt.Sprintf("canonical=%d iron=%d registry=%d 引用集合一致", len(canonRules), len(ironRules), len(registryRules)),
+	}
+	return emitReport(stdout, "rules-consistency-check", "passed", details, nil)
 }
 
 // extractCanonicalIronRuleIDs 抓取 canonical 的"八条铁律"段表格中
 // 形如 `| RULE-XXX-NNN |` 的 ID。仅在该段内（首个 `## 1.` 之后到下一个 `##` 之前）。
 func extractCanonicalIronRuleIDs(text string) map[string]bool {
-out := map[string]bool{}
-startIdx := strings.Index(text, "## 1.")
-if startIdx < 0 {
-return out
-}
-section := text[startIdx:]
-if nextIdx := strings.Index(section[5:], "\n## "); nextIdx >= 0 {
-section = section[:nextIdx+5]
-}
-re := regexp.MustCompile(`\|\s*(RULE-[A-Z]+(?:-[A-Z]+)*-\d+)\s*\|`)
-for _, m := range re.FindAllStringSubmatch(section, -1) {
-out[m[1]] = true
-}
-return out
+	out := map[string]bool{}
+	startIdx := strings.Index(text, "## 1.")
+	if startIdx < 0 {
+		return out
+	}
+	section := text[startIdx:]
+	if nextIdx := strings.Index(section[5:], "\n## "); nextIdx >= 0 {
+		section = section[:nextIdx+5]
+	}
+	re := regexp.MustCompile(`\|\s*(RULE-[A-Z]+(?:-[A-Z]+)*-\d+)\s*\|`)
+	for _, m := range re.FindAllStringSubmatch(section, -1) {
+		out[m[1]] = true
+	}
+	return out
 }
 
 // extractIronRulesIDs 抓取 iron-rules 的"七律"段中括号内引用的 RULE-* ID。
 // 仅在 `## 七律` 段内。
 func extractIronRulesIDs(text string) map[string]bool {
-out := map[string]bool{}
-startIdx := strings.Index(text, "## 七律")
-if startIdx < 0 {
-return out
-}
-section := text[startIdx:]
-if nextIdx := strings.Index(section[6:], "\n## "); nextIdx >= 0 {
-section = section[:nextIdx+6]
-}
-re := regexp.MustCompile(`RULE-[A-Z]+(?:-[A-Z]+)*-\d+`)
-for _, m := range re.FindAllString(section, -1) {
-out[m] = true
-}
-return out
+	out := map[string]bool{}
+	startIdx := strings.Index(text, "## 七律")
+	if startIdx < 0 {
+		return out
+	}
+	section := text[startIdx:]
+	if nextIdx := strings.Index(section[6:], "\n## "); nextIdx >= 0 {
+		section = section[:nextIdx+6]
+	}
+	re := regexp.MustCompile(`RULE-[A-Z]+(?:-[A-Z]+)*-\d+`)
+	for _, m := range re.FindAllString(section, -1) {
+		out[m] = true
+	}
+	return out
 }
 
 // extractRegistryRuleIDs 抓取 registry.yaml 中所有 `- id: RULE-XXX-NNN` 行的 ID。
 func extractRegistryRuleIDs(text string) map[string]bool {
-out := map[string]bool{}
-re := regexp.MustCompile(`(?m)^\s*-\s*id:\s*(RULE-[A-Z]+(?:-[A-Z]+)*-\d+)`)
-for _, m := range re.FindAllStringSubmatch(text, -1) {
-out[m[1]] = true
-}
-return out
+	out := map[string]bool{}
+	re := regexp.MustCompile(`(?m)^\s*-\s*id:\s*(RULE-[A-Z]+(?:-[A-Z]+)*-\d+)`)
+	for _, m := range re.FindAllStringSubmatch(text, -1) {
+		out[m[1]] = true
+	}
+	return out
 }
