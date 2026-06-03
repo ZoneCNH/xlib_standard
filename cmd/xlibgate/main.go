@@ -67,7 +67,7 @@ func run(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) int
 		return runDebtAlias("security", "warn", args[1:], stdout, stderr)
 	case "downstream-debt":
 		return runDebtAlias("downstream", "warn", args[1:], stdout, stderr)
-	case "minimal-kernel", "done-assertion", "agent-team-contract", "scope-lock", "pr-template", "acceptance-matrix", "runtime-health", "goal-runtime", "naming", "upgrade-standard", "conformance-profile", "downstream-registry", "self-healing-skeleton", "policy-schema", "github-settings", "toolchain", "evidence-artifacts", "install-runtime", "upgrade-runtime", "release-ready", "evidence-replay", "attest-conformance", "pack-standard", "pack-gate", "pack-evidence", "runtime-file-ownership", "downstream-baseline", "downstream-adoption", "autoresearch", "changelog", "github-governance", "governance-fixture-test", "supply-chain", "execution-context":
+	case "minimal-kernel", "done-assertion", "agent-team-contract", "scope-lock", "pr-template", "acceptance-matrix", "runtime-health", "goal-runtime", "goal-acceptance", "goal-delivery", "goal-handover", "goal-downstream", "goal-certify", "naming", "upgrade-standard", "conformance-profile", "downstream-registry", "self-healing-skeleton", "policy-schema", "github-settings", "toolchain", "evidence-artifacts", "install-runtime", "upgrade-runtime", "release-ready", "evidence-replay", "attest-conformance", "pack-standard", "pack-gate", "pack-evidence", "runtime-file-ownership", "downstream-baseline", "downstream-adoption", "autoresearch", "changelog", "github-governance", "governance-fixture-test", "supply-chain", "execution-context":
 		return runPlannedCommand(args[0], args[1:], stdout, stderr)
 	case "boundary":
 		return runExternal(stdin, stdout, stderr, "./scripts/check_boundary.sh")
@@ -211,6 +211,11 @@ commands:
   execution-context
   github-governance
   github-settings [--verify]
+  goal-acceptance
+  goal-certify
+  goal-delivery
+  goal-downstream
+  goal-handover
   goal-runtime
   governance-fixture-test
   install-runtime [--dry-run]
