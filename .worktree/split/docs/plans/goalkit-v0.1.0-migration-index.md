@@ -1,15 +1,27 @@
 # goalkit v0.1.0 — `goal/` 迁移索引
 
 > 本文件是审计索引，不是规范正文。规范正文见 `split/docs/standard/goalkit-runtime.md`；ADR 见 `split/docs/adr/ADR-20260603-001-goalkit-xlibgate-runtime.md`；执行顺序见 `split/docs/plans/goalkit-v0.1.0-roadmap.md`。
+> 生成时间：2026-06-03。
+> 范围：`.worktree/goal/` 38 个文件入口，19,346 行；其中 4 组 checksum 重复。
+> 状态：迁移台账；不是规范正文，也不是执行计划。
 
 ## 1. 迁移原则
 
 - `goal/` 来源文件在迁移完成前不得删除；只能在本索引审核通过后归档到 `goal/archive/`。
-- `goalkit-v0.1.0-plan.md` 是综合设计提案，不是唯一权威替代。
+- `goalkit-v0.1.0-plan.md` 是综合设计提案，不是权威替代。
 - 权威职责分离：标准定义契约，ADR 记录决策，roadmap 记录执行顺序，本索引记录逐文件处置证据。
 - 重复文件按 checksum 去重；重复来源仍逐行列出，便于审计。
 
-## 2. 来源文件映射
+## 2. 重复组
+
+| canonical | duplicate | SHA-256 |
+| --- | --- | --- |
+| `goal/goalkit.md` | `goal/goalkit_v0_1_0_goal_runtime_complete_structural_plan.md` | `28558579d53f72f1dbb3f1f88e39ec2b1fde1a9e845b960bb2e58dc1662227c1` |
+| `goal/xlib_standard_goal_runtime_v3_1_1_full_execution_pack_with_automation.md` | `goal/xlib_standard_goal_runtime_v3_1_1_full_execution_pack_with_automation (1).md` | `9167ea2205f7216948f6b2a958ce6e80d8d8d9a6a801eeb9bc2e63ddd1aa0ffc` |
+| `goal/xlib_standard_pr13_goal_runtime_v3_1_1_runtime_as_code_spec_compiler_execution_pack.md` | `goal/xlib_standard_pr13_goal_runtime_v3_1_1_runtime_as_code_spec_compiler_execution_pack (1).md` | `d2b52334e09cd2224ebf57eb7c027bcb89775121de03e4f813cb7c0ba2378de6` |
+| `goal/xlib_standard_pr8_goal_runtime_v3_1_1_blocking_full_mode_release_verify_execution_pack.md` | `goal/xlib_standard_pr8_goal_runtime_v3_1_1_blocking_full_mode_release_verify_execution_pack (1).md` | `46c1adca6a74ffe812df9ef96f21cb661d3d69e57614ba7513dd5310b59156d3` |
+
+## 3. 来源文件映射
 
 | 来源文件 | SHA-256 | 迁移目标 | 处置 |
 |---|---|---|---|
@@ -52,7 +64,7 @@
 | `goal/xlib_standard_pr8_goal_runtime_v3_1_1_blocking_full_mode_release_verify_execution_pack.md` | `46c1adca6a74ffe812df9ef96f21cb661d3d69e57614ba7513dd5310b59156d3` | `split/docs/plans/goalkit-v0.1.0-roadmap.md` PR-5 and PR-8 | 保留参考：blocking 与 test harness/trust root 拆分。 |
 | `goal/xlib_standard_pr9_goal_runtime_v3_1_1_runtime_freeze_pack_check_drift_control_execution_pack.md` | `af3099e4d3de54e7e6c781565d380c80882ae3d3d3b25c17934f5558dc89fb76` | `split/docs/plans/goalkit-v0.1.0-roadmap.md` PR-6 | 保留参考：freeze/drift control。 |
 
-## 3. 审计状态
+## 4. 审计状态
 
 - 当前状态：文档级迁移索引已建立；尚未执行归档或删除。
 - 归档前检查：确认本表每个来源文件均有 checksum、迁移目标和处置说明。

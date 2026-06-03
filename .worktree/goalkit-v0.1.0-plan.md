@@ -145,8 +145,8 @@ Automation Surface    （最后启用，分阶段）
 | `.agent/evidence-protocol.md`          | Evidence Ledger 规范基础        |
 | `.agent/evidence-artifact-policy.yaml` | Artifact Policy 事实源          |
 | `cmd/xlibgate/main.go`                 | CLI 执行器入口                  |
-| `cmd/xlibgate/debt.go`                 | 已有子命令（debt）              |
-| `cmd/xlibgate/governance.go`           | 已有子命令（governance）        |
+| `.agent/command-implementation-status.yaml` | 命令实现状态生命周期事实源      |
+| `cmd/xlibgate/governance.go`           | 已有治理命令实现模式            |
 
 新增文件（PR 中创建）：
 
@@ -551,8 +551,7 @@ xlibgate certify    --goal <id> [--mode ...] [--format ...]
 ```
 cmd/xlibgate/
   main.go              ← 已有，注册新命令
-  debt.go              ← 已有
-  governance.go        ← 已有
+  governance.go        ← 已有，治理命令模式参考
   acceptance.go        ← 新增
   delivery.go          ← 新增
   handover.go          ← 新增

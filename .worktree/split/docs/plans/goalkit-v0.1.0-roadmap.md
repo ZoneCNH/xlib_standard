@@ -2,6 +2,12 @@
 
 > 本文件是执行计划，非权威规范。标准正文见 `split/docs/standard/goalkit-runtime.md`；ADR 见 `split/docs/adr/ADR-20260603-001-goalkit-xlibgate-runtime.md`；来源迁移证据见 `split/docs/plans/goalkit-v0.1.0-migration-index.md`。`split/` 为当前评审暂存路径；最终落地路径以 ADR 指定的 `docs/` 与 `.agent/` 位置为准。
 
+## 0. 执行约束
+
+- 本路线图不得声明 G12-G16 已实现或已通过；实现状态以 `.agent/command-implementation-status.yaml` 和实际 gate evidence 为准。
+- 示例 `GOAL_ID` 必须使用标准格式。测试 fixture 使用 `GOAL-20260603-XLIB-RUNTIME-001`，不得使用 `test` 代替。
+- downstream 目标使用 `goal-downstream-adoption`，不得覆盖或误写为已有 `downstream-adoption` 目标。
+
 ## 1. Current-State Matrix
 
 | 能力 | specified | registered | dry_run_ready | implemented | verified |
