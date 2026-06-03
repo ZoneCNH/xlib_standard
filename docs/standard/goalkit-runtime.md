@@ -6,7 +6,7 @@ Status: normative for the v0.1.0 MVA slice.
 
 - `xlibgate` is the only machine executor for goalkit v0.1.0 commands.
 - Harness Runtime is the control plane for routing, policy, and evidence interpretation.
-- goalkit v0.1.0 is **not** an independent external CLI.
+- goalkit v0.1.0 is not an independent external CLI.
 - `.agent/evidence/ledger.jsonl` is the source evidence ledger.
 - `release/evidence/goalkit/` is a generated evidence pack location and is not the source ledger.
 

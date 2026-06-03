@@ -68,12 +68,12 @@
 - `acceptance-matrix`
 - `runtime-health`
 - `goal-runtime`
-- `goal-acceptance --goal-id <id> --json`
-- `goal-delivery --goal-id <id> --json`
-- `goal-handover --goal-id <id> --json`
-- `goal-downstream-adoption --goal-id <id> --json`
-- `goal-certify --goal-id <id> --json`
-- `goal-runtime-final --goal-id <id> --json`
+- `goal-acceptance --goal-id <GOAL-ID> --mode FULL --json`
+- `goal-delivery --goal-id <GOAL-ID> --mode FULL --json`
+- `goal-handover --goal-id <GOAL-ID> --mode FULL --json`
+- `goal-downstream-adoption --goal-id <GOAL-ID> --mode FULL --json`
+- `goal-certify --goal-id <GOAL-ID> --mode FULL --json`
+- `goal-runtime-final --goal-id <GOAL-ID> --mode FULL --json`
 - `naming`
 - `upgrade-standard --dry-run --repo <path>`
 - `conformance-profile`
