@@ -163,7 +163,14 @@ func validateRepoSchemaArtifacts() []schemaCheckItem {
 	var checks []schemaCheckItem
 	paths, err := filepath.Glob("contracts/*.schema.json")
 	if err != nil || len(paths) == 0 {
-		return []schemaCheckItem{{Name: "contract schemas discovered", Artifact: "contracts/*.schema.json", Status: "failed", Gaps: []string{"no contract schemas discovered"}}}
+		return []schemaCheckItem{
+			{
+				Name:     "contract schemas discovered",
+				Artifact: "contracts/*.schema.json",
+				Status:   "failed",
+				Gaps:     []string{"no contract schemas discovered"},
+			},
+		}
 	}
 	sort.Strings(paths)
 	for _, path := range paths {
@@ -449,7 +456,14 @@ func sortedStringSetDifference(items []string, contains map[string]bool) []strin
 func validateFixtureSchemas(fixtureDir string) []schemaCheckItem {
 	paths, err := filepath.Glob(filepath.Join(fixtureDir, "schemas", "*.schema.json"))
 	if err != nil || len(paths) == 0 {
-		return []schemaCheckItem{{Name: "fixture schemas discovered", Artifact: filepath.Join(fixtureDir, "schemas"), Status: "failed", Gaps: []string{"no fixture schemas discovered"}}}
+		return []schemaCheckItem{
+			{
+				Name:     "fixture schemas discovered",
+				Artifact: filepath.Join(fixtureDir, "schemas"),
+				Status:   "failed",
+				Gaps:     []string{"no fixture schemas discovered"},
+			},
+		}
 	}
 	sort.Strings(paths)
 	schemas := make(map[string]jsonSchema, len(paths))
@@ -478,7 +492,14 @@ func validateFixtureJSONGroup(pattern string, schemas map[string]jsonSchema, sho
 		if !shouldPass {
 			status = "invalid"
 		}
-		return []schemaCheckItem{{Name: status + " fixtures discovered", Artifact: pattern, Status: "failed", Gaps: []string{"no " + status + " fixtures discovered"}}}
+		return []schemaCheckItem{
+			{
+				Name:     status + " fixtures discovered",
+				Artifact: pattern,
+				Status:   "failed",
+				Gaps:     []string{"no " + status + " fixtures discovered"},
+			},
+		}
 	}
 	sort.Strings(paths)
 	var checks []schemaCheckItem
