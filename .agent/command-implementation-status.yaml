@@ -112,6 +112,20 @@ groups:
       - downstream-baseline
       - downstream-adoption
 
+  - id: goalkit_v0_1_0_mva_blocking
+    phase: P2
+    implementation_status: implemented
+    mva_status: complete
+    evidence_strength: full_mva_evidence
+    note: "goalkit v0.1.0 MVA commands 通过 xlibgate 和 source ledger 证明 blocking G12-G16 evidence contracts。"
+    commands:
+      - goal-acceptance
+      - goal-delivery
+      - goal-handover
+      - goal-downstream-adoption
+      - goal-certify
+      - goal-runtime-final
+
 forbidden_gate_interpretations:
   - state: registered
     rule: "registered command != passed gate"

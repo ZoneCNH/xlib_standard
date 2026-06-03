@@ -63,7 +63,7 @@ func runDoctor(args []string, stdout io.Writer, stderr io.Writer) int {
 		"Makefile",
 	}
 	if isXlibStandardSourceModule() {
-		required = append([]string{"docs/goal.md"}, required...)
+		required = append([]string{"docs/goal/goal.md"}, required...)
 	}
 	var gaps []string
 	for _, path := range required {
@@ -193,11 +193,23 @@ func runMakefileBaseline(args []string, stdout io.Writer, stderr io.Writer) int 
 		return invalidInternalArgsExit("makefile-baseline", err, stderr)
 	}
 	requiredTargets := append([]string{"fmt", "vet", "lint", "test", "race", "boundary", "security", "contracts", "docs-check", "evidence", "score-check", "main-guard", "worktree-guard", "evidence-check", "cli-contract", "issue-registry", "command-registry", "makefile-baseline", "governance-check", "p1-governance-check", "execution-context", "p2-runtime-check", "release-check", "release-final-check"}, contextRuntimeTargets()...)
+	requiredTargets = append(requiredTargets, goalkitMakefileTargets()...)
 	required := map[string][]string{"Makefile": {}, ".agent/makefile-target-registry.yaml": requiredTargets, ".agent/makefile-baseline.yaml": requiredTargets}
 	for _, target := range requiredTargets {
 		required["Makefile"] = append(required["Makefile"], ".PHONY: "+target, target+":")
 	}
 	return runRegistryCheck("makefile-baseline", required, stdout, stderr)
+}
+
+func goalkitMakefileTargets() []string {
+	return []string{
+		"goal-acceptance",
+		"goal-delivery",
+		"goal-handover",
+		"goal-downstream-adoption",
+		"goal-certify",
+		"goal-runtime-final",
+	}
 }
 
 var contextProfileGates = map[string][]string{
@@ -674,40 +686,46 @@ func makefileDependencyHasToken(dependencies []string, token string) bool {
 }
 
 var plannedCommandFiles = map[string][]string{
-	"minimal-kernel":          {".agent/minimal-kernel.yaml"},
-	"done-assertion":          {".agent/done-assertion.yaml"},
-	"agent-team-contract":     {".agent/team-contract.yaml"},
-	"scope-lock":              {".agent/scope-locks.yaml"},
-	"pr-template":             {".agent/pr-template-contract.yaml", ".github/pull_request_template.md"},
-	"acceptance-matrix":       {".agent/acceptance-matrix.yaml"},
-	"runtime-health":          {".agent/runtime-health.yaml"},
-	"goal-runtime":            {".agent/goal-runtime.md", ".agent/harness.yaml"},
-	"naming":                  {"docs/standard/repository-roles.md", "docs/standard/module-boundary.md"},
-	"upgrade-standard":        {".agent/downstream-registry.yaml"},
-	"conformance-profile":     {".agent/conformance-profiles.yaml"},
-	"downstream-registry":     {".agent/downstream-registry.yaml"},
-	"self-healing-skeleton":   {".agent/failure-taxonomy.yaml", ".agent/root-cause.yaml", ".agent/regression-memory.yaml"},
-	"policy-schema":           {".agent/policy-schema.yaml"},
-	"github-settings":         {".agent/github-settings.yaml"},
-	"github-governance":       {".agent/github-governance.yaml"},
-	"governance-fixture-test": {".agent/governance-fixture-test.yaml"},
-	"toolchain":               {".agent/toolchain.yaml"},
-	"evidence-artifacts":      {".agent/evidence-artifact-policy.yaml"},
-	"install-runtime":         {".agent/runtime-install.yaml"},
-	"upgrade-runtime":         {".agent/runtime-upgrade.yaml"},
-	"release-ready":           {".agent/release-readiness-formula.yaml"},
-	"evidence-replay":         {".agent/evidence-replay.yaml"},
-	"attest-conformance":      {".agent/conformance-profiles.yaml"},
-	"pack-standard":           {".agent/standard-pack.yaml"},
-	"pack-gate":               {".agent/gate-pack.yaml"},
-	"pack-evidence":           {".agent/evidence-pack.yaml"},
-	"runtime-file-ownership":  {".agent/runtime-file-ownership.yaml"},
-	"downstream-baseline":     {".agent/downstream-baseline-scan.yaml", ".agent/downstream-registry.yaml"},
-	"downstream-adoption":     {".agent/downstream-adoption-modes.yaml", ".agent/downstream-registry.yaml"},
-	"autoresearch":            {".agent/autoresearch.yaml"},
-	"changelog":               {".agent/changelog.yaml"},
-	"supply-chain":            {"docs/supply-chain.md"},
-	"execution-context":       {".agent/execution-context.yaml", "contracts/execution-context.schema.json"},
+	"minimal-kernel":           {".agent/minimal-kernel.yaml"},
+	"done-assertion":           {".agent/done-assertion.yaml"},
+	"agent-team-contract":      {".agent/team-contract.yaml"},
+	"scope-lock":               {".agent/scope-locks.yaml"},
+	"pr-template":              {".agent/pr-template-contract.yaml", ".github/pull_request_template.md"},
+	"acceptance-matrix":        {".agent/acceptance-matrix.yaml"},
+	"runtime-health":           {".agent/runtime-health.yaml"},
+	"goal-runtime":             {".agent/goal-runtime.md", ".agent/harness.yaml"},
+	"goal-acceptance":          {".agent/harness.yaml"},
+	"goal-delivery":            {".agent/harness.yaml"},
+	"goal-handover":            {".agent/harness.yaml"},
+	"goal-downstream-adoption": {".agent/harness.yaml"},
+	"goal-certify":             {".agent/harness.yaml"},
+	"goal-runtime-final":       {".agent/harness.yaml"},
+	"naming":                   {"docs/standard/repository-roles.md", "docs/standard/module-boundary.md"},
+	"upgrade-standard":         {".agent/downstream-registry.yaml"},
+	"conformance-profile":      {".agent/conformance-profiles.yaml"},
+	"downstream-registry":      {".agent/downstream-registry.yaml"},
+	"self-healing-skeleton":    {".agent/failure-taxonomy.yaml", ".agent/root-cause.yaml", ".agent/regression-memory.yaml"},
+	"policy-schema":            {".agent/policy-schema.yaml"},
+	"github-settings":          {".agent/github-settings.yaml"},
+	"github-governance":        {".agent/github-governance.yaml"},
+	"governance-fixture-test":  {".agent/governance-fixture-test.yaml"},
+	"toolchain":                {".agent/toolchain.yaml"},
+	"evidence-artifacts":       {".agent/evidence-artifact-policy.yaml"},
+	"install-runtime":          {".agent/runtime-install.yaml"},
+	"upgrade-runtime":          {".agent/runtime-upgrade.yaml"},
+	"release-ready":            {".agent/release-readiness-formula.yaml"},
+	"evidence-replay":          {".agent/evidence-replay.yaml"},
+	"attest-conformance":       {".agent/conformance-profiles.yaml"},
+	"pack-standard":            {".agent/standard-pack.yaml"},
+	"pack-gate":                {".agent/gate-pack.yaml"},
+	"pack-evidence":            {".agent/evidence-pack.yaml"},
+	"runtime-file-ownership":   {".agent/runtime-file-ownership.yaml"},
+	"downstream-baseline":      {".agent/downstream-baseline-scan.yaml", ".agent/downstream-registry.yaml"},
+	"downstream-adoption":      {".agent/downstream-adoption-modes.yaml", ".agent/downstream-registry.yaml"},
+	"autoresearch":             {".agent/autoresearch.yaml"},
+	"changelog":                {".agent/changelog.yaml"},
+	"supply-chain":             {"docs/supply-chain.md"},
+	"execution-context":        {".agent/execution-context.yaml", "contracts/execution-context.schema.json"},
 }
 
 var plannedCommandSemanticMarkers = map[string]map[string][]string{
@@ -719,6 +737,24 @@ var plannedCommandSemanticMarkers = map[string]map[string][]string{
 	},
 	"runtime-health": {
 		".agent/runtime-health.yaml": {"schema_version:", "checks:", "toolchain"},
+	},
+	"goal-acceptance": {
+		".agent/harness.yaml": {"goalkit_mva_gates:", "G12_ACCEPTANCE", "goal-acceptance"},
+	},
+	"goal-delivery": {
+		".agent/harness.yaml": {"goalkit_mva_gates:", "G13_DELIVERY", "goal-delivery"},
+	},
+	"goal-handover": {
+		".agent/harness.yaml": {"goalkit_mva_gates:", "G14_HANDOVER", "goal-handover"},
+	},
+	"goal-downstream-adoption": {
+		".agent/harness.yaml": {"goalkit_mva_gates:", "G15_DOWNSTREAM_ADOPTION", "goal-downstream-adoption"},
+	},
+	"goal-certify": {
+		".agent/harness.yaml": {"goalkit_mva_gates:", "G16_CERTIFY", "goal-certify"},
+	},
+	"goal-runtime-final": {
+		".agent/harness.yaml": {"goalkit_mva_gates:", "G12_G16_FINAL", "goal-runtime-final"},
 	},
 	"execution-context": {
 		".agent/execution-context.yaml": {"schema_version:", "contexts:", "local_write", "ci_pull_request", "release_verify"},
@@ -951,6 +987,12 @@ var commandRegistryCommands = []string{
 	"acceptance-matrix",
 	"runtime-health",
 	"goal-runtime",
+	"goal-acceptance",
+	"goal-delivery",
+	"goal-handover",
+	"goal-downstream-adoption",
+	"goal-certify",
+	"goal-runtime-final",
 	"naming",
 	"upgrade-standard",
 	"conformance-profile",
