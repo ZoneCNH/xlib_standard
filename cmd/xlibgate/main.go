@@ -67,9 +67,7 @@ func run(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) int
 		return runDebtAlias("security", "warn", args[1:], stdout, stderr)
 	case "downstream-debt":
 		return runDebtAlias("downstream", "warn", args[1:], stdout, stderr)
-	case "goal-acceptance", "goal-delivery", "goal-handover", "goal-downstream-adoption", "goal-certify", "goal-runtime-final":
-		return runGoalRuntime(args[0], args[1:], stdout, stderr)
-	case "minimal-kernel", "done-assertion", "agent-team-contract", "scope-lock", "pr-template", "acceptance-matrix", "runtime-health", "goal-runtime", "naming", "upgrade-standard", "conformance-profile", "downstream-registry", "self-healing-skeleton", "policy-schema", "github-settings", "toolchain", "evidence-artifacts", "install-runtime", "upgrade-runtime", "release-ready", "evidence-replay", "attest-conformance", "pack-standard", "pack-gate", "pack-evidence", "runtime-file-ownership", "downstream-baseline", "downstream-adoption", "autoresearch", "changelog", "github-governance", "governance-fixture-test", "supply-chain", "execution-context":
+	case "minimal-kernel", "done-assertion", "agent-team-contract", "scope-lock", "pr-template", "acceptance-matrix", "runtime-health", "goal-runtime", "goal-acceptance", "goal-delivery", "goal-handover", "goal-downstream", "goal-certify", "naming", "upgrade-standard", "conformance-profile", "downstream-registry", "self-healing-skeleton", "policy-schema", "github-settings", "toolchain", "evidence-artifacts", "install-runtime", "upgrade-runtime", "release-ready", "evidence-replay", "attest-conformance", "pack-standard", "pack-gate", "pack-evidence", "runtime-file-ownership", "downstream-baseline", "downstream-adoption", "autoresearch", "changelog", "github-governance", "governance-fixture-test", "supply-chain", "execution-context":
 		return runPlannedCommand(args[0], args[1:], stdout, stderr)
 	case "boundary":
 		return runExternal(stdin, stdout, stderr, "./scripts/check_boundary.sh")
@@ -213,11 +211,11 @@ commands:
   execution-context
   github-governance
   github-settings [--verify]
-  goal-acceptance --goal-id <GOAL-ID> [--mode FULL] [--json]
-  goal-certify --goal-id <GOAL-ID> [--mode FULL] [--json]
-  goal-delivery --goal-id <GOAL-ID> [--mode FULL] [--json]
-  goal-downstream-adoption --goal-id <GOAL-ID> [--mode FULL] [--json]
-  goal-handover --goal-id <GOAL-ID> [--mode FULL] [--json]
+  goal-acceptance
+  goal-certify
+  goal-delivery
+  goal-downstream
+  goal-handover
   goal-runtime
   goal-runtime-final --goal-id <GOAL-ID> [--mode FULL] [--json]
   governance-fixture-test
