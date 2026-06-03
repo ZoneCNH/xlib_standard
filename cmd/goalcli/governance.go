@@ -1615,11 +1615,6 @@ func appendAgentIndexClassificationGaps(indexPath string, entries []agentIndexEn
 			"authority":  "source_of_truth",
 			"mutability": "hand_written",
 		},
-		".agent/registries/physical-migration-manifest.yaml": {
-			"layer":      "registry",
-			"authority":  "source_of_truth",
-			"mutability": "hand_written",
-		},
 		".agent/rules/registry.yaml": {
 			"authority":  "validated_mirror",
 			"mutability": "generated",
@@ -1855,7 +1850,6 @@ func requiredAgentIndexPaths() []string {
 		".agent/registries/command-registry.yaml",
 		".agent/registries/issue-registry.yaml",
 		".agent/registries/generated-artifacts.yaml",
-		".agent/registries/physical-migration-manifest.yaml",
 		".agent/registries/command-implementation-status.yaml",
 		".agent/registries/makefile-target-registry.yaml",
 		".agent/registries/makefile-baseline.yaml",
