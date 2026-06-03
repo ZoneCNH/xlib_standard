@@ -306,6 +306,11 @@ func TestGoalGovernanceCommandSurface(t *testing.T) {
 		{command: "acceptance-matrix"},
 		{command: "runtime-health"},
 		{command: "goal-runtime"},
+		{command: "goal-acceptance"},
+		{command: "goal-delivery"},
+		{command: "goal-handover"},
+		{command: "goal-downstream"},
+		{command: "goal-certify"},
 		{command: "github-settings"},
 		{command: "github-governance"},
 		{command: "governance-fixture-test"},
@@ -1176,6 +1181,42 @@ roles:
 	}
 	if !gapsContainSubstring(report.Gaps, ".agent/team-contract.yaml missing semantic marker rule:") {
 		t.Fatalf("gaps = %#v; want semantic marker gap", report.Gaps)
+	}
+}
+
+func TestGoalkitMVAGoalCommandsRequireHarnessMarkers(t *testing.T) {
+	tests := []struct {
+		command string
+		marker  string
+	}{
+		{command: "goal-acceptance", marker: "G12_ACCEPTANCE"},
+		{command: "goal-delivery", marker: "G13_HARNESS_RUNTIME"},
+		{command: "goal-handover", marker: "G14_EVIDENCE_LEDGER"},
+		{command: "goal-downstream", marker: "G15_AUTHORITY_MAP"},
+		{command: "goal-certify", marker: "G16_NO_FALSE_COMPLETION"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.command, func(t *testing.T) {
+			root := t.TempDir()
+			writeTestFiles(t, root, map[string]string{
+				".agent/harness.yaml": "goalkit_mva_gates:\n  command: " + tt.command + "\n  status: dry_run_ready\n",
+			})
+			chdir(t, root)
+
+			var stdout, stderr bytes.Buffer
+			got := run([]string{tt.command, "--dry-run", "--verify"}, strings.NewReader(""), &stdout, &stderr)
+			if got != 1 {
+				t.Fatalf("%s missing marker exit = %d, stderr %q, stdout %q; want 1", tt.command, got, stderr.String(), stdout.String())
+			}
+			var report gateReport
+			if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
+				t.Fatalf("stdout is not gateReport JSON: %v; stdout %q", err, stdout.String())
+			}
+			if !gapsContainSubstring(report.Gaps, ".agent/harness.yaml missing semantic marker "+tt.marker) {
+				t.Fatalf("gaps = %#v; want missing %s marker gap", report.Gaps, tt.marker)
+			}
+		})
 	}
 }
 

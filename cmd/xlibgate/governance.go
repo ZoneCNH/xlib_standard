@@ -192,7 +192,7 @@ func runMakefileBaseline(args []string, stdout io.Writer, stderr io.Writer) int 
 	if err := validateInternalCommandArgs("makefile-baseline", args, internalCommandFlagSpec{boolFlags: []string{"json"}}); err != nil {
 		return invalidInternalArgsExit("makefile-baseline", err, stderr)
 	}
-	requiredTargets := append([]string{"fmt", "vet", "lint", "test", "race", "boundary", "security", "contracts", "docs-check", "evidence", "score-check", "main-guard", "worktree-guard", "evidence-check", "cli-contract", "issue-registry", "command-registry", "makefile-baseline", "governance-check", "p1-governance-check", "execution-context", "p2-runtime-check", "release-check", "release-final-check"}, contextRuntimeTargets()...)
+	requiredTargets := append([]string{"fmt", "vet", "lint", "test", "race", "boundary", "security", "contracts", "docs-check", "evidence", "score-check", "main-guard", "worktree-guard", "evidence-check", "cli-contract", "issue-registry", "command-registry", "makefile-baseline", "governance-check", "p1-governance-check", "goal-acceptance", "goal-delivery", "goal-handover", "goal-downstream", "goal-certify", "execution-context", "p2-runtime-check", "release-check", "release-final-check"}, contextRuntimeTargets()...)
 	required := map[string][]string{"Makefile": {}, ".agent/makefile-target-registry.yaml": requiredTargets, ".agent/makefile-baseline.yaml": requiredTargets}
 	for _, target := range requiredTargets {
 		required["Makefile"] = append(required["Makefile"], ".PHONY: "+target, target+":")
@@ -682,6 +682,11 @@ var plannedCommandFiles = map[string][]string{
 	"acceptance-matrix":       {".agent/acceptance-matrix.yaml"},
 	"runtime-health":          {".agent/runtime-health.yaml"},
 	"goal-runtime":            {".agent/goal-runtime.md", ".agent/harness.yaml"},
+	"goal-acceptance":         {".agent/harness.yaml"},
+	"goal-delivery":           {".agent/harness.yaml"},
+	"goal-handover":           {".agent/harness.yaml"},
+	"goal-downstream":         {".agent/harness.yaml"},
+	"goal-certify":            {".agent/harness.yaml"},
 	"naming":                  {"docs/standard/repository-roles.md", "docs/standard/module-boundary.md"},
 	"upgrade-standard":        {".agent/downstream-registry.yaml"},
 	"conformance-profile":     {".agent/conformance-profiles.yaml"},
@@ -719,6 +724,21 @@ var plannedCommandSemanticMarkers = map[string]map[string][]string{
 	},
 	"runtime-health": {
 		".agent/runtime-health.yaml": {"schema_version:", "checks:", "toolchain"},
+	},
+	"goal-acceptance": {
+		".agent/harness.yaml": {"goalkit_mva_gates:", "G12_ACCEPTANCE", "goal-acceptance"},
+	},
+	"goal-delivery": {
+		".agent/harness.yaml": {"goalkit_mva_gates:", "G13_HARNESS_RUNTIME", "goal-delivery"},
+	},
+	"goal-handover": {
+		".agent/harness.yaml": {"goalkit_mva_gates:", "G14_EVIDENCE_LEDGER", "goal-handover"},
+	},
+	"goal-downstream": {
+		".agent/harness.yaml": {"goalkit_mva_gates:", "G15_AUTHORITY_MAP", "goal-downstream"},
+	},
+	"goal-certify": {
+		".agent/harness.yaml": {"goalkit_mva_gates:", "G16_NO_FALSE_COMPLETION", "goal-certify"},
 	},
 	"execution-context": {
 		".agent/execution-context.yaml": {"schema_version:", "contexts:", "local_write", "ci_pull_request", "release_verify"},
@@ -951,6 +971,11 @@ var commandRegistryCommands = []string{
 	"acceptance-matrix",
 	"runtime-health",
 	"goal-runtime",
+	"goal-acceptance",
+	"goal-delivery",
+	"goal-handover",
+	"goal-downstream",
+	"goal-certify",
 	"naming",
 	"upgrade-standard",
 	"conformance-profile",
