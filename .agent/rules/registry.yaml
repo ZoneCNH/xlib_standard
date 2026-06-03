@@ -19,8 +19,8 @@ generated_at: 2026-06-03
 total_rules: 419
 p0_count: 119
 p1_count: 300
-active_count: 173
-indexed_count: 246
+active_count: 354
+indexed_count: 65
 
 rules:
   - id: RULE-BRANCH-001
@@ -434,9 +434,9 @@ rules:
     source_section: 48
     source_section_title: "Human Approval 规则"
     source_line: 2333
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate pr-template"
+    exit_code: 1
+    status: active
   - id: RULE-ISSUE-001
     level: P0
     title: "Issue 必须从 Task 生成"
@@ -902,18 +902,18 @@ rules:
     source_section: 145
     source_section_title: "Agent Stop Conditions 规则"
     source_line: 6006
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate governance-check"
+    exit_code: 1
+    status: active
   - id: RULE-STOP-002
     level: P0
     title: "停止后必须生成 Blocker 记录"
     source_section: 145
     source_section_title: "Agent Stop Conditions 规则"
     source_line: 6023
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate governance-check"
+    exit_code: 1
+    status: active
   - id: RULE-SUPPLY-001
     level: P0
     title: "Release 必须支持供应链审计"
@@ -974,36 +974,36 @@ rules:
     source_section: 98
     source_section_title: "Policy Violation 处理规则"
     source_line: 4245
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate governance-check"
+    exit_code: 1
+    status: active
   - id: RULE-VIOLATION-002
     level: P0
     title: "违规记录必须保留"
     source_section: 98
     source_section_title: "Policy Violation 处理规则"
     source_line: 4262
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate governance-check"
+    exit_code: 1
+    status: active
   - id: RULE-WAIVER-001
     level: P0
     title: "任何绕过规则都必须写 Waiver"
     source_section: 97
     source_section_title: "Exception / Waiver 规则"
     source_line: 4202
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate governance-check"
+    exit_code: 1
+    status: active
   - id: RULE-WAIVER-002
     level: P0
     title: "P0 规则默认不可豁免"
     source_section: 97
     source_section_title: "Exception / Waiver 规则"
     source_line: 4221
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate governance-check"
+    exit_code: 1
+    status: active
   - id: RULE-WORKTREE-001
     level: P0
     title: "禁止 main 开发"
@@ -1136,63 +1136,63 @@ rules:
     source_section: 57
     source_section_title: "Agent 执行协议"
     source_line: 2699
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate agent-team-contract"
+    exit_code: 1
+    status: active
   - id: RULE-AGENT-002
     level: P1
     title: "Agent 每一步必须写 Execution Log"
     source_section: 57
     source_section_title: "Agent 执行协议"
     source_line: 2722
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate agent-team-contract"
+    exit_code: 1
+    status: active
   - id: RULE-AGENT-003
     level: P1
     title: "Agent 不能跳过失败"
     source_section: 57
     source_section_title: "Agent 执行协议"
     source_line: 2747
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate agent-team-contract"
+    exit_code: 1
+    status: active
   - id: RULE-AGENT-AUTH-001
     level: P1
     title: "Agent 只能操作当前 Goal 授权范围"
     source_section: 58
     source_section_title: "Agent 权限边界规则"
     source_line: 2772
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate agent-team-contract"
+    exit_code: 1
+    status: active
   - id: RULE-AGENT-AUTH-002
     level: P1
     title: "越权必须阻断"
     source_section: 58
     source_section_title: "Agent 权限边界规则"
     source_line: 2799
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate agent-team-contract"
+    exit_code: 1
+    status: active
   - id: RULE-AGENT-MEMORY-001
     level: P1
     title: "Agent 记忆不能作为事实源"
     source_section: 193
     source_section_title: "Agent 记忆与文件事实规则"
     source_line: 7811
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate agent-team-contract"
+    exit_code: 1
+    status: active
   - id: RULE-AGENT-MEMORY-002
     level: P1
     title: "重要上下文必须写入文件"
     source_section: 193
     source_section_title: "Agent 记忆与文件事实规则"
     source_line: 7826
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate agent-team-contract"
+    exit_code: 1
+    status: active
   - id: RULE-AGENT-TEAM-001
     level: P1
     title: "复杂 Goal 必须拆 Agent 角色"
@@ -1343,18 +1343,18 @@ rules:
     source_section: 178
     source_section_title: "自动化安全边界规则"
     source_line: 7300
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate runtime-health"
+    exit_code: 1
+    status: active
   - id: RULE-AUTO-SAFETY-002
     level: P1
     title: "高风险自动化必须先进入 Simulation"
     source_section: 178
     source_section_title: "自动化安全边界规则"
     source_line: 7326
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate runtime-health"
+    exit_code: 1
+    status: active
   - id: RULE-BATCH-001
     level: P1
     title: "不同风险类型不能混批"
@@ -1370,18 +1370,18 @@ rules:
     source_section: 206
     source_section_title: "Runtime Bootstrap 规则"
     source_line: 8171
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate install-runtime"
+    exit_code: 1
+    status: active
   - id: RULE-BOOTSTRAP-002
     level: P1
     title: "bootstrap 必须幂等"
     source_section: 206
     source_section_title: "Runtime Bootstrap 规则"
     source_line: 8196
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate install-runtime"
+    exit_code: 1
+    status: active
   - id: RULE-CANCEL-001
     level: P1
     title: "Goal 可以取消，但不能静默消失"
@@ -1424,18 +1424,18 @@ rules:
     source_section: 148
     source_section_title: "变更类型规则"
     source_line: 6142
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate traceability-check"
+    exit_code: 9
+    status: active
   - id: RULE-CHANGE-TYPE-002
     level: P1
     title: "不同类型触发不同 Gate"
     source_section: 148
     source_section_title: "变更类型规则"
     source_line: 6163
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate traceability-check"
+    exit_code: 9
+    status: active
   - id: RULE-CHANGELOG-001
     level: P1
     title: "Changelog 必须从 PR / Release Manifest 生成"
@@ -1496,9 +1496,9 @@ rules:
     source_section: 28
     source_section_title: "规则分级体系"
     source_line: 1504
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate goal-runtime"
+    exit_code: 1
+    status: active
   - id: RULE-CMD-TXN-001
     level: P1
     title: "goalkit 命令必须事务化"
@@ -1523,135 +1523,135 @@ rules:
     source_section: 54
     source_section_title: "Rule as Code 规则"
     source_line: 2537
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate governance-check"
+    exit_code: 1
+    status: active
   - id: RULE-CODE-002
     level: P1
     title: "规则必须有机器 ID"
     source_section: 54
     source_section_title: "Rule as Code 规则"
     source_line: 2570
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate governance-check"
+    exit_code: 1
+    status: active
   - id: RULE-COMPAT-001
     level: P1
     title: "规则升级必须兼容旧 Goal Pack"
     source_section: 150
     source_section_title: "Backward Compatibility 规则"
     source_line: 6221
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate policy-schema"
+    exit_code: 6
+    status: active
   - id: RULE-COMPAT-002
     level: P1
     title: "Breaking 规则必须有迁移计划"
     source_section: 150
     source_section_title: "Backward Compatibility 规则"
     source_line: 6227
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate policy-schema"
+    exit_code: 6
+    status: active
   - id: RULE-COMPAT-GUARD-001
     level: P1
     title: "下游兼容性失败不得阻断 xlib-standard 内部发布"
     source_section: 231
     source_section_title: "Compatibility Guard 规则"
     source_line: 8961
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate downstream-adoption"
+    exit_code: 1
+    status: active
   - id: RULE-COMPAT-GUARD-002
     level: P1
     title: "Breaking Rule 必须分阶段推进"
     source_section: 231
     source_section_title: "Compatibility Guard 规则"
     source_line: 8972
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate downstream-adoption"
+    exit_code: 1
+    status: active
   - id: RULE-COMPAT-MATRIX-001
     level: P1
     title: "规则版本必须有兼容矩阵"
     source_section: 188
     source_section_title: "Rule Compatibility Matrix 规则"
     source_line: 7656
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate policy-schema"
+    exit_code: 6
+    status: active
   - id: RULE-COMPAT-MATRIX-002
     level: P1
     title: "不兼容必须阻断 adoption"
     source_section: 188
     source_section_title: "Rule Compatibility Matrix 规则"
     source_line: 7674
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate policy-schema"
+    exit_code: 6
+    status: active
   - id: RULE-COMPILER-001
     level: P1
     title: "Markdown Rule 必须可编译成 Policy Index"
     source_section: 209
     source_section_title: "Rule Compiler 规则"
     source_line: 8285
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate cli-contract"
+    exit_code: 1
+    status: active
   - id: RULE-COMPILER-002
     level: P1
     title: "编译失败必须阻断 Release"
     source_section: 209
     source_section_title: "Rule Compiler 规则"
     source_line: 8305
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate cli-contract"
+    exit_code: 1
+    status: active
   - id: RULE-CONCURRENCY-001
     level: P1
     title: "每个 Task 独立 worktree"
     source_section: 59
     source_section_title: "并发执行规则"
     source_line: 2814
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate worktree-guard"
+    exit_code: 5
+    status: active
   - id: RULE-CONCURRENCY-002
     level: P1
     title: "必须有 Lock 文件"
     source_section: 59
     source_section_title: "并发执行规则"
     source_line: 2826
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate worktree-guard"
+    exit_code: 5
+    status: active
   - id: RULE-CONCURRENCY-003
     level: P1
     title: "Release 必须串行"
     source_section: 59
     source_section_title: "并发执行规则"
     source_line: 2851
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate worktree-guard"
+    exit_code: 5
+    status: active
   - id: RULE-CONFLICT-001
     level: P1
     title: "SSOT 冲突必须自动检测"
     source_section: 213
     source_section_title: "Source of Truth Conflict 规则"
     source_line: 8431
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate goal-runtime"
+    exit_code: 1
+    status: active
   - id: RULE-CONFLICT-002
     level: P1
     title: "冲突必须有裁决顺序"
     source_section: 213
     source_section_title: "Source of Truth Conflict 规则"
     source_line: 8445
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate goal-runtime"
+    exit_code: 1
+    status: active
   - id: RULE-CONTEXT-001
     level: P1
     title: "必须恢复真实项目状态"
@@ -1685,72 +1685,72 @@ rules:
     source_section: 64
     source_section_title: "上下文压缩规则"
     source_line: 3036
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate execution-context"
+    exit_code: 1
+    status: active
   - id: RULE-CONTEXT-COMPRESSION-002
     level: P1
     title: "上下文摘要不能替代原始 Evidence"
     source_section: 64
     source_section_title: "上下文压缩规则"
     source_line: 3052
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate execution-context"
+    exit_code: 1
+    status: active
   - id: RULE-CONTEXT-WINDOW-001
     level: P1
     title: "大型 Goal 必须分层摘要"
     source_section: 194
     source_section_title: "Context Window 防爆规则"
     source_line: 7843
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate execution-context"
+    exit_code: 1
+    status: active
   - id: RULE-CONTEXT-WINDOW-002
     level: P1
     title: "Agent 恢复时先读摘要，再读原文"
     source_section: 194
     source_section_title: "Context Window 防爆规则"
     source_line: 7857
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate execution-context"
+    exit_code: 1
+    status: active
   - id: RULE-CONTROL-001
     level: P1
     title: "`.agent` 是 Goal Runtime 控制平面"
     source_section: 173
     source_section_title: "控制平面规则"
     source_line: 7100
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate goal-runtime"
+    exit_code: 1
+    status: active
   - id: RULE-CONTROL-002
     level: P1
     title: "控制平面优先于散落文档"
     source_section: 173
     source_section_title: "控制平面规则"
     source_line: 7122
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate goal-runtime"
+    exit_code: 1
+    status: active
   - id: RULE-COVERAGE-001
     level: P1
     title: "P0/P1 规则必须有覆盖率"
     source_section: 210
     source_section_title: "Rule Coverage 规则"
     source_line: 8325
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate traceability-check"
+    exit_code: 9
+    status: active
   - id: RULE-COVERAGE-002
     level: P1
     title: "无覆盖规则必须降级"
     source_section: 210
     source_section_title: "Rule Coverage 规则"
     source_line: 8342
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate traceability-check"
+    exit_code: 9
+    status: active
   - id: RULE-DASHBOARD-001
     level: P1
     title: "必须能生成静态 Dashboard"
@@ -1910,36 +1910,36 @@ rules:
     source_section: 184
     source_section_title: "文档债规则"
     source_line: 7513
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate debt"
+    exit_code: 1
+    status: active
   - id: RULE-DOC-DEBT-002
     level: P1
     title: "文档必须有生命周期"
     source_section: 184
     source_section_title: "文档债规则"
     source_line: 7533
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate debt"
+    exit_code: 1
+    status: active
   - id: RULE-DOCTOR-001
     level: P1
     title: "必须提供一键诊断"
     source_section: 207
     source_section_title: "Runtime Doctor 规则"
     source_line: 8224
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate runtime-health"
+    exit_code: 1
+    status: active
   - id: RULE-DOCTOR-002
     level: P1
     title: "doctor 不能修改状态"
     source_section: 207
     source_section_title: "Runtime Doctor 规则"
     source_line: 8247
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate runtime-health"
+    exit_code: 1
+    status: active
   - id: RULE-DOWNSTREAM-001
     level: P1
     title: "标准必须能被下游库采用"
@@ -1973,18 +1973,18 @@ rules:
     source_section: 187
     source_section_title: "Downstream Contract 规则"
     source_line: 7617
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate downstream-registry"
+    exit_code: 1
+    status: active
   - id: RULE-DOWNSTREAM-CONTRACT-002
     level: P1
     title: "下游不得弱化 P0"
     source_section: 187
     source_section_title: "Downstream Contract 规则"
     source_line: 7632
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate downstream-registry"
+    exit_code: 1
+    status: active
   - id: RULE-DOWNSTREAM-SYNC-001
     level: P1
     title: "xlib-standard 更新后必须生成同步任务"
@@ -2027,18 +2027,18 @@ rules:
     source_section: 226
     source_section_title: "Drift Budget 规则"
     source_line: 8823
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate debt"
+    exit_code: 1
+    status: active
   - id: RULE-DRIFT-BUDGET-002
     level: P1
     title: "超过预算必须开 Drift Cleanup Goal"
     source_section: 226
     source_section_title: "Drift Budget 规则"
     source_line: 8835
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate debt"
+    exit_code: 1
+    status: active
   - id: RULE-DRYRUN-001
     level: P1
     title: "所有破坏性命令必须支持 dry-run"
@@ -2063,72 +2063,72 @@ rules:
     source_section: 224
     source_section_title: "Evidence Loss Recovery 规则"
     source_line: 8764
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate evidence-check"
+    exit_code: 8
+    status: active
   - id: RULE-EVID-LOSS-002
     level: P1
     title: "Evidence 可重建但必须标记"
     source_section: 224
     source_section_title: "Evidence Loss Recovery 规则"
     source_line: 8775
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate evidence-check"
+    exit_code: 8
+    status: active
   - id: RULE-EVIDENCE-COVERAGE-001
     level: P1
     title: "Evidence 覆盖率必须量化"
     source_section: 153
     source_section_title: "Evidence Coverage 规则"
     source_line: 6307
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate evidence-check"
+    exit_code: 8
+    status: active
   - id: RULE-EVIDENCE-COVERAGE-002
     level: P1
     title: "Coverage 结果必须进入 Audit"
     source_section: 153
     source_section_title: "Evidence Coverage 规则"
     source_line: 6326
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate evidence-check"
+    exit_code: 8
+    status: active
   - id: RULE-EVIDENCE-HASH-001
     level: P1
     title: "Release Artifact 必须生成 hash"
     source_section: 180
     source_section_title: "Evidence Hash 规则"
     source_line: 7384
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate release-evidence-hash"
+    exit_code: 8
+    status: active
   - id: RULE-EVIDENCE-HASH-002
     level: P1
     title: "审计时必须校验 hash"
     source_section: 180
     source_section_title: "Evidence Hash 规则"
     source_line: 7403
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate release-evidence-hash"
+    exit_code: 8
+    status: active
   - id: RULE-EVIDENCE-RETENTION-001
     level: P1
     title: "Evidence 必须有保存策略"
     source_section: 179
     source_section_title: "Evidence 长期保存规则"
     source_line: 7349
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate evidence-check"
+    exit_code: 8
+    status: active
   - id: RULE-EVIDENCE-RETENTION-002
     level: P1
     title: "Release Evidence 永久保存"
     source_section: 179
     source_section_title: "Evidence 长期保存规则"
     source_line: 7363
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate evidence-check"
+    exit_code: 8
+    status: active
   - id: RULE-FACTORY-001
     level: P1
     title: "xlib-standard 的最终输出不是仓库，而是工厂能力"
@@ -2171,36 +2171,36 @@ rules:
     source_section: 61
     source_section_title: "文件变更规则"
     source_line: 2914
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate runtime-file-ownership"
+    exit_code: 1
+    status: active
   - id: RULE-FILE-002
     level: P1
     title: "实际变更超出范围必须解释"
     source_section: 61
     source_section_title: "文件变更规则"
     source_line: 2927
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate runtime-file-ownership"
+    exit_code: 1
+    status: active
   - id: RULE-FREEZE-003
     level: P1
     title: "Freeze 后禁止新增非 blocker 变更"
     source_section: 221
     source_section_title: "Release Freeze Deepening 规则"
     source_line: 8665
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate scope-lock"
+    exit_code: 1
+    status: active
   - id: RULE-FREEZE-004
     level: P1
     title: "Freeze 解除必须有 Decision"
     source_section: 221
     source_section_title: "Release Freeze Deepening 规则"
     source_line: 8681
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate scope-lock"
+    exit_code: 1
+    status: active
   - id: RULE-FREEZE-RULE-001
     level: P1
     title: "规则体系必须进入冻结态"
@@ -2225,81 +2225,81 @@ rules:
     source_section: 211
     source_section_title: "Gate Dependency Graph 规则"
     source_line: 8356
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate makefile-baseline"
+    exit_code: 1
+    status: active
   - id: RULE-GATE-DAG-002
     level: P1
     title: "禁止循环依赖"
     source_section: 211
     source_section_title: "Gate Dependency Graph 规则"
     source_line: 8372
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate makefile-baseline"
+    exit_code: 1
+    status: active
   - id: RULE-GITHUB-ISSUE-001
     level: P1
     title: "Issue 必须从 Task Registry 生成"
     source_section: 86
     source_section_title: "GitHub Issue 自动化协议"
     source_line: 3791
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate issue-registry"
+    exit_code: 1
+    status: active
   - id: RULE-GITHUB-ISSUE-002
     level: P1
     title: "Issue Body 必须包含固定区块"
     source_section: 86
     source_section_title: "GitHub Issue 自动化协议"
     source_line: 3810
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate issue-registry"
+    exit_code: 1
+    status: active
   - id: RULE-GITHUB-ISSUE-003
     level: P1
     title: "Issue 不能成为新事实源"
     source_section: 86
     source_section_title: "GitHub Issue 自动化协议"
     source_line: 3831
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate issue-registry"
+    exit_code: 1
+    status: active
   - id: RULE-GLOSSARY-001
     level: P1
     title: "核心术语必须进入 Glossary"
     source_section: 199
     source_section_title: "Glossary 规则"
     source_line: 7965
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate governance-check"
+    exit_code: 1
+    status: active
   - id: RULE-GLOSSARY-002
     level: P1
     title: "文档新增术语必须同步 Glossary"
     source_section: 199
     source_section_title: "Glossary 规则"
     source_line: 7988
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate governance-check"
+    exit_code: 1
+    status: active
   - id: RULE-GOAL-FREEZE-001
     level: P1
     title: "进入 Release 前必须冻结 Goal Scope"
     source_section: 160
     source_section_title: "Goal Freeze 规则"
     source_line: 6548
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate scope-lock"
+    exit_code: 1
+    status: active
   - id: RULE-GOAL-FREEZE-002
     level: P1
     title: "冻结后只允许修复 release blocker"
     source_section: 160
     source_section_title: "Goal Freeze 规则"
     source_line: 6573
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate scope-lock"
+    exit_code: 1
+    status: active
   - id: RULE-GOAL-MERGE-001
     level: P1
     title: "相似 Goal 可以合并，但必须保留来源"
@@ -2333,18 +2333,18 @@ rules:
     source_section: 154
     source_section_title: "Test Pyramid for Goal Runtime 规则"
     source_line: 6347
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate governance-fixture-test"
+    exit_code: 1
+    status: active
   - id: RULE-GOAL-TEST-002
     level: P1
     title: "每个新增 Gate 必须有正反样例"
     source_section: 154
     source_section_title: "Test Pyramid for Goal Runtime 规则"
     source_line: 6378
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate governance-fixture-test"
+    exit_code: 1
+    status: active
   - id: RULE-GOALKIT-001
     level: P1
     title: "goalkit 必须是 Goal Runtime 的唯一执行入口之一"
@@ -2432,36 +2432,36 @@ rules:
     source_section: 76
     source_section_title: "Golden Path 规则"
     source_line: 3400
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate governance-fixture-test"
+    exit_code: 1
+    status: active
   - id: RULE-GOLDEN-002
     level: P1
     title: "每次规则升级都必须跑 Golden Test"
     source_section: 76
     source_section_title: "Golden Path 规则"
     source_line: 3422
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate governance-fixture-test"
+    exit_code: 1
+    status: active
   - id: RULE-GOLDEN-PACK-001
     level: P1
     title: "Golden Pack 是系统最小正确样例"
     source_section: 155
     source_section_title: "Golden Goal Pack 标准"
     source_line: 6392
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate pack-gate"
+    exit_code: 1
+    status: active
   - id: RULE-GOLDEN-PACK-002
     level: P1
     title: "Golden Pack 必须进入 CI"
     source_section: 155
     source_section_title: "Golden Goal Pack 标准"
     source_line: 6414
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate pack-gate"
+    exit_code: 1
+    status: active
   - id: RULE-GOV-CADENCE-001
     level: P1
     title: "必须有固定治理节奏"
@@ -2522,18 +2522,18 @@ rules:
     source_section: 217
     source_section_title: "Agent Heartbeat 规则"
     source_line: 8557
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate runtime-health"
+    exit_code: 1
+    status: active
   - id: RULE-HEARTBEAT-002
     level: P1
     title: "无心跳任务进入 STALE"
     source_section: 217
     source_section_title: "Agent Heartbeat 规则"
     source_line: 8575
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate runtime-health"
+    exit_code: 1
+    status: active
   - id: RULE-HOOKS-001
     level: P1
     title: "必须提供 hooks 安装脚本"
@@ -2558,36 +2558,36 @@ rules:
     source_section: 4
     source_section_title: "ID 规则"
     source_line: 298
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate goal-runtime"
+    exit_code: 1
+    status: active
   - id: RULE-ID-002
     level: P1
     title: "禁止无 ID 的需求、任务、证据"
     source_section: 4
     source_section_title: "ID 规则"
     source_line: 323
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate goal-runtime"
+    exit_code: 1
+    status: active
   - id: RULE-IMPACT-001
     level: P1
     title: "P0/P1 变更必须有影响分析"
     source_section: 149
     source_section_title: "Impact Analysis 规则"
     source_line: 6183
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate standard-impact-check"
+    exit_code: 1
+    status: active
   - id: RULE-IMPACT-002
     level: P1
     title: "影响分析必须进入 PR"
     source_section: 149
     source_section_title: "Impact Analysis 规则"
     source_line: 6200
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate standard-impact-check"
+    exit_code: 1
+    status: active
   - id: RULE-INCIDENT-001
     level: P1
     title: "V0/V1 事故必须开 Incident"
@@ -2612,108 +2612,108 @@ rules:
     source_section: 166
     source_section_title: "New Issue Candidate 规则"
     source_line: 6736
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate issue-registry"
+    exit_code: 1
+    status: active
   - id: RULE-ISSUE-CANDIDATE-002
     level: P1
     title: "Issue Candidate 必须被裁决"
     source_section: 166
     source_section_title: "New Issue Candidate 规则"
     source_line: 6758
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate issue-registry"
+    exit_code: 1
+    status: active
   - id: RULE-LABEL-001
     level: P1
     title: "Label 必须结构化"
     source_section: 87
     source_section_title: "GitHub Label 规则"
     source_line: 3851
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate github-settings"
+    exit_code: 1
+    status: active
   - id: RULE-LABEL-002
     level: P1
     title: "P0 Issue 必须被显式标记"
     source_section: 87
     source_section_title: "GitHub Label 规则"
     source_line: 3886
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate github-settings"
+    exit_code: 1
+    status: active
   - id: RULE-LEASE-001
     level: P1
     title: "Agent 执行必须持有 Lease"
     source_section: 216
     source_section_title: "Agent Lease 规则"
     source_line: 8524
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate runtime-health"
+    exit_code: 1
+    status: active
   - id: RULE-LEASE-002
     level: P1
     title: "Lease 超时必须释放或接管"
     source_section: 216
     source_section_title: "Agent Lease 规则"
     source_line: 8545
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate runtime-health"
+    exit_code: 1
+    status: active
   - id: RULE-MAIN-RECOVERY-001
     level: P1
     title: "main 被污染必须立即冻结"
     source_section: 223
     source_section_title: "Main Pollution Recovery 规则"
     source_line: 8733
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate main-guard"
+    exit_code: 5
+    status: active
   - id: RULE-MAIN-RECOVERY-002
     level: P1
     title: "恢复必须有 Evidence"
     source_section: 223
     source_section_title: "Main Pollution Recovery 规则"
     source_line: 8746
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate main-guard"
+    exit_code: 5
+    status: active
   - id: RULE-MATURITY-001
     level: P1
     title: "Goal Runtime 成熟度分五级"
     source_section: 200
     source_section_title: "最终闭环成熟度等级"
     source_line: 7996
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate conformance-profile"
+    exit_code: 1
+    status: active
   - id: RULE-MATURITY-002
     level: P1
     title: "当前目标应先达到 L2"
     source_section: 200
     source_section_title: "最终闭环成熟度等级"
     source_line: 8020
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate conformance-profile"
+    exit_code: 1
+    status: active
   - id: RULE-MERGE-QUEUE-001
     level: P1
     title: "多个 PR 必须进入 Merge Queue"
     source_section: 157
     source_section_title: "PR Merge Queue 规则"
     source_line: 6456
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate pr-template"
+    exit_code: 1
+    status: active
   - id: RULE-MERGE-QUEUE-002
     level: P1
     title: "合并后必须更新 Goal 状态"
     source_section: 157
     source_section_title: "PR Merge Queue 规则"
     source_line: 6472
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate pr-template"
+    exit_code: 1
+    status: active
   - id: RULE-METRIC-001
     level: P1
     title: "Goal Runtime 必须度量"
@@ -2756,306 +2756,306 @@ rules:
     source_section: 151
     source_section_title: "Migration Script 规则"
     source_line: 6252
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate policy-schema"
+    exit_code: 6
+    status: active
   - id: RULE-MIGRATION-002
     level: P1
     title: "迁移必须可 dry-run"
     source_section: 151
     source_section_title: "Migration Script 规则"
     source_line: 6265
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate policy-schema"
+    exit_code: 6
+    status: active
   - id: RULE-MILESTONE-001
     level: P1
     title: "Goal 必须映射到 Milestone"
     source_section: 88
     source_section_title: "Milestone 规则"
     source_line: 3900
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate goal-runtime"
+    exit_code: 1
+    status: active
   - id: RULE-MILESTONE-002
     level: P1
     title: "Milestone 关闭条件"
     source_section: 88
     source_section_title: "Milestone 规则"
     source_line: 3912
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate goal-runtime"
+    exit_code: 1
+    status: active
   - id: RULE-MODE-001
     level: P1
     title: "必须声明执行模式"
     source_section: 2
     source_section_title: "Goal Runtime 模式规则"
     source_line: 151
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate goal-runtime"
+    exit_code: 1
+    status: active
   - id: RULE-MODE-GATE-001
     level: P1
     title: "不同模式 Gate 不同"
     source_section: 131
     source_section_title: "Lite / Standard / Full Gate 矩阵"
     source_line: 5567
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate goal-runtime"
+    exit_code: 1
+    status: active
   - id: RULE-MULTIREPO-001
     level: P1
     title: "跨仓库 Goal 必须有协调 Goal Pack"
     source_section: 186
     source_section_title: "Multi-Repo Goal 规则"
     source_line: 7585
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate downstream-registry"
+    exit_code: 1
+    status: active
   - id: RULE-MULTIREPO-002
     level: P1
     title: "跨仓库发布必须声明顺序"
     source_section: 186
     source_section_title: "Multi-Repo Goal 规则"
     source_line: 7601
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate downstream-registry"
+    exit_code: 1
+    status: active
   - id: RULE-NAMING-001
     level: P1
     title: "命名必须统一"
     source_section: 198
     source_section_title: "Naming Normalization 规则"
     source_line: 7945
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate naming"
+    exit_code: 1
+    status: active
   - id: RULE-OBJECT-001
     level: P1
     title: "Goal 必须包含完整字段"
     source_section: 3
     source_section_title: "Goal 对象模型规则"
     source_line: 252
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate goal-runtime"
+    exit_code: 1
+    status: active
   - id: RULE-OBJECT-002
     level: P1
     title: "统一对象关系"
     source_section: 3
     source_section_title: "Goal 对象模型规则"
     source_line: 275
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate goal-runtime"
+    exit_code: 1
+    status: active
   - id: RULE-ORDER-001
     level: P1
     title: "先做 Gate，再做自动化"
     source_section: 137
     source_section_title: "执行顺序规则"
     source_line: 5695
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate goal-runtime"
+    exit_code: 1
+    status: active
   - id: RULE-ORPHAN-001
     level: P1
     title: "禁止孤儿对象"
     source_section: 197
     source_section_title: "No-Orphan 规则"
     source_line: 7919
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate goal-runtime"
+    exit_code: 1
+    status: active
   - id: RULE-ORPHAN-002
     level: P1
     title: "orphan-check 必须进入 CI"
     source_section: 197
     source_section_title: "No-Orphan 规则"
     source_line: 7935
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate goal-runtime"
+    exit_code: 1
+    status: active
   - id: RULE-OWNERSHIP-001
     level: P1
     title: "关键文件必须有 Owner"
     source_section: 147
     source_section_title: "文件所有权规则"
     source_line: 6084
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate runtime-file-ownership"
+    exit_code: 1
+    status: active
   - id: RULE-OWNERSHIP-002
     level: P1
     title: "修改关键文件必须触发 Review"
     source_section: 147
     source_section_title: "文件所有权规则"
     source_line: 6115
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate runtime-file-ownership"
+    exit_code: 1
+    status: active
   - id: RULE-PARITY-001
     level: P1
     title: "本地与 CI 必须同源"
     source_section: 215
     source_section_title: "Local Parity 规则"
     source_line: 8490
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate makefile-baseline"
+    exit_code: 1
+    status: active
   - id: RULE-PARITY-002
     level: P1
     title: "CI-only Gate 必须说明原因"
     source_section: 215
     source_section_title: "Local Parity 规则"
     source_line: 8508
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate makefile-baseline"
+    exit_code: 1
+    status: active
   - id: RULE-PARTIAL-RELEASE-001
     level: P1
     title: "允许部分发布，但必须显式声明"
     source_section: 159
     source_section_title: "Partial Release 规则"
     source_line: 6520
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate release-final-check"
+    exit_code: 10
+    status: active
   - id: RULE-PARTIAL-RELEASE-002
     level: P1
     title: "P0 缺口不允许 stable partial release"
     source_section: 159
     source_section_title: "Partial Release 规则"
     source_line: 6534
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate release-final-check"
+    exit_code: 10
+    status: active
   - id: RULE-PERMISSION-001
     level: P1
     title: "GitHub 权限必须最小化"
     source_section: 177
     source_section_title: "外部系统权限规则"
     source_line: 7261
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate github-settings"
+    exit_code: 1
+    status: active
   - id: RULE-PERMISSION-002
     level: P1
     title: "发布权限必须单独隔离"
     source_section: 177
     source_section_title: "外部系统权限规则"
     source_line: 7286
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate github-settings"
+    exit_code: 1
+    status: active
   - id: RULE-PR-BOT-001
     level: P1
     title: "Harness 必须在 PR 中评论结果摘要"
     source_section: 91
     source_section_title: "PR Comment Bot 规则"
     source_line: 3996
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate pr-template"
+    exit_code: 1
+    status: active
   - id: RULE-PR-BOT-002
     level: P1
     title: "失败必须给出可执行修复建议"
     source_section: 91
     source_section_title: "PR Comment Bot 规则"
     source_line: 4015
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate pr-template"
+    exit_code: 1
+    status: active
   - id: RULE-PR-SIZE-001
     level: P1
     title: "PR 必须控制大小"
     source_section: 219
     source_section_title: "PR Size Limit 规则"
     source_line: 8614
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate pr-template"
+    exit_code: 1
+    status: active
   - id: RULE-PR-SIZE-002
     level: P1
     title: "大 PR 必须加强 Review"
     source_section: 219
     source_section_title: "PR Size Limit 规则"
     source_line: 8629
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate pr-template"
+    exit_code: 1
+    status: active
   - id: RULE-PRIORITY-001
     level: P1
     title: "规则冲突时按优先级裁决"
     source_section: 29
     source_section_title: "规则裁决优先级"
     source_line: 1581
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate goal-runtime"
+    exit_code: 1
+    status: active
   - id: RULE-PRIORITY-002
     level: P1
     title: "本地规则不得覆盖 P0 全局规则"
     source_section: 29
     source_section_title: "规则裁决优先级"
     source_line: 1606
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate goal-runtime"
+    exit_code: 1
+    status: active
   - id: RULE-PROFILE-001
     level: P1
     title: "必须区分安装 Profile"
     source_section: 214
     source_section_title: "Runtime Install Profile 规则"
     source_line: 8464
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate conformance-profile"
+    exit_code: 1
+    status: active
   - id: RULE-PROFILE-002
     level: P1
     title: "不同 Profile 安装不同能力"
     source_section: 214
     source_section_title: "Runtime Install Profile 规则"
     source_line: 8476
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate conformance-profile"
+    exit_code: 1
+    status: active
   - id: RULE-PROMOTE-001
     level: P1
     title: "xlib-standard 新规则不能直接推全量下游"
     source_section: 230
     source_section_title: "Downstream Promotion 规则"
     source_line: 8932
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate downstream-adoption"
+    exit_code: 1
+    status: active
   - id: RULE-PROMOTE-002
     level: P1
     title: "每一层通过后才能推广下一层"
     source_section: 230
     source_section_title: "Downstream Promotion 规则"
     source_line: 8946
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate downstream-adoption"
+    exit_code: 1
+    status: active
   - id: RULE-PROMOTION-001
     level: P1
     title: "发布必须支持晋级"
     source_section: 191
     source_section_title: "Release Promotion 规则"
     source_line: 7759
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate release-final-check"
+    exit_code: 10
+    status: active
   - id: RULE-PROMOTION-002
     level: P1
     title: "晋级必须有新增 Evidence"
     source_section: 191
     source_section_title: "Release Promotion 规则"
     source_line: 7769
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate release-final-check"
+    exit_code: 10
+    status: active
   - id: RULE-PROMPT-PATCH-001
     level: P1
     title: "Prompt Patch 不能只生成，必须裁决"
@@ -3080,18 +3080,18 @@ rules:
     source_section: 212
     source_section_title: "State Reconciliation 规则"
     source_line: 8387
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate runtime-health"
+    exit_code: 1
+    status: active
   - id: RULE-RECONCILE-002
     level: P1
     title: "reconcile 不能静默改状态"
     source_section: 212
     source_section_title: "State Reconciliation 规则"
     source_line: 8409
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate runtime-health"
+    exit_code: 1
+    status: active
   - id: RULE-REGISTRY-001
     level: P1
     title: "所有 Goal 必须登记"
@@ -3116,63 +3116,63 @@ rules:
     source_section: 152
     source_section_title: "Registry Consistency 规则"
     source_line: 6276
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate command-registry"
+    exit_code: 1
+    status: active
   - id: RULE-REGISTRY-CONSISTENCY-002
     level: P1
     title: "Registry 漂移必须阻断 Release"
     source_section: 152
     source_section_title: "Registry Consistency 规则"
     source_line: 6290
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate command-registry"
+    exit_code: 1
+    status: active
   - id: RULE-REGISTRY-LOCK-001
     level: P1
     title: "Registry 更新必须加锁"
     source_section: 185
     source_section_title: "Registry Lock 规则"
     source_line: 7549
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate command-registry"
+    exit_code: 1
+    status: active
   - id: RULE-REGISTRY-LOCK-002
     level: P1
     title: "锁超时必须可恢复"
     source_section: 185
     source_section_title: "Registry Lock 规则"
     source_line: 7563
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate command-registry"
+    exit_code: 1
+    status: active
   - id: RULE-RELEASE-TRAIN-001
     level: P1
     title: "多个 Goal 不应随意混发"
     source_section: 158
     source_section_title: "Release Train 规则"
     source_line: 6488
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate release-final-check"
+    exit_code: 10
+    status: active
   - id: RULE-RELEASE-TRAIN-002
     level: P1
     title: "Release 必须声明包含范围"
     source_section: 158
     source_section_title: "Release Train 规则"
     source_line: 6505
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate release-final-check"
+    exit_code: 10
+    status: active
   - id: RULE-REPAIR-001
     level: P1
     title: "失败后最多自动修复 N 次"
     source_section: 146
     source_section_title: "Agent Repair Loop 规则"
     source_line: 6054
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate self-healing-skeleton"
+    exit_code: 1
+    status: active
     duplicate_at: [8261]
   - id: RULE-REPAIR-002
     level: P1
@@ -3180,9 +3180,9 @@ rules:
     source_section: 146
     source_section_title: "Agent Repair Loop 规则"
     source_line: 6067
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate self-healing-skeleton"
+    exit_code: 1
+    status: active
     duplicate_at: [8273]
   - id: RULE-REPO-LAYOUT-001
     level: P1
@@ -3190,9 +3190,9 @@ rules:
     source_section: 113
     source_section_title: "仓库落地总目录规则"
     source_line: 4761
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate boundary"
+    exit_code: 1
+    status: active
   - id: RULE-REPORT-001
     level: P1
     title: "每个 Gate 必须生成报告"
@@ -3298,18 +3298,18 @@ rules:
     source_section: 92
     source_section_title: "Review Bot 与人工 Review 边界"
     source_line: 4031
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate pr-template"
+    exit_code: 1
+    status: active
   - id: RULE-REVIEW-BOT-002
     level: P1
     title: "机器通过不等于人工通过"
     source_section: 92
     source_section_title: "Review Bot 与人工 Review 边界"
     source_line: 4058
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate pr-template"
+    exit_code: 1
+    status: active
   - id: RULE-RISK-001
     level: P1
     title: "P0/P1 风险必须登记"
@@ -3325,63 +3325,63 @@ rules:
     source_section: 192
     source_section_title: "Roll-forward 规则"
     source_line: 7785
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate release-final-check"
+    exit_code: 10
+    status: active
   - id: RULE-ROLLFORWARD-002
     level: P1
     title: "高风险问题必须 rollback"
     source_section: 192
     source_section_title: "Roll-forward 规则"
     source_line: 7796
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate release-final-check"
+    exit_code: 10
+    status: active
   - id: RULE-ROOT-001
     level: P1
     title: "根目录必须提供统一入口"
     source_section: 114
     source_section_title: "根目录工具规则"
     source_line: 4841
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate boundary"
+    exit_code: 1
+    status: active
   - id: RULE-RULE-BLOAT-001
     level: P1
     title: "新增规则必须给出机器化路径"
     source_section: 183
     source_section_title: "规则膨胀控制规则"
     source_line: 7473
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate docs-check"
+    exit_code: 1
+    status: active
   - id: RULE-RULE-BLOAT-002
     level: P1
     title: "规则必须定期清理"
     source_section: 183
     source_section_title: "规则膨胀控制规则"
     source_line: 7490
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate docs-check"
+    exit_code: 1
+    status: active
   - id: RULE-RULE-PATCH-001
     level: P1
     title: "Rule Patch 必须同步四处"
     source_section: 165
     source_section_title: "Rule Patch 生效规则"
     source_line: 6713
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate docs-check"
+    exit_code: 1
+    status: active
   - id: RULE-RULE-PATCH-002
     level: P1
     title: "Rule Patch 必须进入 Rule Index"
     source_section: 165
     source_section_title: "Rule Patch 生效规则"
     source_line: 6726
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate docs-check"
+    exit_code: 1
+    status: active
   - id: RULE-RUNBOOK-001
     level: P1
     title: "Agent 每次执行必须先跑 Preflight"
@@ -3415,18 +3415,18 @@ rules:
     source_section: 108
     source_section_title: "Goal Runtime 版本兼容规则"
     source_line: 4566
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate upgrade-runtime"
+    exit_code: 1
+    status: active
   - id: RULE-RUNTIME-COMPAT-002
     level: P1
     title: "不兼容升级必须提供迁移脚本"
     source_section: 108
     source_section_title: "Goal Runtime 版本兼容规则"
     source_line: 4580
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate upgrade-runtime"
+    exit_code: 1
+    status: active
   - id: RULE-SCHEMA-001
     level: P1
     title: "Goal 核心对象必须有 Schema"
@@ -3514,144 +3514,144 @@ rules:
     source_section: 130
     source_section_title: "防过度工程化规则"
     source_line: 5523
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate minimal-kernel"
+    exit_code: 1
+    status: active
   - id: RULE-SIMPLICITY-002
     level: P1
     title: "规则不能无限增长而无机器约束"
     source_section: 130
     source_section_title: "防过度工程化规则"
     source_line: 5549
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate minimal-kernel"
+    exit_code: 1
+    status: active
   - id: RULE-SPEC-001
     level: P1
     title: "Spec 必须包含 Requirement"
     source_section: 7
     source_section_title: "Spec 规则"
     source_line: 455
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate acceptance-matrix"
+    exit_code: 1
+    status: active
   - id: RULE-SPEC-002
     level: P1
     title: "Requirement 必须分优先级"
     source_section: 7
     source_section_title: "Spec 规则"
     source_line: 472
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate acceptance-matrix"
+    exit_code: 1
+    status: active
   - id: RULE-SPEC-003
     level: P1
     title: "Acceptance Criteria 必须可验证"
     source_section: 7
     source_section_title: "Spec 规则"
     source_line: 483
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate acceptance-matrix"
+    exit_code: 1
+    status: active
   - id: RULE-SPEC-004
     level: P1
     title: "禁止抽象不可验收需求"
     source_section: 7
     source_section_title: "Spec 规则"
     source_line: 506
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate acceptance-matrix"
+    exit_code: 1
+    status: active
   - id: RULE-SSOT-001
     level: P1
     title: "每类事实必须只有一个主源"
     source_section: 174
     source_section_title: "SSOT 事实源规则"
     source_line: 7143
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate goal-runtime"
+    exit_code: 1
+    status: active
   - id: RULE-SSOT-002
     level: P1
     title: "非 SSOT 文档只能引用，不得复制事实"
     source_section: 174
     source_section_title: "SSOT 事实源规则"
     source_line: 7159
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate goal-runtime"
+    exit_code: 1
+    status: active
   - id: RULE-SUNSET-001
     level: P1
     title: "规则必须允许退役"
     source_section: 227
     source_section_title: "Rule Sunset 规则"
     source_line: 8845
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate policy-schema"
+    exit_code: 6
+    status: active
   - id: RULE-SUNSET-002
     level: P1
     title: "无执行价值规则必须退役"
     source_section: 227
     source_section_title: "Rule Sunset 规则"
     source_line: 8860
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate policy-schema"
+    exit_code: 6
+    status: active
   - id: RULE-TASK-001
     level: P1
     title: "Task 是最小可执行单元"
     source_section: 9
     source_section_title: "Plan / Task 规则"
     source_line: 577
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate traceability-check"
+    exit_code: 9
+    status: active
   - id: RULE-TASK-002
     level: P1
     title: "Task 必须包含完整字段"
     source_section: 9
     source_section_title: "Plan / Task 规则"
     source_line: 591
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate traceability-check"
+    exit_code: 9
+    status: active
   - id: RULE-TASK-003
     level: P1
     title: "禁止超大 Task"
     source_section: 9
     source_section_title: "Plan / Task 规则"
     source_line: 612
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate traceability-check"
+    exit_code: 9
+    status: active
   - id: RULE-TASK-004
     level: P1
     title: "Task 必须可生成 Issue"
     source_section: 9
     source_section_title: "Plan / Task 规则"
     source_line: 629
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate traceability-check"
+    exit_code: 9
+    status: active
   - id: RULE-TEMPLATE-001
     level: P1
     title: "规则变更必须同步模板"
     source_section: 74
     source_section_title: "模板同步规则"
     source_line: 3339
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate docs-check"
+    exit_code: 1
+    status: active
   - id: RULE-TEMPLATE-002
     level: P1
     title: "模板必须有版本号"
     source_section: 74
     source_section_title: "模板同步规则"
     source_line: 3353
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate docs-check"
+    exit_code: 1
+    status: active
   - id: RULE-TRUST-001
     level: P1
     title: "Goal 必须有 Trust Score"
@@ -3676,36 +3676,36 @@ rules:
     source_section: 71
     source_section_title: "版本规则"
     source_line: 3257
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate changelog"
+    exit_code: 1
+    status: active
   - id: RULE-VERSION-002
     level: P1
     title: "规则版本必须独立记录"
     source_section: 71
     source_section_title: "版本规则"
     source_line: 3267
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate changelog"
+    exit_code: 1
+    status: active
   - id: RULE-VIOLATION-FIXTURE-001
     level: P1
     title: "每个 P0 规则必须有违规样例"
     source_section: 156
     source_section_title: "Violation Fixture 标准"
     source_line: 6426
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate governance-fixture-test"
+    exit_code: 1
+    status: active
   - id: RULE-VIOLATION-FIXTURE-002
     level: P1
     title: "违规样例必须断言失败原因"
     source_section: 156
     source_section_title: "Violation Fixture 标准"
     source_line: 6441
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate governance-fixture-test"
+    exit_code: 1
+    status: active
   - id: RULE-VIOLATION-SEVERITY-001
     level: P1
     title: "违规必须分级"
@@ -3730,69 +3730,69 @@ rules:
     source_section: 218
     source_section_title: "Worktree Garbage Collection 规则"
     source_line: 8589
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate worktree-guard"
+    exit_code: 5
+    status: active
   - id: RULE-WT-GC-002
     level: P1
     title: "清理前必须保护未归档 Evidence"
     source_section: 218
     source_section_title: "Worktree Garbage Collection 规则"
     source_line: 8606
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate worktree-guard"
+    exit_code: 5
+    status: active
   - id: RULE-XGO-001
     level: P1
     title: "x.go 专用架构约束"
     source_section: 22
     source_section_title: "xlib-standard / kernel / x.go 专用规则"
     source_line: 1264
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate boundary"
+    exit_code: 1
+    status: active
   - id: RULE-XSTACK-001
     level: P1
     title: "xlib-standard 是标准源"
     source_section: 22
     source_section_title: "xlib-standard / kernel / x.go 专用规则"
     source_line: 1225
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate attest-conformance"
+    exit_code: 1
+    status: active
   - id: RULE-XSTACK-002
     level: P1
     title: "kernel 是 L0 内核库"
     source_section: 22
     source_section_title: "xlib-standard / kernel / x.go 专用规则"
     source_line: 1238
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate attest-conformance"
+    exit_code: 1
+    status: active
   - id: RULE-XSTACK-003
     level: P1
     title: "L1/L2 必须遵守分层"
     source_section: 22
     source_section_title: "xlib-standard / kernel / x.go 专用规则"
     source_line: 1246
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate attest-conformance"
+    exit_code: 1
+    status: active
   - id: RULE-XSTACK-ADMISSION-001
     level: P1
     title: "基础库进入 xstack 必须过准入"
     source_section: 168
     source_section_title: "xstack 分层准入规则"
     source_line: 6803
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate attest-conformance"
+    exit_code: 1
+    status: active
   - id: RULE-XSTACK-ADMISSION-002
     level: P1
     title: "未通过准入不能作为标准库推广"
     source_section: 168
     source_section_title: "xstack 分层准入规则"
     source_line: 6820
-    enforced_by: ""
-    exit_code: 0
-    status: indexed
+    enforced_by: "xlibgate attest-conformance"
+    exit_code: 1
+    status: active
