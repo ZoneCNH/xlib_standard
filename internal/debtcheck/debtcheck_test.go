@@ -189,6 +189,17 @@ func TestRunFailsOnLegacyProductionImport(t *testing.T) {
 	}
 }
 
+func TestSkipPathSkipsMigratedInboxArchive(t *testing.T) {
+	root := t.TempDir()
+
+	if !skipPath(root, filepath.Join(root, ".agent", "archive", "inbox", "goal-patch-v1.0-to-v2.2.md")) {
+		t.Fatal("skipPath should skip migrated inbox archive files")
+	}
+	if skipPath(root, filepath.Join(root, ".agent", "archive", "standard", "goal-runtime-canonical.md")) {
+		t.Fatal("skipPath should not skip non-inbox archive files")
+	}
+}
+
 func writePolicyFiles(t *testing.T, root string) {
 	t.Helper()
 	files := map[string]string{
