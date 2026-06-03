@@ -28,6 +28,9 @@ required_files=(
   ".agent/standard/goal-runtime-canonical.md"
   ".agent/standard/goalkit-xlibgate-mapping.md"
   ".agent/standard/audit-2026-06-03.md"
+  ".agent/rules/iron-rules.md"
+  ".agent/rules/registry.yaml"
+  ".agent/rules/README.md"
 )
 
 for file in "${required_files[@]}"; do
