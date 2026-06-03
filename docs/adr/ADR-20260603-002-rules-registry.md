@@ -42,8 +42,8 @@ iron-rules.md  >  registry.yaml  >  *-rules.md  >  ADR-*  >  .worktree/goal-patc
   1. 修改 `scripts/extract_rules.py` 或源文档
   2. 重跑生成器
   3. 在 commit 中说明 P0/active 计数变化
-- P0=119, active=173 (41%) 成为可度量基线。后续 Goal 的 KPI 是把 active 比例从 41% 提升到 ≥80%。
-- 246 条 indexed-only 规则等待机器化，每条都是一个潜在的 Goal 候选。
+- P0=119, active=354 (84%) 成为可度量基线。后续 Goal 的 KPI 是把 active 比例提升到 ≥95%。
+- 65 条 indexed-only 规则等待机器化，每条都是一个潜在的 Goal 候选。
 
 ## Rejected
 

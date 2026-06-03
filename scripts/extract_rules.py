@@ -216,6 +216,116 @@ ENFORCED_BY = {
     "XSTACK": ("", 0),
     "XGO": ("", 0),
     "TASK-AUTO": ("", 0),
+    # === Active promotion batch 1 (2026-06-03)：仅绑定到工具已存在且语义匹配的前缀 ===
+    # Goal 对象模型 → goal-runtime
+    "OBJECT": ("xlibgate goal-runtime", 1),
+    "ID": ("xlibgate goal-runtime", 1),
+    "CONTROL": ("xlibgate goal-runtime", 1),
+    "SSOT": ("xlibgate goal-runtime", 1),
+    "ORPHAN": ("xlibgate goal-runtime", 1),
+    "CONFLICT": ("xlibgate goal-runtime", 1),
+    "MODE": ("xlibgate goal-runtime", 1),
+    "MODE-GATE": ("xlibgate goal-runtime", 1),
+    "CLASS": ("xlibgate goal-runtime", 1),
+    "PRIORITY": ("xlibgate goal-runtime", 1),
+    "ORDER": ("xlibgate goal-runtime", 1),
+    "MILESTONE": ("xlibgate goal-runtime", 1),
+    # 可追溯性 / 影响 / 验收
+    "TASK": ("xlibgate traceability-check", 9),
+    "CHANGE-TYPE": ("xlibgate traceability-check", 9),
+    "COVERAGE": ("xlibgate traceability-check", 9),
+    "FILE": ("xlibgate runtime-file-ownership", 1),
+    "OWNERSHIP": ("xlibgate runtime-file-ownership", 1),
+    "SPEC": ("xlibgate acceptance-matrix", 1),
+    "IMPACT": ("xlibgate standard-impact-check", 1),
+    # Schema / 兼容 / 迁移 / 版本
+    "COMPAT": ("xlibgate policy-schema", 6),
+    "COMPAT-MATRIX": ("xlibgate policy-schema", 6),
+    "COMPAT-GUARD": ("xlibgate downstream-adoption", 1),
+    "SUNSET": ("xlibgate policy-schema", 6),
+    "MIGRATION": ("xlibgate policy-schema", 6),
+    "RUNTIME-COMPAT": ("xlibgate upgrade-runtime", 1),
+    # Agent 平面 → runtime-health / agent-team-contract / self-healing-skeleton
+    "AGENT": ("xlibgate agent-team-contract", 1),
+    "AGENT-AUTH": ("xlibgate agent-team-contract", 1),
+    "AGENT-MEMORY": ("xlibgate agent-team-contract", 1),
+    "AUTO-SAFETY": ("xlibgate runtime-health", 1),
+    "HEARTBEAT": ("xlibgate runtime-health", 1),
+    "LEASE": ("xlibgate runtime-health", 1),
+    "DOCTOR": ("xlibgate runtime-health", 1),
+    "RECONCILE": ("xlibgate runtime-health", 1),
+    "REPAIR": ("xlibgate self-healing-skeleton", 1),
+    # Worktree / main 恢复 / freeze
+    "CONCURRENCY": ("xlibgate worktree-guard", 5),
+    "WT-GC": ("xlibgate worktree-guard", 5),
+    "MAIN-RECOVERY": ("xlibgate main-guard", 5),
+    "FREEZE": ("xlibgate scope-lock", 1),
+    "GOAL-FREEZE": ("xlibgate scope-lock", 1),
+    # 安装 / Profile / 成熟度
+    "BOOTSTRAP": ("xlibgate install-runtime", 1),
+    "PROFILE": ("xlibgate conformance-profile", 1),
+    "MATURITY": ("xlibgate conformance-profile", 1),
+    # Evidence 扩展
+    "EVIDENCE-HASH": ("xlibgate release-evidence-hash", 8),
+    "EVIDENCE-COVERAGE": ("xlibgate evidence-check", 8),
+    "EVIDENCE-RETENTION": ("xlibgate evidence-check", 8),
+    "EVID-LOSS": ("xlibgate evidence-check", 8),
+    # GitHub / PR / Issue
+    "GITHUB-ISSUE": ("xlibgate issue-registry", 1),
+    "ISSUE-CANDIDATE": ("xlibgate issue-registry", 1),
+    "LABEL": ("xlibgate github-settings", 1),
+    "PERMISSION": ("xlibgate github-settings", 1),
+    "PR-SIZE": ("xlibgate pr-template", 1),
+    "PR-BOT": ("xlibgate pr-template", 1),
+    "REVIEW-BOT": ("xlibgate pr-template", 1),
+    "MERGE-QUEUE": ("xlibgate pr-template", 1),
+    # Release 扩展
+    "RELEASE-TRAIN": ("xlibgate release-final-check", 10),
+    "PARTIAL-RELEASE": ("xlibgate release-final-check", 10),
+    "PROMOTE": ("xlibgate downstream-adoption", 1),
+    "PROMOTION": ("xlibgate release-final-check", 10),
+    "ROLLFORWARD": ("xlibgate release-final-check", 10),
+    # Downstream / xstack
+    "XSTACK": ("xlibgate attest-conformance", 1),
+    "XSTACK-ADMISSION": ("xlibgate attest-conformance", 1),
+    "DOWNSTREAM-CONTRACT": ("xlibgate downstream-registry", 1),
+    "MULTIREPO": ("xlibgate downstream-registry", 1),
+    # Makefile / Gate DAG
+    "GATE-DAG": ("xlibgate makefile-baseline", 1),
+    "PARITY": ("xlibgate makefile-baseline", 1),
+    # Registry 一致性
+    "REGISTRY-CONSISTENCY": ("xlibgate command-registry", 1),
+    "REGISTRY-LOCK": ("xlibgate command-registry", 1),
+    # 文档 / 规则维护
+    "DOC-DEBT": ("xlibgate debt", 1),
+    "DRIFT-BUDGET": ("xlibgate debt", 1),
+    "TEMPLATE": ("xlibgate docs-check", 1),
+    "RULE-BLOAT": ("xlibgate docs-check", 1),
+    "RULE-PATCH": ("xlibgate docs-check", 1),
+    "COMPILER": ("xlibgate cli-contract", 1),
+    "GLOSSARY": ("xlibgate governance-check", 1),
+    "CODE": ("xlibgate governance-check", 1),
+    # Goal 测试 / Golden / 违规样例
+    "GOAL-TEST": ("xlibgate governance-fixture-test", 1),
+    "GOLDEN": ("xlibgate governance-fixture-test", 1),
+    "GOLDEN-PACK": ("xlibgate pack-gate", 1),
+    "VIOLATION-FIXTURE": ("xlibgate governance-fixture-test", 1),
+    # Context 子集
+    "CONTEXT-COMPRESSION": ("xlibgate execution-context", 1),
+    "CONTEXT-WINDOW": ("xlibgate execution-context", 1),
+    # 仓库布局 / 命名 / 极简
+    "REPO-LAYOUT": ("xlibgate boundary", 1),
+    "ROOT": ("xlibgate boundary", 1),
+    "XGO": ("xlibgate boundary", 1),
+    "NAMING": ("xlibgate naming", 1),
+    "SIMPLICITY": ("xlibgate minimal-kernel", 1),
+    # P0: WAIVER / VIOLATION / STOP 走 governance-check
+    "WAIVER": ("xlibgate governance-check", 1),
+    "VIOLATION": ("xlibgate governance-check", 1),
+    "STOP": ("xlibgate governance-check", 1),
+    "HUMAN": ("xlibgate pr-template", 1),
+    # Version 同 changelog 已绑过的方向
+    "VERSION": ("xlibgate changelog", 1),
 }
 
 DEFINITION_RE = re.compile(r"^#{2,3}\s+(RULE-[A-Z-]+-\d+)[：:]\s*(.+)$")
