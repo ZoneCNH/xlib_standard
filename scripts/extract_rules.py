@@ -9,14 +9,41 @@
 """
 from __future__ import annotations
 
+import os
 import re
+import subprocess
 import sys
 from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-# goal-patch.md 在 main worktree 的 .worktree/ 目录, 不在本 worktree
-SRC = Path("/home/xlib-standard/.worktree/goal-patch.md")
+
+
+def _find_source() -> Path:
+    """定位 goal-patch.md 源文件。
+
+    顺序:
+      1. 环境变量 XLIB_GOAL_PATCH_PATH (绝对路径)
+      2. 从脚本所在目录向上搜寻包含 `.worktree/goal-patch.md` 的祖先目录
+         (使得脚本既能从主仓库根目录运行, 也能从任意 worktree 工作区运行)
+    避免在源码中出现仓库目录名字面值, 防止下游模板渲染时残留导致 stale module 误报。
+    """
+    env = os.environ.get("XLIB_GOAL_PATCH_PATH")
+    if env:
+        return Path(env)
+    here = Path(__file__).resolve()
+    rel = Path(".worktree") / "goal-patch.md"
+    for parent in here.parents:
+        candidate = parent / rel
+        if candidate.is_file():
+            return candidate
+    sys.exit(
+        "ERROR: goal-patch.md not found; set XLIB_GOAL_PATCH_PATH or run inside a "
+        "tree that contains .worktree/goal-patch.md"
+    )
+
+
+SRC = _find_source()
 DST = ROOT / ".agent" / "rules" / "registry.yaml"
 
 # ---- 分级策略 (基于 id 前缀关键词) ----
