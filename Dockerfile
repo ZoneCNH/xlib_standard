@@ -55,8 +55,8 @@ RUN --mount=type=cache,target=/var/cache/apt \
 # ── 预编译工具：从本地缓存目录复制（零下载）─────────────────
 # 构建前先运行: make docker-prefetch
 # 然后: docker buildx build --build-context tools=.cache/docker-tools .
-COPY --from=tools /bin/golangci-lint /usr/local/bin/golangci-lint
-COPY --from=tools /bin/govulncheck  /usr/local/bin/govulncheck
+COPY --from=tools /usr/local/bin/golangci-lint /usr/local/bin/golangci-lint
+COPY --from=tools /usr/local/bin/govulncheck  /usr/local/bin/govulncheck
 
 WORKDIR /workspace
 
