@@ -47,8 +47,8 @@ func TestBuildDockerEvidenceReturnsDefaultsWhenEnvUnset(t *testing.T) {
 	if got.GolangCILintVersion != "golangci-lint v2.1.6" {
 		t.Fatalf("docker.golangci_lint_version = %q, want golangci-lint v2.1.6", got.GolangCILintVersion)
 	}
-	if got.GovulncheckVersion != "govulncheck v1.2.0" {
-		t.Fatalf("docker.govulncheck_version = %q, want govulncheck v1.2.0", got.GovulncheckVersion)
+	if got.GovulncheckVersion != "govulncheck v1.1.4" {
+		t.Fatalf("docker.govulncheck_version = %q, want govulncheck v1.1.4", got.GovulncheckVersion)
 	}
 	if !got.BuildKitRequired {
 		t.Fatal("docker.buildkit_required = false, want default true")

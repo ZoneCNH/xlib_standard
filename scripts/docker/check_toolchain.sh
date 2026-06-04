@@ -216,7 +216,7 @@ for text in \
   "ARG GO_BASE_IMAGE=golang:\${GO_VERSION}-bookworm" \
   "ARG GO_BASE_IMAGE_DIGEST=sha256:" \
   "ARG GOLANGCI_LINT_VERSION=v2.1.6" \
-  "ARG GOVULNCHECK_VERSION=v1.2.0" \
+  "ARG GOVULNCHECK_VERSION=v1.1.4" \
   "AS toolchain" \
   "AS dev" \
   "AS gate" \
@@ -296,7 +296,7 @@ for text in \
   "release/evidence/docker-toolchain-summary.json" \
   "go-version-file: go.mod" \
   "golangci-lint v2.1.6" \
-  "govulncheck v1.2.0" \
+  "govulncheck v1.1.4" \
   "XLIB_ENABLE_VULNCHECK" \
   "actions/upload-artifact"; do
   check_contains ".github/workflows/docker-contract.yml" "$text" "workflow:$text"
