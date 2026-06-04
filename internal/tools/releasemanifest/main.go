@@ -137,6 +137,7 @@ type Manifest struct {
 	TreeState              string                 `json:"tree_state"`
 	Checks                 map[string]string      `json:"checks"`
 	Workflow               WorkflowEvidence       `json:"workflow"`
+	Docker                 DockerEvidence         `json:"docker"`
 	Score                  releasequality.Report  `json:"score"`
 	Contracts              []FileDigest           `json:"contracts"`
 	Dependencies           []ModuleDigest         `json:"dependencies"`
@@ -154,6 +155,26 @@ type WorkflowEvidence struct {
 	WorkflowRunID string `json:"workflow_run_id"`
 	ArtifactName  string `json:"artifact_name"`
 	ArtifactURL   string `json:"artifact_url"`
+}
+
+type DockerEvidence struct {
+	Enabled              bool     `json:"enabled"`
+	ContractVersion      string   `json:"contract_version"`
+	GoVersion            string   `json:"go_version"`
+	GolangCILintVersion  string   `json:"golangci_lint_version"`
+	GovulncheckVersion   string   `json:"govulncheck_version"`
+	BuildKitRequired     bool     `json:"buildkit_required"`
+	CacheMounts          []string `json:"cache_mounts"`
+	BaseImage            string   `json:"base_image"`
+	BaseImageDigest      string   `json:"base_image_digest"`
+	ToolchainImage       string   `json:"toolchain_image"`
+	ToolchainImageDigest string   `json:"toolchain_image_digest"`
+	RuntimeImage         string   `json:"runtime_image"`
+	RuntimeImageDigest   string   `json:"runtime_image_digest"`
+	ValidatedBy          []string `json:"validated_by"`
+	WorkflowRunID        string   `json:"workflow_run_id"`
+	ArtifactName         string   `json:"artifact_name"`
+	ArtifactURL          string   `json:"artifact_url"`
 }
 
 type FileDigest struct {
@@ -323,6 +344,7 @@ func buildManifest() (Manifest, error) {
 		TreeState:              treeState(),
 		Checks:                 buildChecks(),
 		Workflow:               buildWorkflowEvidence(),
+		Docker:                 buildDockerEvidence(),
 		Score:                  releasequality.Compute(releasequality.DefaultMinimum),
 		Contracts:              contracts,
 		Dependencies:           dependencies,
@@ -399,6 +421,10 @@ func verifyManifest(path string, requirePassed bool, requireClean bool, expectVe
 	if got.TreeState != current.TreeState {
 		failures = append(failures, fmt.Sprintf("tree_state mismatch: got %q, want %q", got.TreeState, current.TreeState))
 	}
+	if !reflect.DeepEqual(got.Docker, current.Docker) {
+		failures = append(failures, "docker does not match current Docker Toolchain evidence")
+	}
+	failures = append(failures, validateDockerEvidence(got.Docker)...)
 	if got.Score.Value != current.Score.Value {
 		failures = append(failures, fmt.Sprintf("score.value mismatch: got %.1f, want %.1f", got.Score.Value, current.Score.Value))
 	}
@@ -553,6 +579,29 @@ func buildWorkflowEvidence() WorkflowEvidence {
 	}
 }
 
+func buildDockerEvidence() DockerEvidence {
+	workflow := buildWorkflowEvidence()
+	return DockerEvidence{
+		Enabled:              envBool("DOCKER_TOOLCHAIN_ENABLED", false),
+		ContractVersion:      envDefault("DOCKER_CONTRACT_VERSION", "docker-toolchain/v1"),
+		GoVersion:            envDefault("DOCKER_GO_VERSION", runtime.Version()),
+		GolangCILintVersion:  envDefault("DOCKER_GOLANGCI_LINT_VERSION", toolVersion("golangci-lint", "--version")),
+		GovulncheckVersion:   envDefault("DOCKER_GOVULNCHECK_VERSION", toolVersion("govulncheck", "-version")),
+		BuildKitRequired:     envBool("DOCKER_BUILDKIT_REQUIRED", true),
+		CacheMounts:          envCSVDefault("DOCKER_CACHE_MOUNTS", []string{"go-build", "go-mod", "golangci-lint"}),
+		BaseImage:            os.Getenv("DOCKER_BASE_IMAGE"),
+		BaseImageDigest:      os.Getenv("DOCKER_BASE_IMAGE_DIGEST"),
+		ToolchainImage:       os.Getenv("DOCKER_TOOLCHAIN_IMAGE"),
+		ToolchainImageDigest: os.Getenv("DOCKER_TOOLCHAIN_IMAGE_DIGEST"),
+		RuntimeImage:         os.Getenv("DOCKER_RUNTIME_IMAGE"),
+		RuntimeImageDigest:   os.Getenv("DOCKER_RUNTIME_IMAGE_DIGEST"),
+		ValidatedBy:          envCSVDefault("DOCKER_VALIDATED_BY", []string{"docker-toolchain-check", "docker-ci", "docker-release-check"}),
+		WorkflowRunID:        workflow.WorkflowRunID,
+		ArtifactName:         envDefault("DOCKER_ARTIFACT_NAME", workflow.ArtifactName),
+		ArtifactURL:          envDefault("DOCKER_ARTIFACT_URL", workflow.ArtifactURL),
+	}
+}
+
 func buildStandardImpactEvidence() (StandardImpactEvidence, error) {
 	evidence := StandardImpactEvidence{
 		ReportPath:                     standardImpactReportPath,
@@ -690,6 +739,54 @@ func buildGeneratorEvidence() GeneratorEvidence {
 		Required: true,
 		Targets:  append([]GeneratorTarget(nil), generatorEvidenceTargets...),
 	}
+}
+
+func validateDockerEvidence(evidence DockerEvidence) []string {
+	var failures []string
+	requireNonEmpty(&failures, "docker.contract_version", evidence.ContractVersion)
+	requireNonEmpty(&failures, "docker.go_version", evidence.GoVersion)
+	requireNonEmpty(&failures, "docker.golangci_lint_version", evidence.GolangCILintVersion)
+	requireNonEmpty(&failures, "docker.govulncheck_version", evidence.GovulncheckVersion)
+	if len(evidence.CacheMounts) == 0 {
+		failures = append(failures, "docker.cache_mounts is required")
+	}
+	for _, validator := range []string{"docker-toolchain-check", "docker-ci", "docker-release-check"} {
+		if !contains(evidence.ValidatedBy, validator) {
+			failures = append(failures, fmt.Sprintf("docker.validated_by must include %s", validator))
+		}
+	}
+	if !evidence.Enabled {
+		return failures
+	}
+	for _, field := range []struct {
+		name  string
+		value string
+	}{
+		{"docker.base_image", evidence.BaseImage},
+		{"docker.base_image_digest", evidence.BaseImageDigest},
+		{"docker.toolchain_image", evidence.ToolchainImage},
+		{"docker.toolchain_image_digest", evidence.ToolchainImageDigest},
+		{"docker.runtime_image", evidence.RuntimeImage},
+		{"docker.runtime_image_digest", evidence.RuntimeImageDigest},
+		{"docker.workflow_run_id", evidence.WorkflowRunID},
+		{"docker.artifact_name", evidence.ArtifactName},
+		{"docker.artifact_url", evidence.ArtifactURL},
+	} {
+		requireNonEmpty(&failures, field.name, field.value)
+	}
+	for _, field := range []struct {
+		name  string
+		value string
+	}{
+		{"docker.base_image_digest", evidence.BaseImageDigest},
+		{"docker.toolchain_image_digest", evidence.ToolchainImageDigest},
+		{"docker.runtime_image_digest", evidence.RuntimeImageDigest},
+	} {
+		if field.value != "" && !strings.HasPrefix(field.value, "sha256:") {
+			failures = append(failures, fmt.Sprintf("%s must start with sha256:", field.name))
+		}
+	}
+	return failures
 }
 
 func validateChecks(checks map[string]string, requirePassed bool) []string {
@@ -877,6 +974,39 @@ func runRaw(name string, args ...string) ([]byte, error) {
 }
 
 var runRawCommand = runRaw
+
+func envBool(name string, fallback bool) bool {
+	value := strings.ToLower(strings.TrimSpace(os.Getenv(name)))
+	switch value {
+	case "1", "true", "yes", "on":
+		return true
+	case "0", "false", "no", "off":
+		return false
+	case "":
+		return fallback
+	default:
+		return fallback
+	}
+}
+
+func envCSVDefault(name string, fallback []string) []string {
+	value := strings.TrimSpace(os.Getenv(name))
+	if value == "" {
+		return append([]string(nil), fallback...)
+	}
+	parts := strings.Split(value, ",")
+	items := make([]string, 0, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part != "" {
+			items = append(items, part)
+		}
+	}
+	if len(items) == 0 {
+		return append([]string(nil), fallback...)
+	}
+	return items
+}
 
 func envDefault(name string, fallback string) string {
 	if value := strings.TrimSpace(os.Getenv(name)); value != "" {
