@@ -57,6 +57,8 @@
 
 `goalcli` 的命名、命令、Makefile、registry、harness、schema 和文档必须同批同步，不能只更新其中一个 surface。命令新增、重命名、删除或语义变化时，同一变更至少同步：`cmd/goalcli/main.go`、`cmd/goalcli/main_test.go`、`Makefile`、`.agent/registries/command-registry.yaml`、`.agent/registries/command-implementation-status.yaml`、`.agent/registries/makefile-baseline.yaml`、`.agent/registries/makefile-target-registry.yaml`、`.agent/harness/harness.yaml`、`.agent/harness/gates.md`、`docs/standard/goalcli-cli-contract.md` 和 `internal/goalcli/README.md`。
 
+模板渲染必须把同一套 `goalcli` 控制面带到下游库，包括 `cmd/goalcli/**`、`internal/goalcli/README.md`、`Makefile`、`.agent/index.yaml`、`.agent/harness/`、`.agent/registries/`、`contracts/goalcli-report.schema.json`、`docs/standard/goalcli-cli-contract.md` 和 `docs/standard/goalcli-runtime.md`；`.omc`、`.omx`、`.worktree`、`.agent/inbox` 和 release latest 产物仍属于本地/runtime/generated 状态，渲染时必须排除。
+
 `cmd/goalcli/main_test.go` 必须锁定 Go 内置命令清单、`.agent/registries/command-registry.yaml`、`usage` 和 `.agent/registries/command-implementation-status.yaml` 的同步关系，防止只改 registry、只改 usage 或只改实现状态表。
 
 `GOWORK=off make docs-check` 是 release-blocking 漂移检查，必须验证这些 surface 的关键锚点仍然一致。`GOWORK=off make command-registry`、`GOWORK=off make makefile-baseline` 和 `GOWORK=off make cli-contract` 是同步后的最小 registry/Makefile/CLI contract 证据。

@@ -23,8 +23,9 @@ scripts/render_template.sh \
 - `xlib-standard` 和迁移兼容的 `baselib-template` 替换为 `--module-name`。
 - `{{PACKAGE_NAME}}`、`pkg/templatex` 和 `templatex` imports 替换为 `--package-name`。
 - 文档、Go 代码、JSON contract、shell 脚本、Makefile 和 CI 配置同步更新；标准源仓库仍是 [`https://github.com/ZoneCNH/xlib-standard`](https://github.com/ZoneCNH/xlib-standard)，渲染产物中的源身份会改写为下游 module identity，避免残留模板仓库名称。
+- `cmd/goalcli/`、`internal/goalcli/README.md`、`Makefile`、`.agent/harness/`、`.agent/registries/`、`docs/standard/goalcli-cli-contract.md` 和 `contracts/goalcli-report.schema.json` 作为下游治理控制面同步。命令实现、registry、harness、schema 和文档变更必须同批进入模板。
 
-脚本不会复制 `.git`、`.omx`、`.worktree` 和 `release/manifest/latest.json`。`latest.json` 是生成产物，生成后的库必须自己运行 release gate 生成新的 Evidence artifact。
+脚本不会复制 `.git`、`.omc`、`.omx`、`.worktree`、`.agent/inbox`、`docs/adr`、`docs/goal.md`、`release/manifest/latest.json`、`release/manifest/latest.json.sha256`、`release/standard-impact/latest.md`、`release/downstream-sync/latest.md`、`release/debt/latest.json`、`release/debt/latest.md`、`release/debt/latest.json.sha256`、临时文件、缓存、coverage 输出和构建目录。生成后的库必须自己运行 release gate 生成新的 Evidence artifact。
 
 ## 验证
 
