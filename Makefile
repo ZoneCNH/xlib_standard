@@ -65,7 +65,7 @@ docker-toolchain-check:
 
 .PHONY: docker-build
 docker-build: docker-toolchain-check
-	DOCKER_BUILDKIT=1 docker buildx build --load --target toolchain --build-arg GO_VERSION=$${GO_VERSION:-1.23} --tag $(DOCKER_IMAGE) .
+	DOCKER_BUILDKIT=1 docker buildx build --load --target toolchain --build-arg GO_VERSION=$${GO_VERSION:-1.23} --build-arg GOLANGCI_LINT_VERSION=$${GOLANGCI_LINT_VERSION:-v2.1.6} --build-arg GOVULNCHECK_VERSION=$${GOVULNCHECK_VERSION:-v1.1.4} --tag $(DOCKER_IMAGE) .
 
 .PHONY: docker-build-check
 docker-build-check:

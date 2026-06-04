@@ -158,6 +158,8 @@ require_text "docs/standard/docker-toolchain-standard.md" "VERSION"
 require_text "docs/standard/docker-toolchain-standard.md" "DOWNSTREAM"
 require_text "docs/standard/docker-toolchain-standard.md" "XLIB_ENABLE_VULNCHECK"
 require_text "docs/standard/docker-toolchain-standard.md" "GITHUB_ACTIONS"
+require_text "docs/standard/docker-toolchain-standard.md" "golangci-lint v2.1.6"
+require_text "docs/standard/docker-toolchain-standard.md" "govulncheck v1.1.4"
 require_text "docs/standard/docker-toolchain-standard.md" "BuildKit"
 require_text "docs/standard/docker-toolchain-standard.md" "XLIB_CONTEXT=release_verify GOWORK=off"
 require_text "docs/standard/docker-toolchain-standard.md" "GOWORK=off make integration DOWNSTREAM=kernel"
@@ -184,7 +186,12 @@ require_text "Makefile" "docker-toolchain-check"
 require_text "Makefile" "docker-ci"
 require_text "Makefile" "docker-release-check"
 require_text "Makefile" 'GITHUB_ACTIONS=$${GITHUB_ACTIONS:-}'
+require_text "Makefile" 'GOLANGCI_LINT_VERSION=$${GOLANGCI_LINT_VERSION:-v2.1.6}'
+require_text "Dockerfile" "github.com/golangci/golangci-lint/v2/cmd/golangci-lint"
+require_text "Dockerfile" "golang.org/x/vuln/cmd/govulncheck"
 require_text "scripts/docker/docker_gate.sh" 'GITHUB_ACTIONS=${GITHUB_ACTIONS:-}'
+require_text "scripts/docker/docker_gate.sh" 'GOLANGCI_LINT_VERSION:-v2.1.6'
+require_text "scripts/docker/docker_gate.sh" 'GOVULNCHECK_VERSION:-v1.1.4'
 require_text "scripts/check_rendered_template.sh" "Dockerfile"
 require_text "scripts/check_rendered_template.sh" "docker-release-check"
 require_text "docs/standard/README.md" "GOWORK=off make docs-check"

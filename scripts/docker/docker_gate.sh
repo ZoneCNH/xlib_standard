@@ -12,6 +12,8 @@ shift
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 image="${DOCKER_IMAGE:-$(basename "$repo_root")-toolchain:local}"
 go_version="${GO_VERSION:-1.23}"
+golangci_lint_version="${GOLANGCI_LINT_VERSION:-v2.1.6}"
+govulncheck_version="${GOVULNCHECK_VERSION:-v1.1.4}"
 
 export DOCKER_BUILDKIT=1
 
@@ -21,6 +23,8 @@ docker buildx build \
   --load \
   --target toolchain \
   --build-arg "GO_VERSION=$go_version" \
+  --build-arg "GOLANGCI_LINT_VERSION=$golangci_lint_version" \
+  --build-arg "GOVULNCHECK_VERSION=$govulncheck_version" \
   --tag "$image" \
   "$repo_root"
 

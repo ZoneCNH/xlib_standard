@@ -127,12 +127,30 @@ func TestRenderTemplateIncludesDockerContract(t *testing.T) {
 		}
 	}
 
+	dockerfile, err := os.ReadFile(filepath.Join(outDir, "Dockerfile"))
+	if err != nil {
+		t.Fatalf("read rendered Dockerfile: %v", err)
+	}
+	for _, required := range []string{
+		"GOLANGCI_LINT_VERSION",
+		"GOVULNCHECK_VERSION",
+		"github.com/golangci/golangci-lint/v2/cmd/golangci-lint",
+		"golang.org/x/vuln/cmd/govulncheck",
+	} {
+		if !strings.Contains(string(dockerfile), required) {
+			t.Fatalf("rendered Dockerfile missing toolchain marker %s", required)
+		}
+	}
+
 	makefile, err := os.ReadFile(filepath.Join(outDir, "Makefile"))
 	if err != nil {
 		t.Fatalf("read rendered Makefile: %v", err)
 	}
 	if !strings.Contains(string(makefile), `GITHUB_ACTIONS=$${GITHUB_ACTIONS:-}`) {
 		t.Fatalf("rendered Makefile missing Docker CI environment passthrough")
+	}
+	if !strings.Contains(string(makefile), `GOLANGCI_LINT_VERSION=$${GOLANGCI_LINT_VERSION:-v2.1.6}`) {
+		t.Fatalf("rendered Makefile missing Docker lint toolchain build arg")
 	}
 	for _, target := range []string{
 		"docker-toolchain-check",
@@ -160,6 +178,12 @@ func TestRenderTemplateIncludesDockerContract(t *testing.T) {
 	}
 	if !strings.Contains(string(dockerGate), `GITHUB_ACTIONS=${GITHUB_ACTIONS:-}`) {
 		t.Fatalf("rendered Docker gate missing GitHub Actions environment passthrough")
+	}
+	if !strings.Contains(string(dockerGate), `GOLANGCI_LINT_VERSION:-v2.1.6`) {
+		t.Fatalf("rendered Docker gate missing lint toolchain build arg")
+	}
+	if !strings.Contains(string(dockerGate), `GOVULNCHECK_VERSION:-v1.1.4`) {
+		t.Fatalf("rendered Docker gate missing govulncheck toolchain build arg")
 	}
 }
 
