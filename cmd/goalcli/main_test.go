@@ -3003,15 +3003,15 @@ func commandRegistryFixture(extra string) string {
 func writeValidAgentIndexFixture(t *testing.T, root string) {
 	t.Helper()
 	files := map[string]string{
-		".agent/registries/generated-artifacts.yaml":  validGeneratedArtifactsFixture(),
-		".agent/harness/harness.yaml":                 validHarnessAliasFixture(),
-		".agent/index.yaml":                           validAgentIndexFixture(),
-		".agent/rules/registry.yaml":                  validRulesRegistryFixture("goalcli version"),
-		".agent/rules/agent-runtime-rules.md":         "fixture\n",
-		".agent/rules/core-rules.md":                  "fixture\n",
-		".agent/rules/schema-registry-rules.md":       "fixture\n",
-		".agent/command-implementation-status.yaml":   commandImplementationStatusFixture(),
-		".agent/execution-context.yaml":               executionContextFixture(),
+		".agent/registries/generated-artifacts.yaml":           validGeneratedArtifactsFixture(),
+		".agent/harness/harness.yaml":                          validHarnessAliasFixture(),
+		".agent/index.yaml":                                    validAgentIndexFixture(),
+		".agent/rules/registry.yaml":                           validRulesRegistryFixture("goalcli version"),
+		".agent/rules/agent-runtime-rules.md":                  "fixture\n",
+		".agent/rules/core-rules.md":                           "fixture\n",
+		".agent/rules/schema-registry-rules.md":                "fixture\n",
+		".agent/registries/command-implementation-status.yaml": commandImplementationStatusFixture(),
+		".agent/policies/execution-context.yaml":               executionContextFixture(),
 	}
 	for _, path := range requiredAgentIndexPaths() {
 		if _, ok := files[path]; ok {
