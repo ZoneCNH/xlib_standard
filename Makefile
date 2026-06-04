@@ -3,6 +3,7 @@ XLIB_CONTEXT ?= local_write
 GOAL_ID ?= GOAL-20260603-XLIB-GOALCLI-001
 GOAL_RUNTIME_MODE ?= FULL
 DOCKER_IMAGE ?= $(notdir $(CURDIR))-toolchain:local
+DOCKER_RUNTIME_IMAGE ?= $(notdir $(CURDIR))-goalcli-runtime:local
 DOCKER_GATE ?= ./scripts/docker/docker_gate.sh
 
 .PHONY: require-gowork-off
@@ -47,15 +48,55 @@ integration:
 
 .PHONY: docker-toolchain-check
 docker-toolchain-check:
-	./scripts/docker/check_toolchain.sh
+	$(GOALCLI) docker-toolchain-check
+
+.PHONY: docker-build
+docker-build:
+	$(GOALCLI) docker-build
+
+.PHONY: docker-build-check
+docker-build-check:
+	$(GOALCLI) docker-build-check
+
+.PHONY: docker-shell
+docker-shell:
+	$(GOALCLI) docker-shell
 
 .PHONY: docker-ci
 docker-ci:
-	$(DOCKER_GATE) ci
+	$(GOALCLI) docker-ci
 
 .PHONY: docker-release-check
 docker-release-check:
-	$(DOCKER_GATE) release-check
+	GOWORK=off $(GOALCLI) docker-release-check
+
+.PHONY: docker-release-final-check
+docker-release-final-check:
+	XLIB_CONTEXT=release_verify GOWORK=off $(GOALCLI) docker-release-final-check
+
+.PHONY: docker-goalcli
+docker-goalcli:
+	$(GOALCLI) docker-goalcli
+
+.PHONY: docker-goalcli-image
+docker-goalcli-image:
+	$(GOALCLI) docker-goalcli-image
+
+.PHONY: docker-goalcli-version
+docker-goalcli-version:
+	$(GOALCLI) docker-goalcli-version
+
+.PHONY: docker-runtime-check
+docker-runtime-check:
+	$(GOALCLI) docker-runtime-check
+
+.PHONY: docker-drift-check
+docker-drift-check:
+	$(GOALCLI) docker-drift-check
+
+.PHONY: docker-contract
+docker-contract:
+	$(GOALCLI) docker-contract
 
 .PHONY: dependency-check
 dependency-check:

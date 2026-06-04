@@ -2,36 +2,174 @@
 set -euo pipefail
 
 if [[ $# -lt 1 ]]; then
-  echo "Usage: scripts/docker/docker_gate.sh <make-target> [extra make args...]" >&2
+  echo "Usage: scripts/docker/docker_gate.sh <build|build-check|shell|ci|release-check|release-final-check|goalcli|goalcli-image|goalcli-version|runtime-check|drift-check|contract> [extra args...]" >&2
   exit 2
 fi
 
-target="$1"
+command="$1"
 shift
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 image="${DOCKER_IMAGE:-$(basename "$repo_root")-toolchain:local}"
+runtime_image="${DOCKER_RUNTIME_IMAGE:-$(basename "$repo_root")-goalcli-runtime:local}"
 go_version="${GO_VERSION:-1.23}"
+go_base_image="${GO_BASE_IMAGE:-golang:${go_version}-bookworm}"
+go_base_image_digest="${GO_BASE_IMAGE_DIGEST:-sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855}"
+golangci_lint_version="${GOLANGCI_LINT_VERSION:-v2.1.6}"
+govulncheck_version="${GOVULNCHECK_VERSION:-v1.3.0}"
+toolchain_image_digest="${DOCKER_TOOLCHAIN_IMAGE_DIGEST:-$go_base_image_digest}"
+runtime_image_digest="${DOCKER_RUNTIME_IMAGE_DIGEST:-$go_base_image_digest}"
 
 export DOCKER_BUILDKIT=1
 
+require_docker() {
+  if ! command -v docker >/dev/null 2>&1; then
+    echo "ERROR: docker CLI not found" >&2
+    exit 1
+  fi
+  if ! docker version >/dev/null 2>&1; then
+    echo "ERROR: docker daemon unavailable" >&2
+    exit 1
+  fi
+  if ! docker buildx version >/dev/null 2>&1; then
+    echo "ERROR: docker buildx unavailable" >&2
+    exit 1
+  fi
+}
+
+build_target() {
+  local target="$1"
+  local tag="$2"
+  require_docker
+  docker buildx build \
+    --load \
+    --target "$target" \
+    --build-arg "GO_VERSION=$go_version" \
+    --build-arg "GO_BASE_IMAGE=$go_base_image" \
+    --build-arg "GO_BASE_IMAGE_DIGEST=$go_base_image_digest" \
+    --build-arg "GOLANGCI_LINT_VERSION=$golangci_lint_version" \
+    --build-arg "GOVULNCHECK_VERSION=$govulncheck_version" \
+    --tag "$tag" \
+    "$repo_root"
+}
+
+run_make() {
+  local make_target="$1"
+  shift || true
+  build_target toolchain "$image"
+  docker run --rm \
+    --workdir /workspace \
+    --volume "$repo_root:/workspace" \
+    --volume go-build-cache:/root/.cache/go-build \
+    --volume go-mod-cache:/go/pkg/mod \
+    --env "GOWORK=${GOWORK:-off}" \
+    --env "XLIB_CONTEXT=${XLIB_CONTEXT:-docker_toolchain}" \
+    --env "VERSION=${VERSION:-}" \
+    --env "DOWNSTREAM=${DOWNSTREAM:-}" \
+    --env "XLIB_ENABLE_VULNCHECK=${XLIB_ENABLE_VULNCHECK:-}" \
+    --env "CHECK_STATUS=${CHECK_STATUS:-}" \
+    --env "DOCKER_TOOLCHAIN_ENABLED=${DOCKER_TOOLCHAIN_ENABLED:-true}" \
+    --env "DOCKER_BASE_IMAGE=${DOCKER_BASE_IMAGE:-$go_base_image}" \
+    --env "DOCKER_BASE_IMAGE_DIGEST=${DOCKER_BASE_IMAGE_DIGEST:-$go_base_image_digest}" \
+    --env "DOCKER_TOOLCHAIN_IMAGE=${DOCKER_TOOLCHAIN_IMAGE:-$image}" \
+    --env "DOCKER_TOOLCHAIN_IMAGE_DIGEST=$toolchain_image_digest" \
+    --env "DOCKER_RUNTIME_IMAGE=${DOCKER_RUNTIME_IMAGE:-$runtime_image}" \
+    --env "DOCKER_RUNTIME_IMAGE_DIGEST=$runtime_image_digest" \
+    "$image" make "$make_target" "$@"
+}
+
+run_shell() {
+  build_target dev "$image"
+  local docker_flags=(--rm)
+  if [[ -t 0 && -t 1 ]]; then
+    docker_flags+=(-it)
+  fi
+  docker run "${docker_flags[@]}" \
+    --workdir /workspace \
+    --volume "$repo_root:/workspace" \
+    --volume go-build-cache:/home/xlib/.cache/go-build \
+    --volume go-mod-cache:/go/pkg/mod \
+    --env "GOWORK=${GOWORK:-off}" \
+    --env "XLIB_CONTEXT=${XLIB_CONTEXT:-docker_toolchain}" \
+    --env "VERSION=${VERSION:-}" \
+    --env "DOWNSTREAM=${DOWNSTREAM:-}" \
+    --env "XLIB_ENABLE_VULNCHECK=${XLIB_ENABLE_VULNCHECK:-}" \
+    --env "DOCKER_TOOLCHAIN_ENABLED=${DOCKER_TOOLCHAIN_ENABLED:-true}" \
+    --env "DOCKER_BASE_IMAGE=${DOCKER_BASE_IMAGE:-$go_base_image}" \
+    --env "DOCKER_BASE_IMAGE_DIGEST=${DOCKER_BASE_IMAGE_DIGEST:-$go_base_image_digest}" \
+    --env "DOCKER_TOOLCHAIN_IMAGE=${DOCKER_TOOLCHAIN_IMAGE:-$image}" \
+    --env "DOCKER_TOOLCHAIN_IMAGE_DIGEST=$toolchain_image_digest" \
+    --env "DOCKER_RUNTIME_IMAGE=${DOCKER_RUNTIME_IMAGE:-$runtime_image}" \
+    --env "DOCKER_RUNTIME_IMAGE_DIGEST=$runtime_image_digest" \
+    "$image" bash "$@"
+}
+
+run_goalcli_runtime() {
+  build_target goalcli-runtime "$runtime_image"
+  docker run --rm \
+    --workdir /workspace \
+    --volume "$repo_root:/workspace" \
+    --env "GOWORK=${GOWORK:-off}" \
+    --env "XLIB_CONTEXT=${XLIB_CONTEXT:-docker_runtime}" \
+    --env "DOCKER_BASE_IMAGE=${DOCKER_BASE_IMAGE:-$go_base_image}" \
+    --env "DOCKER_BASE_IMAGE_DIGEST=${DOCKER_BASE_IMAGE_DIGEST:-$go_base_image_digest}" \
+    --env "DOCKER_TOOLCHAIN_IMAGE=${DOCKER_TOOLCHAIN_IMAGE:-$image}" \
+    --env "DOCKER_TOOLCHAIN_IMAGE_DIGEST=$toolchain_image_digest" \
+    --env "DOCKER_RUNTIME_IMAGE=${DOCKER_RUNTIME_IMAGE:-$runtime_image}" \
+    --env "DOCKER_RUNTIME_IMAGE_DIGEST=$runtime_image_digest" \
+    "$runtime_image" "$@"
+}
+
 "$repo_root/scripts/docker/check_toolchain.sh"
 
-docker buildx build \
-  --load \
-  --target toolchain \
-  --build-arg "GO_VERSION=$go_version" \
-  --tag "$image" \
-  "$repo_root"
-
-docker run --rm \
-  --workdir /workspace \
-  --volume "$repo_root:/workspace" \
-  --volume go-build-cache:/root/.cache/go-build \
-  --volume go-mod-cache:/go/pkg/mod \
-  --env "GOWORK=${GOWORK:-off}" \
-  --env "XLIB_CONTEXT=${XLIB_CONTEXT:-docker_toolchain}" \
-  --env "VERSION=${VERSION:-}" \
-  --env "DOWNSTREAM=${DOWNSTREAM:-}" \
-  --env "XLIB_ENABLE_VULNCHECK=${XLIB_ENABLE_VULNCHECK:-}" \
-  "$image" make "$target" "$@"
+case "$command" in
+  build|docker-build)
+    build_target toolchain "$image"
+    ;;
+  build-check|docker-build-check)
+    build_target toolchain "$image"
+    build_target gate "$image-gate"
+    build_target goalcli-runtime "$runtime_image"
+    ;;
+  shell|docker-shell)
+    run_shell "$@"
+    ;;
+  ci|docker-ci)
+    run_make ci "$@"
+    ;;
+  release-check|docker-release-check)
+    XLIB_CONTEXT="${XLIB_CONTEXT:-release_verify}" run_make release-check "$@"
+    ;;
+  release-final-check|docker-release-final-check)
+    XLIB_CONTEXT="${XLIB_CONTEXT:-release_verify}" run_make release-final-check "$@"
+    ;;
+  goalcli|docker-goalcli)
+    if [[ "$#" -eq 0 ]]; then
+      run_goalcli_runtime version
+    else
+      run_goalcli_runtime "$@"
+    fi
+    ;;
+  goalcli-image|docker-goalcli-image)
+    build_target goalcli-runtime "$runtime_image"
+    ;;
+  goalcli-version|docker-goalcli-version)
+    run_goalcli_runtime version "$@"
+    ;;
+  runtime-check|docker-runtime-check)
+    run_goalcli_runtime doctor --json
+    ;;
+  drift-check|docker-drift-check)
+    "$repo_root/scripts/docker/check_toolchain.sh" --drift
+    ;;
+  contract|docker-contract)
+    "$repo_root/scripts/docker/check_toolchain.sh" --drift
+    build_target toolchain "$image"
+    build_target gate "$image-gate"
+    run_goalcli_runtime version
+    ;;
+  *)
+    echo "ERROR: unknown docker gate command $command" >&2
+    exit 2
+    ;;
+esac

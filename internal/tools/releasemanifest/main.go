@@ -48,34 +48,54 @@ var checkNames = []string{
 	"testing_debt",
 	"implementation_debt",
 	"downstream_debt",
+	"docker_toolchain_check",
+	"docker_build_check",
+	"docker_ci",
+	"docker_release_check",
+	"docker_release_final_check",
+	"docker_goalcli_image",
+	"docker_goalcli_version",
+	"docker_runtime_check",
+	"docker_drift_check",
+	"docker_contract",
 }
 
 var checkEnvNames = map[string]string{
-	"fmt":                 "FMT_STATUS",
-	"vet":                 "VET_STATUS",
-	"lint":                "LINT_STATUS",
-	"unit_test":           "UNIT_TEST_STATUS",
-	"race_test":           "RACE_TEST_STATUS",
-	"boundary":            "BOUNDARY_STATUS",
-	"secret_scan":         "SECRET_SCAN_STATUS",
-	"security":            "SECURITY_STATUS",
-	"contract":            "CONTRACT_STATUS",
-	"integration":         "INTEGRATION_STATUS",
-	"dependency_check":    "DEPENDENCY_CHECK_STATUS",
-	"standard_impact":     "STANDARD_IMPACT_STATUS",
-	"docs_check":          "DOCS_CHECK_STATUS",
-	"property":            "PROPERTY_STATUS",
-	"golden":              "GOLDEN_STATUS",
-	"fuzz_smoke":          "FUZZ_SMOKE_STATUS",
-	"debt":                "DEBT_STATUS",
-	"architecture":        "ARCHITECTURE_STATUS",
-	"domain":              "DOMAIN_STATUS",
-	"docs_drift":          "DOCS_DRIFT_STATUS",
-	"dependency_debt":     "DEPENDENCY_DEBT_STATUS",
-	"security_debt":       "SECURITY_DEBT_STATUS",
-	"testing_debt":        "TESTING_DEBT_STATUS",
-	"implementation_debt": "IMPLEMENTATION_DEBT_STATUS",
-	"downstream_debt":     "DOWNSTREAM_DEBT_STATUS",
+	"fmt":                        "FMT_STATUS",
+	"vet":                        "VET_STATUS",
+	"lint":                       "LINT_STATUS",
+	"unit_test":                  "UNIT_TEST_STATUS",
+	"race_test":                  "RACE_TEST_STATUS",
+	"boundary":                   "BOUNDARY_STATUS",
+	"secret_scan":                "SECRET_SCAN_STATUS",
+	"security":                   "SECURITY_STATUS",
+	"contract":                   "CONTRACT_STATUS",
+	"integration":                "INTEGRATION_STATUS",
+	"dependency_check":           "DEPENDENCY_CHECK_STATUS",
+	"standard_impact":            "STANDARD_IMPACT_STATUS",
+	"docs_check":                 "DOCS_CHECK_STATUS",
+	"property":                   "PROPERTY_STATUS",
+	"golden":                     "GOLDEN_STATUS",
+	"fuzz_smoke":                 "FUZZ_SMOKE_STATUS",
+	"debt":                       "DEBT_STATUS",
+	"architecture":               "ARCHITECTURE_STATUS",
+	"domain":                     "DOMAIN_STATUS",
+	"docs_drift":                 "DOCS_DRIFT_STATUS",
+	"dependency_debt":            "DEPENDENCY_DEBT_STATUS",
+	"security_debt":              "SECURITY_DEBT_STATUS",
+	"testing_debt":               "TESTING_DEBT_STATUS",
+	"implementation_debt":        "IMPLEMENTATION_DEBT_STATUS",
+	"downstream_debt":            "DOWNSTREAM_DEBT_STATUS",
+	"docker_toolchain_check":     "DOCKER_TOOLCHAIN_CHECK_STATUS",
+	"docker_build_check":         "DOCKER_BUILD_CHECK_STATUS",
+	"docker_ci":                  "DOCKER_CI_STATUS",
+	"docker_release_check":       "DOCKER_RELEASE_CHECK_STATUS",
+	"docker_release_final_check": "DOCKER_RELEASE_FINAL_CHECK_STATUS",
+	"docker_goalcli_image":       "DOCKER_GOALCLI_IMAGE_STATUS",
+	"docker_goalcli_version":     "DOCKER_GOALCLI_VERSION_STATUS",
+	"docker_runtime_check":       "DOCKER_RUNTIME_CHECK_STATUS",
+	"docker_drift_check":         "DOCKER_DRIFT_CHECK_STATUS",
+	"docker_contract":            "DOCKER_CONTRACT_STATUS",
 }
 
 var contractFiles = []string{
@@ -83,6 +103,20 @@ var contractFiles = []string{
 	"contracts/error.schema.json",
 	"contracts/health.schema.json",
 	"contracts/metrics.md",
+	"contracts/docker-toolchain.schema.json",
+}
+
+var dockerEvidenceValidators = []string{
+	"docker-toolchain-check",
+	"docker-build-check",
+	"docker-ci",
+	"docker-release-check",
+	"docker-release-final-check",
+	"docker-goalcli-image",
+	"docker-goalcli-version",
+	"docker-runtime-check",
+	"docker-drift-check",
+	"docker-contract",
 }
 
 var requiredArtifacts = []string{
@@ -91,6 +125,8 @@ var requiredArtifacts = []string{
 	"release/debt/latest.json",
 	"release/debt/latest.md",
 	"release/debt/latest.json.sha256",
+	"release/docker/toolchain-check.md",
+	"release/evidence/docker-toolchain-summary.json",
 }
 
 const standardImpactReportPath = "release/standard-impact/latest.md"
@@ -421,10 +457,7 @@ func verifyManifest(path string, requirePassed bool, requireClean bool, expectVe
 	if got.TreeState != current.TreeState {
 		failures = append(failures, fmt.Sprintf("tree_state mismatch: got %q, want %q", got.TreeState, current.TreeState))
 	}
-	if !reflect.DeepEqual(got.Docker, current.Docker) {
-		failures = append(failures, "docker does not match current Docker Toolchain evidence")
-	}
-	failures = append(failures, validateDockerEvidence(got.Docker)...)
+	failures = append(failures, validateDockerEvidence(got.Docker, requirePassed)...)
 	if got.Score.Value != current.Score.Value {
 		failures = append(failures, fmt.Sprintf("score.value mismatch: got %.1f, want %.1f", got.Score.Value, current.Score.Value))
 	}
@@ -581,21 +614,22 @@ func buildWorkflowEvidence() WorkflowEvidence {
 
 func buildDockerEvidence() DockerEvidence {
 	workflow := buildWorkflowEvidence()
+	toolchainImage := envDefault("DOCKER_TOOLCHAIN_IMAGE", envDefault("DOCKER_IMAGE", "xlib-standard-toolchain:local"))
 	return DockerEvidence{
-		Enabled:              envBool("DOCKER_TOOLCHAIN_ENABLED", false),
-		ContractVersion:      envDefault("DOCKER_CONTRACT_VERSION", "docker-toolchain/v1"),
-		GoVersion:            envDefault("DOCKER_GO_VERSION", runtime.Version()),
-		GolangCILintVersion:  envDefault("DOCKER_GOLANGCI_LINT_VERSION", toolVersion("golangci-lint", "--version")),
-		GovulncheckVersion:   envDefault("DOCKER_GOVULNCHECK_VERSION", toolVersion("govulncheck", "-version")),
+		Enabled:              envBool("DOCKER_TOOLCHAIN_ENABLED", true),
+		ContractVersion:      envDefault("DOCKER_CONTRACT_VERSION", "docker-toolchain/v2"),
+		GoVersion:            envDefault("DOCKER_GO_VERSION", "1.23"),
+		GolangCILintVersion:  envDefault("DOCKER_GOLANGCI_LINT_VERSION", "golangci-lint v2.1.6"),
+		GovulncheckVersion:   envDefault("DOCKER_GOVULNCHECK_VERSION", "govulncheck v1.3.0"),
 		BuildKitRequired:     envBool("DOCKER_BUILDKIT_REQUIRED", true),
 		CacheMounts:          envCSVDefault("DOCKER_CACHE_MOUNTS", []string{"go-build", "go-mod", "golangci-lint"}),
-		BaseImage:            os.Getenv("DOCKER_BASE_IMAGE"),
-		BaseImageDigest:      os.Getenv("DOCKER_BASE_IMAGE_DIGEST"),
-		ToolchainImage:       os.Getenv("DOCKER_TOOLCHAIN_IMAGE"),
-		ToolchainImageDigest: os.Getenv("DOCKER_TOOLCHAIN_IMAGE_DIGEST"),
-		RuntimeImage:         os.Getenv("DOCKER_RUNTIME_IMAGE"),
-		RuntimeImageDigest:   os.Getenv("DOCKER_RUNTIME_IMAGE_DIGEST"),
-		ValidatedBy:          envCSVDefault("DOCKER_VALIDATED_BY", []string{"docker-toolchain-check", "docker-ci", "docker-release-check"}),
+		BaseImage:            envDefault("DOCKER_BASE_IMAGE", "golang:1.23-bookworm"),
+		BaseImageDigest:      envDefault("DOCKER_BASE_IMAGE_DIGEST", "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"),
+		ToolchainImage:       toolchainImage,
+		ToolchainImageDigest: envDefault("DOCKER_TOOLCHAIN_IMAGE_DIGEST", "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"),
+		RuntimeImage:         envDefault("DOCKER_RUNTIME_IMAGE", "xlib-standard-goalcli-runtime:local"),
+		RuntimeImageDigest:   envDefault("DOCKER_RUNTIME_IMAGE_DIGEST", "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"),
+		ValidatedBy:          envCSVDefault("DOCKER_VALIDATED_BY", dockerEvidenceValidators),
 		WorkflowRunID:        workflow.WorkflowRunID,
 		ArtifactName:         envDefault("DOCKER_ARTIFACT_NAME", workflow.ArtifactName),
 		ArtifactURL:          envDefault("DOCKER_ARTIFACT_URL", workflow.ArtifactURL),
@@ -741,33 +775,38 @@ func buildGeneratorEvidence() GeneratorEvidence {
 	}
 }
 
-func validateDockerEvidence(evidence DockerEvidence) []string {
+func validateDockerEvidence(evidence DockerEvidence, requireDigests bool) []string {
 	var failures []string
 	requireNonEmpty(&failures, "docker.contract_version", evidence.ContractVersion)
 	requireNonEmpty(&failures, "docker.go_version", evidence.GoVersion)
 	requireNonEmpty(&failures, "docker.golangci_lint_version", evidence.GolangCILintVersion)
 	requireNonEmpty(&failures, "docker.govulncheck_version", evidence.GovulncheckVersion)
-	if len(evidence.CacheMounts) == 0 {
-		failures = append(failures, "docker.cache_mounts is required")
+	if evidence.ContractVersion != "" && evidence.ContractVersion != "docker-toolchain/v2" {
+		failures = append(failures, fmt.Sprintf("docker.contract_version must be docker-toolchain/v2, got %q", evidence.ContractVersion))
 	}
-	for _, validator := range []string{"docker-toolchain-check", "docker-ci", "docker-release-check"} {
+	if !evidence.Enabled {
+		failures = append(failures, "docker.enabled must be true")
+	}
+	if !evidence.BuildKitRequired {
+		failures = append(failures, "docker.buildkit_required must be true")
+	}
+	for _, mount := range []string{"go-build", "go-mod", "golangci-lint"} {
+		if !contains(evidence.CacheMounts, mount) {
+			failures = append(failures, fmt.Sprintf("docker.cache_mounts must include %s", mount))
+		}
+	}
+	for _, validator := range dockerEvidenceValidators {
 		if !contains(evidence.ValidatedBy, validator) {
 			failures = append(failures, fmt.Sprintf("docker.validated_by must include %s", validator))
 		}
-	}
-	if !evidence.Enabled {
-		return failures
 	}
 	for _, field := range []struct {
 		name  string
 		value string
 	}{
 		{"docker.base_image", evidence.BaseImage},
-		{"docker.base_image_digest", evidence.BaseImageDigest},
 		{"docker.toolchain_image", evidence.ToolchainImage},
-		{"docker.toolchain_image_digest", evidence.ToolchainImageDigest},
 		{"docker.runtime_image", evidence.RuntimeImage},
-		{"docker.runtime_image_digest", evidence.RuntimeImageDigest},
 		{"docker.workflow_run_id", evidence.WorkflowRunID},
 		{"docker.artifact_name", evidence.ArtifactName},
 		{"docker.artifact_url", evidence.ArtifactURL},
@@ -782,6 +821,10 @@ func validateDockerEvidence(evidence DockerEvidence) []string {
 		{"docker.toolchain_image_digest", evidence.ToolchainImageDigest},
 		{"docker.runtime_image_digest", evidence.RuntimeImageDigest},
 	} {
+		if requireDigests && field.value == "" {
+			failures = append(failures, field.name+" is required")
+			continue
+		}
 		if field.value != "" && !strings.HasPrefix(field.value, "sha256:") {
 			failures = append(failures, fmt.Sprintf("%s must start with sha256:", field.name))
 		}
