@@ -43,6 +43,57 @@ func TestRenderTemplateExcludesGeneratedReleaseArtifacts(t *testing.T) {
 	}
 }
 
+func TestRenderTemplateIncludesGoalcliControlPlane(t *testing.T) {
+	outDir := filepath.Join(t.TempDir(), "configx")
+	cmd := exec.Command(
+		"bash",
+		"render_template.sh",
+		"--module-name",
+		"configx",
+		"--module-path",
+		"github.com/ZoneCNH/configx",
+		"--package-name",
+		"configx",
+		"--out",
+		outDir,
+	)
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("render template: %v\n%s", err, output)
+	}
+
+	for _, required := range []string{
+		filepath.Join("cmd", "goalcli", "main.go"),
+		filepath.Join("cmd", "goalcli", "main_test.go"),
+		filepath.Join("cmd", "goalcli", "governance.go"),
+		filepath.Join("internal", "goalcli", "README.md"),
+		"Makefile",
+		filepath.Join(".agent", "index.yaml"),
+		filepath.Join(".agent", "harness", "harness.yaml"),
+		filepath.Join(".agent", "harness", "gates.md"),
+		filepath.Join(".agent", "registries", "command-registry.yaml"),
+		filepath.Join(".agent", "registries", "command-implementation-status.yaml"),
+		filepath.Join(".agent", "registries", "makefile-baseline.yaml"),
+		filepath.Join(".agent", "registries", "makefile-target-registry.yaml"),
+		filepath.Join("contracts", "goalcli-report.schema.json"),
+		filepath.Join("docs", "standard", "goalcli-cli-contract.md"),
+		filepath.Join("docs", "standard", "goalcli-runtime.md"),
+	} {
+		if _, err := os.Stat(filepath.Join(outDir, required)); err != nil {
+			t.Fatalf("rendered template missing goalcli control-plane path %s: %v", required, err)
+		}
+	}
+
+	makefile, err := os.ReadFile(filepath.Join(outDir, "Makefile"))
+	if err != nil {
+		t.Fatalf("read rendered Makefile: %v", err)
+	}
+	if !strings.Contains(string(makefile), "GOALCLI ?= go run ./cmd/goalcli") {
+		t.Fatalf("rendered Makefile missing GOALCLI entrypoint")
+	}
+}
+
 func TestRenderTemplatePrunesOmittedAgentInboxIndexEntries(t *testing.T) {
 	outDir := filepath.Join(t.TempDir(), "kernel")
 	cmd := exec.Command(

@@ -28,6 +28,26 @@ scripts/render_template.sh \
 - 生成后的 module 必须在 `GOWORK=off` 下运行测试、contracts、boundary 和 release Evidence gate。
 - 旧名只可在迁移文档或兼容说明中出现，不得作为生成库主标题、module name、package name 或 release 主体。
 
+## GoalCLI 控制面同步
+
+生成库必须保留完整 `goalcli` 治理控制面，至少包括：
+
+- `cmd/goalcli/**`
+- `internal/goalcli/README.md`
+- `Makefile` 中的 `GOALCLI ?= go run ./cmd/goalcli`
+- `.agent/index.yaml`
+- `.agent/harness/harness.yaml`
+- `.agent/harness/gates.md`
+- `.agent/registries/command-registry.yaml`
+- `.agent/registries/command-implementation-status.yaml`
+- `.agent/registries/makefile-baseline.yaml`
+- `.agent/registries/makefile-target-registry.yaml`
+- `contracts/goalcli-report.schema.json`
+- `docs/standard/goalcli-cli-contract.md`
+- `docs/standard/goalcli-runtime.md`
+
+`goalcli` 命令实现、usage、Makefile 目标、registry、harness、schema 和文档必须同批同步；不得只同步其中一个 surface。
+
 ## Metrics Prefix
 
 Metrics Prefix 必须跟随 package name 替换。模板中的 `templatex_` prefix 在 `kernel` 渲染后必须变为 `kernel_`，在 `example.com/acme/corekit` 渲染后必须变为 `corekit_`。metrics contract、README、docs、examples、测试和 snapshot 中不得残留 `templatex_`，除非某个文件被明确 allowlist 为模板来源说明。
@@ -37,10 +57,17 @@ Metrics Prefix 必须跟随 package name 替换。模板中的 `templatex_` pref
 generator 不得复制：
 
 - `.git/`
+- `.omc/`
 - `.omx/`
 - `.worktree/`
+- `.agent/inbox/`
 - `release/manifest/latest.json`
 - `release/manifest/latest.json.sha256`
+- `release/standard-impact/latest.md`
+- `release/downstream-sync/latest.md`
+- `release/debt/latest.json`
+- `release/debt/latest.md`
+- `release/debt/latest.json.sha256`
 - `docs/adr/`
 - `docs/goal.md`
 - 临时文件、缓存、coverage 输出、构建目录、本地 Evidence 输出和 editor 产物。
