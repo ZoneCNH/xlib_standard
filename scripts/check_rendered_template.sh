@@ -85,6 +85,8 @@ scan_template_placeholders() {
       --glob '!**/.git/**' \
       --glob '!.github/workflows/**' \
       --glob '!**/.github/workflows/**' \
+      --glob '!.agent/archive/inbox/**' \
+      --glob '!**/.agent/archive/inbox/**' \
       --glob '!docs/adr/**' \
       --glob '!**/docs/adr/**' \
       --glob '!docs/goal.md' \
@@ -105,6 +107,7 @@ scan_template_placeholders() {
     if find "$repo_dir" -type f \
       -not -path '*/.git/*' \
       -not -path '*/.github/workflows/*' \
+      -not -path '*/.agent/archive/inbox/*' \
       -not -path '*/docs/adr/*' \
       -not -path '*/docs/goal.md' \
       -not -path '*/scripts/check_docs.sh' \
