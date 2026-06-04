@@ -134,11 +134,7 @@ func run(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) int
 	case "secret":
 		return runSecretCommand(args[1:], stdin, stdout, stderr)
 	case "security":
-		securityCommands := []externalCommand{{name: "./scripts/check_secrets.sh"}}
-		if os.Getenv("XLIB_ENABLE_VULNCHECK") == "1" {
-			securityCommands = append([]externalCommand{{name: "govulncheck", args: []string{"./..."}}}, securityCommands...)
-		}
-		return runExternalSequence(stdin, stdout, stderr, securityCommands...)
+		return runSecurity(stdin, stdout, stderr)
 	case "standard-impact-check":
 		return runExternal(stdin, stdout, stderr, "./scripts/check_standard_impact.sh")
 	case "self-improving-check", "retro-check":
@@ -169,6 +165,19 @@ func runSecretCommand(args []string, stdin io.Reader, stdout io.Writer, stderr i
 		write(stderr, "unknown secret command %q\n", args[0])
 		return 2
 	}
+}
+
+const enableVulncheckEnv = "XLIB_ENABLE_VULNCHECK"
+
+func runSecurity(stdin io.Reader, stdout io.Writer, stderr io.Writer) int {
+	if os.Getenv(enableVulncheckEnv) == "1" {
+		return runExternalSequence(stdin, stdout, stderr,
+			externalCommand{name: "govulncheck", args: []string{"./..."}},
+			externalCommand{name: "./scripts/check_secrets.sh"},
+		)
+	}
+	write(stderr, "security: govulncheck suspended; set %s=1 to run vulnerability scan\n", enableVulncheckEnv)
+	return runExternal(stdin, stdout, stderr, "./scripts/check_secrets.sh")
 }
 
 func runScore(args []string, stdout io.Writer, stderr io.Writer) int {
