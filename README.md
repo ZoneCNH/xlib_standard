@@ -88,7 +88,7 @@ make evidence
 
 `release-check` 和 `release-check-extended` 已依赖 `dependency-check`、`standard-impact-check` 和 `docs-check`，用于在生成 Evidence 前确认依赖漂移自动化、标准影响报告、标准文档入口、下游同步策略、链接、模板占位符、当前命名、关键文本和 release manifest 协议没有漂移。`dependency-check` 读取 `renovate.json`、`.github/dependabot.yml` 和 `go.mod`；`standard-impact-check` 生成 `release/standard-impact/latest.md`，并把 `downstream_sync_required`、`downstream_release_decision`（只允许 `required` / `not_required`）和 `repository_rules_release_decision`（只允许 `audit_required` / `not_required`）结论交给 release manifest。`docs-check` 是结构性 gate，不替代人工语义审查。
 
-Release gate 还必须执行 `GOWORK=off go run ./cmd/goalcli score --min 9.8`。GitHub Actions workflow 引用的第三方 Action 必须固定为 40 位 commit SHA 并保留来源 tag 注释；CI、Release Check 和 Security workflow 仅在 `XLIB_ENABLE_VULNCHECK=1` 时安装 `govulncheck`，且必须使用固定基线 `golang.org/x/vuln/cmd/govulncheck@v1.3.0`，不得用 `@latest` 作为发布门禁配置。
+Release gate 还必须执行 `GOWORK=off go run ./cmd/goalcli score --min 9.8`。GitHub Actions workflow 引用的第三方 Action 必须固定为 40 位 commit SHA 并保留来源 tag 注释；CI、Release Check 和 Security workflow 仅在 `XLIB_ENABLE_VULNCHECK=1` 时安装 `govulncheck`，且必须使用固定基线 `golang.org/x/vuln/cmd/govulncheck@v1.2.0`，不得用 `@latest` 作为发布门禁配置。
 
 生成 `kernel` 示例：
 

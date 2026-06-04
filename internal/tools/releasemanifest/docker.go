@@ -25,7 +25,7 @@ func buildDockerEvidence() DockerEvidence {
 		ContractVersion:      envDefault("DOCKER_CONTRACT_VERSION", "docker-toolchain/v2"),
 		GoVersion:            envDefault("DOCKER_GO_VERSION", "1.23"),
 		GolangCILintVersion:  envDefault("DOCKER_GOLANGCI_LINT_VERSION", "golangci-lint v2.1.6"),
-		GovulncheckVersion:   envDefault("DOCKER_GOVULNCHECK_VERSION", "govulncheck v1.3.0"),
+		GovulncheckVersion:   envDefault("DOCKER_GOVULNCHECK_VERSION", "govulncheck v1.2.0"),
 		BuildKitRequired:     envBool("DOCKER_BUILDKIT_REQUIRED", true),
 		CacheMounts:          envCSVDefault("DOCKER_CACHE_MOUNTS", []string{"go-build", "go-mod", "golangci-lint"}),
 		BaseImage:            envDefault("DOCKER_BASE_IMAGE", "golang:1.23-bookworm"),

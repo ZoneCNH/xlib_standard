@@ -93,7 +93,7 @@ fuzz-smoke
 
 `make security` 默认只运行 secret scan；只有设置 `XLIB_ENABLE_VULNCHECK=1` 时才追加 `govulncheck ./...`，此时 `govulncheck` 也必须可用。缺少默认必需工具或启用漏洞扫描时缺少 `govulncheck`，本地 Makefile 必须硬失败。GitHub Actions CI 和 Release Check workflow 默认不安装或访问漏洞库；只有显式启用 `XLIB_ENABLE_VULNCHECK=1` 时才安装固定版本 `govulncheck`。
 
-GitHub Actions workflow 引用的第三方 Action 必须固定为 40 位 commit SHA，并用注释保留来源 tag 供审计。CI、Release Check 和 Security workflow 在 `XLIB_ENABLE_VULNCHECK=1` 时安装 `govulncheck` 必须使用固定版本；当前基线是 `golang.org/x/vuln/cmd/govulncheck@v1.3.0`，不得在发布门禁中使用 `@latest`。
+GitHub Actions workflow 引用的第三方 Action 必须固定为 40 位 commit SHA，并用注释保留来源 tag 供审计。CI、Release Check 和 Security workflow 在 `XLIB_ENABLE_VULNCHECK=1` 时安装 `govulncheck` 必须使用固定版本；当前基线是 `golang.org/x/vuln/cmd/govulncheck@v1.2.0`，不得在发布门禁中使用 `@latest`。
 
 `make security` 必须委托 `goalcli security` 默认运行 secret scan；只有设置 `XLIB_ENABLE_VULNCHECK=1` 时才先运行漏洞扫描再运行密钥扫描.
 

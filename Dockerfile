@@ -4,7 +4,7 @@ ARG GO_VERSION=1.23
 ARG GO_BASE_IMAGE=golang:${GO_VERSION}-bookworm
 ARG GO_BASE_IMAGE_DIGEST=sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 ARG GOLANGCI_LINT_VERSION=v2.1.6
-ARG GOVULNCHECK_VERSION=v1.3.0
+ARG GOVULNCHECK_VERSION=v1.2.0
 
 # ── 预编译工具 stage：下载 golangci-lint 和 govulncheck ─────
 # 若通过 --build-context tools=... 提供外部缓存则跳过下载

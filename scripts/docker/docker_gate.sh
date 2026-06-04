@@ -16,7 +16,7 @@ go_version="${GO_VERSION:-1.23}"
 go_base_image="${GO_BASE_IMAGE:-golang:${go_version}-bookworm}"
 go_base_image_digest="${GO_BASE_IMAGE_DIGEST:-sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855}"
 golangci_lint_version="${GOLANGCI_LINT_VERSION:-v2.1.6}"
-govulncheck_version="${GOVULNCHECK_VERSION:-v1.3.0}"
+govulncheck_version="${GOVULNCHECK_VERSION:-v1.2.0}"
 toolchain_image_digest="${DOCKER_TOOLCHAIN_IMAGE_DIGEST:-$go_base_image_digest}"
 runtime_image_digest="${DOCKER_RUNTIME_IMAGE_DIGEST:-$go_base_image_digest}"
 

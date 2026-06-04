@@ -4,7 +4,7 @@
 set -euo pipefail
 
 GOLANGCI_VERSION="v2.1.6"
-GOVULNCHECK_VERSION="v1.3.0"
+GOVULNCHECK_VERSION="v1.2.0"
 CACHE_DIR="${DOCKER_TOOL_CACHE:-.cache/docker-tools}"
 
 mkdir -p "${CACHE_DIR}/bin"

@@ -5,7 +5,7 @@ x-toolchain-build: &toolchain-build
     GO_BASE_IMAGE: ${GO_BASE_IMAGE:-golang:${GO_VERSION:-1.23}-bookworm}
     GO_BASE_IMAGE_DIGEST: ${GO_BASE_IMAGE_DIGEST:-sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855}
     GOLANGCI_LINT_VERSION: ${GOLANGCI_LINT_VERSION:-v2.1.6}
-    GOVULNCHECK_VERSION: ${GOVULNCHECK_VERSION:-v1.3.0}
+    GOVULNCHECK_VERSION: ${GOVULNCHECK_VERSION:-v1.2.0}
   additional_contexts:
     tools: .cache/docker-tools
 

@@ -88,7 +88,7 @@ Secret scan 会排除 `.git`、`.omc`、`.omx`、`.worktree` 和 `vendor` 等本
 
 ## Workflow Supply Chain Gate
 
-CI、Release Check、Integration 和 Security workflow 引用的第三方 Action 必须固定为 40 位 commit SHA，并保留来源 tag 注释。`govulncheck` 仅在 `XLIB_ENABLE_VULNCHECK=1` 时安装，且必须使用固定版本；当前发布门禁基线是 `golang.org/x/vuln/cmd/govulncheck@v1.3.0`。
+CI、Release Check、Integration 和 Security workflow 引用的第三方 Action 必须固定为 40 位 commit SHA，并保留来源 tag 注释。`govulncheck` 仅在 `XLIB_ENABLE_VULNCHECK=1` 时安装，且必须使用固定版本；当前发布门禁基线是 `golang.org/x/vuln/cmd/govulncheck@v1.2.0`。
 
 ## Context Runtime v4 profile gates 发布门禁
 
