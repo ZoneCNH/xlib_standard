@@ -57,12 +57,12 @@ func runDoctor(args []string, stdout io.Writer, stderr io.Writer) int {
 		return invalidInternalArgsExit("doctor", err, stderr)
 	}
 	required := []string{
-		".agent/harness.yaml",
+		".agent/harness/harness.yaml",
 		".agent/index.yaml",
-		".agent/issue-registry.yaml",
-		".agent/command-registry.yaml",
-		".agent/makefile-target-registry.yaml",
-		".agent/makefile-baseline.yaml",
+		".agent/registries/issue-registry.yaml",
+		".agent/registries/command-registry.yaml",
+		".agent/registries/makefile-target-registry.yaml",
+		".agent/registries/makefile-baseline.yaml",
 		"docs/standard/goalcli-cli-contract.md",
 		"contracts/goalcli-report.schema.json",
 		"Makefile",
@@ -87,7 +87,7 @@ func runDoctor(args []string, stdout io.Writer, stderr io.Writer) int {
 
 // hooksStatusDetail 返回 git hooks 启用状态作为 informational details。
 // 不影响 doctor 的 pass/fail：CI 环境无须本地 hooks；本地环境若未启用，
-// 提示运行 make install-hooks。对应 .agent/standard/goal-runtime-canonical.md
+// 提示运行 make install-hooks。对应 .agent/runtime/standard/goal-runtime-canonical.md
 // 中的 RULE-WORKTREE-001 / RULE-SECRET-001 本地防线。
 func hooksStatusDetail() string {
 	if !fileExists(".githooks/pre-commit") {
@@ -259,10 +259,10 @@ func runTaskCheck(args []string, stdout io.Writer, stderr io.Writer) int {
 		return invalidInternalArgsExit("task-check", err, stderr)
 	}
 	switch {
-	case fileExists(".agent/command-registry.yaml"):
-		return emitReport(stdout, "task-check", "passed", []string{".agent/command-registry.yaml is present"}, nil)
-	case fileExists(".agent/registry/commands.yaml"):
-		return emitReport(stdout, "task-check", "passed", []string{"legacy .agent/registry/commands.yaml is present"}, nil)
+	case fileExists(".agent/registries/command-registry.yaml"):
+		return emitReport(stdout, "task-check", "passed", []string{".agent/registries/command-registry.yaml is present"}, nil)
+	case fileExists(".agent/registries/commands.yaml"):
+		return emitReport(stdout, "task-check", "passed", []string{"legacy .agent/registries/commands.yaml is present"}, nil)
 	default:
 		return emitReport(stdout, "task-check", "passed", []string{"warning: command registry not present"}, nil)
 	}
@@ -338,10 +338,10 @@ func runEvidenceCheck(args []string, stdout io.Writer, stderr io.Writer) int {
 		return invalidInternalArgsExit("evidence-check", err, stderr)
 	}
 	return runRegistryCheck("evidence-check", map[string][]string{
-		".agent/done-assertion.yaml":               {"DONE with evidence", "commit", "gates"},
-		".agent/evidence-artifact-policy.yaml":     {"redaction", "sha256", "release/manifest/latest.json"},
-		".agent/harness.yaml":                      {"manifest", "checksum", "required_fields"},
-		".agent/evidence-artifacts.yaml":           {"release_evidence", "execution_evidence", "schema:", "contracts/execution-evidence.schema.json"},
+		".agent/evidence/done-assertion.yaml":               {"DONE with evidence", "commit", "gates"},
+		".agent/evidence/evidence-artifact-policy.yaml":     {"redaction", "sha256", "release/manifest/latest.json"},
+		".agent/harness/harness.yaml":                      {"manifest", "checksum", "required_fields"},
+		".agent/evidence/evidence-artifacts.yaml":           {"release_evidence", "execution_evidence", "schema:", "contracts/execution-evidence.schema.json"},
 		"contracts/execution-evidence.schema.json": {"evidence_id", "stdout_sha256", "commit", "exit_code", "artifact_path"},
 	}, stdout, stderr)
 }
@@ -353,7 +353,7 @@ func runCLIContract(args []string, stdout io.Writer, stderr io.Writer) int {
 	return runRegistryCheck("cli-contract", map[string][]string{
 		"docs/standard/goalcli-cli-contract.md": goalcliCLIContractNeedles(),
 		"contracts/goalcli-report.schema.json":  {"command", "status", "details", "gaps"},
-		".agent/command-registry.yaml":          requiredCommandRegistryNeedles(),
+		".agent/registries/command-registry.yaml":          requiredCommandRegistryNeedles(),
 	}, stdout, stderr)
 }
 
@@ -362,7 +362,7 @@ func runIssueRegistry(args []string, stdout io.Writer, stderr io.Writer) int {
 		return invalidInternalArgsExit("issue-registry", err, stderr)
 	}
 	var gaps []string
-	appendIssueRegistryGaps(".agent/issue-registry.yaml", &gaps)
+	appendIssueRegistryGaps(".agent/registries/issue-registry.yaml", &gaps)
 	if len(gaps) > 0 {
 		write(stderr, "ERROR: issue-registry found %d gap(s)\n", len(gaps))
 		return emitReport(stdout, "issue-registry", "failed", nil, gaps)
@@ -375,14 +375,14 @@ func runCommandRegistry(args []string, stdout io.Writer, stderr io.Writer) int {
 		return invalidInternalArgsExit("command-registry", err, stderr)
 	}
 	gaps := registryContractGaps(map[string][]string{
-		".agent/command-registry.yaml": requiredCommandRegistryNeedles(),
+		".agent/registries/command-registry.yaml": requiredCommandRegistryNeedles(),
 	})
-	appendYAMLListDuplicateGaps(".agent/command-registry.yaml", "name", "command", &gaps)
+	appendYAMLListDuplicateGaps(".agent/registries/command-registry.yaml", "name", "command", &gaps)
 	appendAgentIndexGaps(".agent/index.yaml", &gaps)
-	appendGeneratedArtifactClassificationGaps(".agent/index.yaml", ".agent/generated-artifacts.yaml", &gaps)
-	appendGeneratedArtifactsGaps(".agent/generated-artifacts.yaml", ".agent/index.yaml", &gaps)
-	appendHarnessAliasGaps(".agent/harness.yaml", &gaps)
-	appendHarnessGateLinkSemanticsGaps(".agent/harness.yaml", &gaps)
+	appendGeneratedArtifactClassificationGaps(".agent/index.yaml", ".agent/registries/generated-artifacts.yaml", &gaps)
+	appendGeneratedArtifactsGaps(".agent/registries/generated-artifacts.yaml", ".agent/index.yaml", &gaps)
+	appendHarnessAliasGaps(".agent/harness/harness.yaml", &gaps)
+	appendHarnessGateLinkSemanticsGaps(".agent/harness/harness.yaml", &gaps)
 	appendRulesEnforcedByGaps(".agent/rules/registry.yaml", &gaps)
 	if len(gaps) > 0 {
 		write(stderr, "ERROR: command-registry found %d gap(s)\n", len(gaps))
@@ -396,13 +396,13 @@ func runMakefileBaseline(args []string, stdout io.Writer, stderr io.Writer) int 
 		return invalidInternalArgsExit("makefile-baseline", err, stderr)
 	}
 	requiredTargets := requiredMakefileTargets()
-	required := map[string][]string{"Makefile": {}, ".agent/makefile-target-registry.yaml": requiredTargets, ".agent/makefile-baseline.yaml": requiredTargets}
+	required := map[string][]string{"Makefile": {}, ".agent/registries/makefile-target-registry.yaml": requiredTargets, ".agent/registries/makefile-baseline.yaml": requiredTargets}
 	for _, target := range requiredTargets {
 		required["Makefile"] = append(required["Makefile"], ".PHONY: "+target, target+":")
 	}
 	gaps := registryContractGaps(required)
-	appendYAMLSequenceDuplicateGaps(".agent/makefile-target-registry.yaml", "targets", "target", &gaps)
-	appendYAMLMapSectionDuplicateGaps(".agent/makefile-baseline.yaml", "baseline_targets", "target", &gaps)
+	appendYAMLSequenceDuplicateGaps(".agent/registries/makefile-target-registry.yaml", "targets", "target", &gaps)
+	appendYAMLMapSectionDuplicateGaps(".agent/registries/makefile-baseline.yaml", "baseline_targets", "target", &gaps)
 	return emitRegistryCheckResult("makefile-baseline", gaps, stdout, stderr)
 }
 
@@ -476,9 +476,9 @@ func runContextProfileCheck(command string, args []string, stdout io.Writer, std
 	}
 	contextTargets := contextRuntimeTargets()
 	required := map[string][]string{
-		".agent/command-registry.yaml":          requiredCommandRegistryNeedles(),
-		".agent/makefile-target-registry.yaml":  contextTargets,
-		".agent/makefile-baseline.yaml":         contextTargets,
+		".agent/registries/command-registry.yaml":          requiredCommandRegistryNeedles(),
+		".agent/registries/makefile-target-registry.yaml":  contextTargets,
+		".agent/registries/makefile-baseline.yaml":         contextTargets,
 		"docs/standard/goalcli-cli-contract.md": goalcliCLIContractNeedles(),
 		"Makefile":                              {"release-final-check:", "$(MAKE) context-release"},
 	}
@@ -499,7 +499,7 @@ func runContextProfileCheck(command string, args []string, stdout io.Writer, std
 			}
 		}
 	}
-	appendIssueRegistryGaps(".agent/issue-registry.yaml", &gaps)
+	appendIssueRegistryGaps(".agent/registries/issue-registry.yaml", &gaps)
 	if makefile, err := os.ReadFile("Makefile"); err == nil {
 		makefileText := string(makefile)
 		appendMakefileDuplicateGaps(makefileText, contextTargets, &gaps)
@@ -896,90 +896,90 @@ func makefileDependencyHasToken(dependencies []string, token string) bool {
 }
 
 var plannedCommandFiles = map[string][]string{
-	"minimal-kernel":           {".agent/minimal-kernel.yaml"},
-	"done-assertion":           {".agent/done-assertion.yaml"},
-	"agent-team-contract":      {".agent/team-contract.yaml"},
-	"scope-lock":               {".agent/scope-locks.yaml"},
-	"pr-template":              {".agent/pr-template-contract.yaml", ".github/pull_request_template.md"},
-	"acceptance-matrix":        {".agent/acceptance-matrix.yaml"},
-	"runtime-health":           {".agent/runtime-health.yaml"},
-	"goal-runtime":             {".agent/goal-runtime.md", ".agent/harness.yaml"},
-	"goal-acceptance":          {".agent/harness.yaml"},
-	"goal-delivery":            {".agent/harness.yaml"},
-	"goal-handover":            {".agent/harness.yaml"},
-	"goal-downstream-adoption": {".agent/harness.yaml"},
-	"goal-certify":             {".agent/harness.yaml"},
-	"goal-runtime-final":       {".agent/harness.yaml"},
+	"minimal-kernel":           {".agent/runtime/minimal-kernel.yaml"},
+	"done-assertion":           {".agent/evidence/done-assertion.yaml"},
+	"agent-team-contract":      {".agent/contracts/team-contract.yaml"},
+	"scope-lock":               {".agent/contracts/scope-locks.yaml"},
+	"pr-template":              {".agent/contracts/pr-template-contract.yaml", ".github/pull_request_template.md"},
+	"acceptance-matrix":        {".agent/contracts/acceptance-matrix.yaml"},
+	"runtime-health":           {".agent/contracts/runtime-health.yaml"},
+	"goal-runtime":             {".agent/runtime/goal-runtime.md", ".agent/harness/harness.yaml"},
+	"goal-acceptance":          {".agent/harness/harness.yaml"},
+	"goal-delivery":            {".agent/harness/harness.yaml"},
+	"goal-handover":            {".agent/harness/harness.yaml"},
+	"goal-downstream-adoption": {".agent/harness/harness.yaml"},
+	"goal-certify":             {".agent/harness/harness.yaml"},
+	"goal-runtime-final":       {".agent/harness/harness.yaml"},
 	"naming":                   {"docs/standard/repository-roles.md", "docs/standard/module-boundary.md"},
-	"upgrade-standard":         {".agent/downstream-registry.yaml"},
-	"conformance-profile":      {".agent/conformance-profiles.yaml"},
-	"downstream-registry":      {".agent/downstream-registry.yaml"},
-	"self-healing-skeleton":    {".agent/failure-taxonomy.yaml", ".agent/root-cause.yaml", ".agent/regression-memory.yaml"},
-	"policy-schema":            {".agent/policy-schema.yaml"},
-	"github-settings":          {".agent/github-settings.yaml"},
-	"github-governance":        {".agent/github-governance.yaml"},
-	"governance-fixture-test":  {".agent/governance-fixture-test.yaml"},
-	"toolchain":                {".agent/toolchain.yaml"},
-	"evidence-artifacts":       {".agent/evidence-artifact-policy.yaml"},
-	"install-runtime":          {".agent/runtime-install.yaml"},
-	"upgrade-runtime":          {".agent/runtime-upgrade.yaml"},
-	"release-ready":            {".agent/release-readiness-formula.yaml", ".agent/release-required-gates.yaml", ".agent/evidence-replay.yaml", ".agent/execution-context.yaml"},
-	"evidence-replay":          {".agent/evidence-replay.yaml"},
-	"attest-conformance":       {".agent/conformance-profiles.yaml"},
-	"pack-standard":            {".agent/standard-pack.yaml"},
-	"pack-gate":                {".agent/gate-pack.yaml"},
-	"pack-evidence":            {".agent/evidence-pack.yaml"},
-	"runtime-file-ownership":   {".agent/runtime-file-ownership.yaml"},
-	"downstream-baseline":      {".agent/downstream-baseline-scan.yaml", ".agent/downstream-registry.yaml"},
-	"downstream-adoption":      {".agent/downstream-adoption-modes.yaml", ".agent/downstream-registry.yaml", ".agent/downstream-adoption-status.yaml", "contracts/downstream-adoption-proof.schema.json", "docs/standard/downstream-registry.md"},
-	"autoresearch":             {".agent/autoresearch.yaml"},
-	"changelog":                {".agent/changelog.yaml"},
+	"upgrade-standard":         {".agent/registries/downstream-registry.yaml"},
+	"conformance-profile":      {".agent/policies/conformance-profiles.yaml"},
+	"downstream-registry":      {".agent/registries/downstream-registry.yaml"},
+	"self-healing-skeleton":    {".agent/traceability/failure-taxonomy.yaml", ".agent/traceability/root-cause.yaml", ".agent/traceability/regression-memory.yaml"},
+	"policy-schema":            {".agent/policies/policy-schema.yaml"},
+	"github-settings":          {".agent/policies/github-settings.yaml"},
+	"github-governance":        {".agent/policies/github-governance.yaml"},
+	"governance-fixture-test":  {".agent/harness/governance-fixture-test.yaml"},
+	"toolchain":                {".agent/policies/toolchain.yaml"},
+	"evidence-artifacts":       {".agent/evidence/evidence-artifact-policy.yaml"},
+	"install-runtime":          {".agent/contracts/runtime-install.yaml"},
+	"upgrade-runtime":          {".agent/contracts/runtime-upgrade.yaml"},
+	"release-ready":            {".agent/release/release-readiness-formula.yaml", ".agent/release/release-required-gates.yaml", ".agent/evidence/evidence-replay.yaml", ".agent/policies/execution-context.yaml"},
+	"evidence-replay":          {".agent/evidence/evidence-replay.yaml"},
+	"attest-conformance":       {".agent/policies/conformance-profiles.yaml"},
+	"pack-standard":            {".agent/contracts/standard-pack.yaml"},
+	"pack-gate":                {".agent/harness/gate-pack.yaml"},
+	"pack-evidence":            {".agent/evidence/evidence-pack.yaml"},
+	"runtime-file-ownership":   {".agent/policies/runtime-file-ownership.yaml"},
+	"downstream-baseline":      {".agent/registries/downstream-baseline-scan.yaml", ".agent/registries/downstream-registry.yaml"},
+	"downstream-adoption":      {".agent/registries/downstream-adoption-modes.yaml", ".agent/registries/downstream-registry.yaml", ".agent/registries/downstream-adoption-status.yaml", "contracts/downstream-adoption-proof.schema.json", "docs/standard/downstream-registry.md"},
+	"autoresearch":             {".agent/policies/autoresearch.yaml"},
+	"changelog":                {".agent/archive/changelog.yaml"},
 	"supply-chain":             {"docs/supply-chain.md"},
-	"execution-context":        {".agent/execution-context.yaml", "contracts/execution-context.schema.json"},
+	"execution-context":        {".agent/policies/execution-context.yaml", "contracts/execution-context.schema.json"},
 }
 
 var plannedCommandSemanticMarkers = map[string]map[string][]string{
 	"agent-team-contract": {
-		".agent/team-contract.yaml": {"schema_version:", "roles:", "rule:"},
+		".agent/contracts/team-contract.yaml": {"schema_version:", "roles:", "rule:"},
 	},
 	"acceptance-matrix": {
-		".agent/acceptance-matrix.yaml": {"schema_version:", "acceptance:"},
+		".agent/contracts/acceptance-matrix.yaml": {"schema_version:", "acceptance:"},
 	},
 	"runtime-health": {
-		".agent/runtime-health.yaml": {"schema_version:", "checks:", "toolchain"},
+		".agent/contracts/runtime-health.yaml": {"schema_version:", "checks:", "toolchain"},
 	},
 	"goal-acceptance": {
-		".agent/harness.yaml": {"goalcli_mva_gates:", "G12_ACCEPTANCE", "goal-acceptance"},
+		".agent/harness/harness.yaml": {"goalcli_mva_gates:", "G12_ACCEPTANCE", "goal-acceptance"},
 	},
 	"goal-delivery": {
-		".agent/harness.yaml": {"goalcli_mva_gates:", "G13_DELIVERY", "goal-delivery"},
+		".agent/harness/harness.yaml": {"goalcli_mva_gates:", "G13_DELIVERY", "goal-delivery"},
 	},
 	"goal-handover": {
-		".agent/harness.yaml": {"goalcli_mva_gates:", "G14_HANDOVER", "goal-handover"},
+		".agent/harness/harness.yaml": {"goalcli_mva_gates:", "G14_HANDOVER", "goal-handover"},
 	},
 	"goal-downstream-adoption": {
-		".agent/harness.yaml": {"goalcli_mva_gates:", "G15_DOWNSTREAM_ADOPTION", "goal-downstream-adoption"},
+		".agent/harness/harness.yaml": {"goalcli_mva_gates:", "G15_DOWNSTREAM_ADOPTION", "goal-downstream-adoption"},
 	},
 	"goal-certify": {
-		".agent/harness.yaml": {"goalcli_mva_gates:", "G16_CERTIFY", "goal-certify"},
+		".agent/harness/harness.yaml": {"goalcli_mva_gates:", "G16_CERTIFY", "goal-certify"},
 	},
 	"goal-runtime-final": {
-		".agent/harness.yaml": {"goalcli_mva_gates:", "G12_G16_FINAL", "goal-runtime-final"},
+		".agent/harness/harness.yaml": {"goalcli_mva_gates:", "G12_G16_FINAL", "goal-runtime-final"},
 	},
 	"execution-context": {
-		".agent/execution-context.yaml": {"schema_version:", "contexts:", "local_write:", "ci_pull_request:", "release_verify:", "mutates_files:", "release_evidence:"},
+		".agent/policies/execution-context.yaml": {"schema_version:", "contexts:", "local_write:", "ci_pull_request:", "release_verify:", "mutates_files:", "release_evidence:"},
 	},
 	"evidence-replay": {
-		".agent/evidence-replay.yaml": {"schema_version:", "fixtures:", "ledger:", "expected_status:", "hash_chain"},
+		".agent/evidence/evidence-replay.yaml": {"schema_version:", "fixtures:", "ledger:", "expected_status:", "hash_chain"},
 	},
 	"downstream-adoption": {
-		".agent/downstream-adoption-modes.yaml":           {"schema_version:", "modes:", "patch-only"},
-		".agent/downstream-adoption-status.yaml":          {"proof_contract:", "source_repo", "gate_outputs", "rollback"},
+		".agent/registries/downstream-adoption-modes.yaml":           {"schema_version:", "modes:", "patch-only"},
+		".agent/registries/downstream-adoption-status.yaml":          {"proof_contract:", "source_repo", "gate_outputs", "rollback"},
 		"contracts/downstream-adoption-proof.schema.json": {"source_repo", "source_commit", "gate_outputs", "rollback"},
 		"docs/standard/downstream-registry.md":            {"Proof contract", "source_repo", "gate_outputs", "rollback"},
 	},
 	"runtime-file-ownership": {
-		".agent/runtime-file-ownership.yaml": {"schema_version:", "owners:", "owner:", "review_required:", "review_rule:", "rationale:"},
+		".agent/policies/runtime-file-ownership.yaml": {"schema_version:", "owners:", "owner:", "review_required:", "review_rule:", "rationale:"},
 	},
 }
 
@@ -1211,10 +1211,10 @@ func validatePlannedCommandFile(command string, path string, content []byte) []s
 			gaps = append(gaps, path+" missing semantic marker "+marker)
 		}
 	}
-	if command == "runtime-file-ownership" && path == ".agent/runtime-file-ownership.yaml" {
+	if command == "runtime-file-ownership" && path == ".agent/policies/runtime-file-ownership.yaml" {
 		gaps = append(gaps, validation.ValidateRuntimeFileOwnership(path, text)...)
 	}
-	if (command == "execution-context" || command == "release-ready") && path == ".agent/execution-context.yaml" {
+	if (command == "execution-context" || command == "release-ready") && path == ".agent/policies/execution-context.yaml" {
 		gaps = append(gaps, validation.ValidateExecutionContext(path, text, validExecutionContexts)...)
 	}
 	return gaps
@@ -1231,8 +1231,8 @@ func releaseReadyDecisionDetails(args []string, fileContents map[string]string, 
 		*gaps = append(*gaps, "release-ready requires context release_verify; got "+context)
 	}
 
-	requiredGates := countYAMLLinesWithValue(fileContents[".agent/release-required-gates.yaml"], "required_for_release", "true")
-	releaseUsableGates := countYAMLLinesWithValue(fileContents[".agent/release-required-gates.yaml"], "release_usable", "true")
+	requiredGates := countYAMLLinesWithValue(fileContents[".agent/release/release-required-gates.yaml"], "required_for_release", "true")
+	releaseUsableGates := countYAMLLinesWithValue(fileContents[".agent/release/release-required-gates.yaml"], "release_usable", "true")
 	blockedGates := requiredGates - releaseUsableGates
 	score := 0
 	if requiredGates > 0 {
@@ -1242,7 +1242,7 @@ func releaseReadyDecisionDetails(args []string, fileContents map[string]string, 
 	if requiredGates == 0 {
 		verdict = "gap"
 		if requireContract {
-			*gaps = append(*gaps, ".agent/release-required-gates.yaml gates must include required release gates")
+			*gaps = append(*gaps, ".agent/release/release-required-gates.yaml gates must include required release gates")
 		}
 	} else if blockedGates > 0 {
 		verdict = "not_ready"
@@ -1251,13 +1251,13 @@ func releaseReadyDecisionDetails(args []string, fileContents map[string]string, 
 		}
 	}
 
-	evidenceFields := countYAMLListItems(fileContents[".agent/release-required-gates.yaml"], "required_release_evidence")
+	evidenceFields := countYAMLListItems(fileContents[".agent/release/release-required-gates.yaml"], "required_release_evidence")
 	if requireContract && evidenceFields == 0 {
-		*gaps = append(*gaps, ".agent/release-required-gates.yaml missing required_release_evidence items")
+		*gaps = append(*gaps, ".agent/release/release-required-gates.yaml missing required_release_evidence items")
 	}
-	replayReady := strings.Contains(fileContents[".agent/evidence-replay.yaml"], "replay:") && strings.Contains(fileContents[".agent/evidence-replay.yaml"], "strict: true")
+	replayReady := strings.Contains(fileContents[".agent/evidence/evidence-replay.yaml"], "replay:") && strings.Contains(fileContents[".agent/evidence/evidence-replay.yaml"], "strict: true")
 	if requireReadiness && !replayReady {
-		*gaps = append(*gaps, ".agent/evidence-replay.yaml replay must be strict")
+		*gaps = append(*gaps, ".agent/evidence/evidence-replay.yaml replay must be strict")
 	}
 
 	details = append(details,
@@ -1606,7 +1606,7 @@ func appendAgentIndexGaps(path string, gaps *[]string) {
 
 func appendAgentIndexClassificationGaps(indexPath string, entries []agentIndexEntry, gaps *[]string) {
 	required := map[string]map[string]string{
-		".agent/generated-artifacts.yaml": {
+		".agent/registries/generated-artifacts.yaml": {
 			"layer":      "registry",
 			"authority":  "source_of_truth",
 			"mutability": "hand_written",
@@ -1839,33 +1839,33 @@ func appendAgentIndexEnumGap(indexPath string, entry agentIndexEntry, field stri
 func requiredAgentIndexPaths() []string {
 	return []string{
 		".agent/index.yaml",
-		".agent/goal-runtime.md",
-		".agent/object-model.md",
-		".agent/state-machine.md",
-		".agent/harness.yaml",
-		".agent/command-registry.yaml",
-		".agent/issue-registry.yaml",
-		".agent/generated-artifacts.yaml",
-		".agent/command-implementation-status.yaml",
-		".agent/makefile-target-registry.yaml",
-		".agent/makefile-baseline.yaml",
-		".agent/release-required-gates.yaml",
-		".agent/evidence-protocol.md",
+		".agent/runtime/goal-runtime.md",
+		".agent/runtime/object-model.md",
+		".agent/runtime/state-machine.md",
+		".agent/harness/harness.yaml",
+		".agent/registries/command-registry.yaml",
+		".agent/registries/issue-registry.yaml",
+		".agent/registries/generated-artifacts.yaml",
+		".agent/registries/command-implementation-status.yaml",
+		".agent/registries/makefile-target-registry.yaml",
+		".agent/registries/makefile-baseline.yaml",
+		".agent/release/release-required-gates.yaml",
+		".agent/evidence/evidence-protocol.md",
 		".agent/evidence/ledger.jsonl",
-		".agent/runtime-file-ownership.yaml",
-		".agent/execution-context.yaml",
-		".agent/policy-schema.yaml",
-		".agent/traceability-matrix.md",
-		".agent/risk-register.md",
-		".agent/decision-log.md",
-		".agent/rollback-protocol.md",
-		".agent/release-template.md",
-		".agent/agent-teams.md",
+		".agent/policies/runtime-file-ownership.yaml",
+		".agent/policies/execution-context.yaml",
+		".agent/policies/policy-schema.yaml",
+		".agent/traceability/traceability-matrix.md",
+		".agent/traceability/risk-register.md",
+		".agent/traceability/decision-log.md",
+		".agent/runtime/rollback-protocol.md",
+		".agent/release/release-template.md",
+		".agent/docs/agent-teams.md",
 		".agent/rules/registry.yaml",
 		".agent/rules/agent-runtime-rules.md",
 		".agent/rules/core-rules.md",
 		".agent/rules/schema-registry-rules.md",
-		".agent/retrospective.md",
+		".agent/archive/retrospective.md",
 	}
 }
 
@@ -2146,7 +2146,7 @@ func knownValidationRefs() map[string]bool {
 
 func knownGoalcliCommandRefs() map[string]bool {
 	refs := scalarSet(commandRegistryRequiredCommands()...)
-	for _, entry := range parseYAMLSequenceFileBlocks(".agent/command-registry.yaml", "commands", "name") {
+	for _, entry := range parseYAMLSequenceFileBlocks(".agent/registries/command-registry.yaml", "commands", "name") {
 		if entry.value != "" {
 			refs[entry.value] = true
 		}
@@ -2445,7 +2445,7 @@ func emitPlannedReport(stdout io.Writer, stderr io.Writer, command, status strin
 	return exitCode
 }
 
-// runRulesConsistencyCheck 校验 .agent/standard/goal-runtime-canonical.md（叙事层）
+// runRulesConsistencyCheck 校验 .agent/runtime/standard/goal-runtime-canonical.md（叙事层）
 // 与 .agent/rules/iron-rules.md（机器层）引用的 RULE-* 编号集合一致，
 // 并要求两侧引用的所有 RULE-* 都在 .agent/rules/registry.yaml 中登记。
 //
@@ -2455,7 +2455,7 @@ func runRulesConsistencyCheck(args []string, stdout io.Writer, stderr io.Writer)
 		return invalidInternalArgsExit("rules-consistency-check", err, stderr)
 	}
 
-	canonicalPath := ".agent/standard/goal-runtime-canonical.md"
+	canonicalPath := ".agent/runtime/standard/goal-runtime-canonical.md"
 	ironPath := ".agent/rules/iron-rules.md"
 	registryPath := ".agent/rules/registry.yaml"
 
@@ -2625,7 +2625,7 @@ func extractRegistryEnforcedByValues(text string) []string {
 
 func rulesRegistryGoalCLICommands() map[string]bool {
 	commands := scalarSet(commandRegistryRequiredCommands()...)
-	if registered, err := yamlListScalarValues(".agent/command-registry.yaml", "name"); err == nil {
+	if registered, err := yamlListScalarValues(".agent/registries/command-registry.yaml", "name"); err == nil {
 		for _, command := range registered {
 			commands[command] = true
 		}
@@ -2646,7 +2646,7 @@ func rulesRegistryGoalCLICommands() map[string]bool {
 
 func rulesRegistryMakeTargets() map[string]bool {
 	targets := scalarSet(requiredMakefileTargets()...)
-	if values, err := yamlSequenceValuesInSection(".agent/makefile-target-registry.yaml", "targets"); err == nil {
+	if values, err := yamlSequenceValuesInSection(".agent/registries/makefile-target-registry.yaml", "targets"); err == nil {
 		for _, target := range values {
 			targets[target] = true
 		}

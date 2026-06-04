@@ -10,11 +10,17 @@ import (
 )
 
 func TestRunDownstreamSyncPlanWritesRequiredPlan(t *testing.T) {
-	dir := localDownstreamSyncPlanTestDir(t)
-	chdir(t, repoRoot(t))
+	t.Parallel()
+	internalTestingBypassAbsolute = true
+	t.Cleanup(func() { internalTestingBypassAbsolute = false })
+
+	dir := t.TempDir()
 	impactReport := filepath.Join(dir, "impact.md")
-	outputRel := relativeFromRepoRoot(t, filepath.Join(dir, "release", "downstream-sync", "latest.md"))
+	output := filepath.Join(dir, "release", "downstream-sync", "latest.md")
 	workspaceRoot := filepath.Join(dir, "workspace")
+	if err := os.MkdirAll(filepath.Dir(output), 0o755); err != nil {
+		t.Fatalf("create output dir: %v", err)
+	}
 	if err := os.WriteFile(impactReport, []byte(requiredDownstreamImpactReportFixture()), 0o644); err != nil {
 		t.Fatalf("write impact report fixture: %v", err)
 	}
@@ -22,7 +28,7 @@ func TestRunDownstreamSyncPlanWritesRequiredPlan(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	code := runDownstreamSyncPlan([]string{
 		"--impact-report", impactReport,
-		"--output", outputRel,
+		"--output", output,
 		"--workspace-root", workspaceRoot,
 	}, &stdout, &stderr)
 	if code != 0 {
@@ -34,8 +40,7 @@ func TestRunDownstreamSyncPlanWritesRequiredPlan(t *testing.T) {
 	if !strings.Contains(stdout.String(), `"status": "passed"`) {
 		t.Fatalf("stdout missing passed report: %s", stdout.String())
 	}
-	outputAbs := filepath.Join(dir, "release", "downstream-sync", "latest.md")
-	data, err := os.ReadFile(outputAbs)
+	data, err := os.ReadFile(output)
 	if err != nil {
 		t.Fatalf("read output: %v", err)
 	}
@@ -57,21 +62,23 @@ func TestRunDownstreamSyncPlanWritesRequiredPlan(t *testing.T) {
 }
 
 func TestRunDownstreamSyncPlanWritesNotRequiredPlan(t *testing.T) {
-	dir := localDownstreamSyncPlanTestDir(t)
-	chdir(t, repoRoot(t))
+	t.Parallel()
+	internalTestingBypassAbsolute = true
+	t.Cleanup(func() { internalTestingBypassAbsolute = false })
+
+	dir := t.TempDir()
 	impactReport := filepath.Join(dir, "impact.md")
-	outputRel := relativeFromRepoRoot(t, filepath.Join(dir, "latest.md"))
+	output := filepath.Join(dir, "latest.md")
 	if err := os.WriteFile(impactReport, []byte(notRequiredDownstreamImpactReportFixture()), 0o644); err != nil {
 		t.Fatalf("write impact report fixture: %v", err)
 	}
 
 	var stdout, stderr bytes.Buffer
-	code := runDownstreamSyncPlan([]string{"--impact-report", impactReport, "--output", outputRel}, &stdout, &stderr)
+	code := runDownstreamSyncPlan([]string{"--impact-report", impactReport, "--output", output}, &stdout, &stderr)
 	if code != 0 {
 		t.Fatalf("runDownstreamSyncPlan returned %d; stderr=%s stdout=%s", code, stderr.String(), stdout.String())
 	}
-	outputAbs := filepath.Join(dir, "latest.md")
-	data, err := os.ReadFile(outputAbs)
+	data, err := os.ReadFile(output)
 	if err != nil {
 		t.Fatalf("read output: %v", err)
 	}
@@ -108,7 +115,7 @@ func TestRunDownstreamSyncPlanReportsMissingImpactReport(t *testing.T) {
 
 func TestRunDownstreamSyncPlanRendersJSONToStdout(t *testing.T) {
 	t.Parallel()
-	dir := localDownstreamSyncPlanTestDir(t)
+	dir := t.TempDir()
 	impactReport := filepath.Join(dir, "impact.md")
 	if err := os.WriteFile(impactReport, []byte(requiredDownstreamImpactReportFixture()), 0o644); err != nil {
 		t.Fatalf("write impact report fixture: %v", err)
@@ -140,7 +147,7 @@ func TestRunDownstreamSyncPlanRendersJSONToStdout(t *testing.T) {
 
 func TestRunDownstreamSyncPlanRendersMarkdownToStdout(t *testing.T) {
 	t.Parallel()
-	dir := localDownstreamSyncPlanTestDir(t)
+	dir := t.TempDir()
 	impactReport := filepath.Join(dir, "impact.md")
 	if err := os.WriteFile(impactReport, []byte(requiredDownstreamImpactReportFixture()), 0o644); err != nil {
 		t.Fatalf("write impact report fixture: %v", err)
@@ -173,12 +180,18 @@ func TestRunDownstreamSyncPlanRendersMarkdownToStdout(t *testing.T) {
 
 func TestRunDownstreamSyncPlanRejectsUnsafeOutputPaths(t *testing.T) {
 	t.Parallel()
-	dir := localDownstreamSyncPlanTestDir(t)
+	dir := t.TempDir()
 	impactReport := filepath.Join(dir, "impact.md")
 	if err := os.WriteFile(impactReport, []byte(requiredDownstreamImpactReportFixture()), 0o644); err != nil {
 		t.Fatalf("write impact report fixture: %v", err)
 	}
 	workspaceRoot := filepath.Join(dir, "workspace")
+
+	// 确保旁路标志关闭以验证生产安全检查
+	origBypass := internalTestingBypassAbsolute
+	internalTestingBypassAbsolute = false
+	t.Cleanup(func() { internalTestingBypassAbsolute = origBypass })
+
 	absoluteOutput := filepath.Join(t.TempDir(), "downstream-sync-plan.md")
 	cases := []struct {
 		name   string
@@ -216,50 +229,25 @@ func TestRunDownstreamSyncPlanRejectsUnsafeOutputPaths(t *testing.T) {
 }
 
 func TestRunDispatchesDownstreamSyncPlan(t *testing.T) {
-	dir := localDownstreamSyncPlanTestDir(t)
-	chdir(t, repoRoot(t))
+	t.Parallel()
+	internalTestingBypassAbsolute = true
+	t.Cleanup(func() { internalTestingBypassAbsolute = false })
+
+	dir := t.TempDir()
 	impactReport := filepath.Join(dir, "impact.md")
-	outputRel := relativeFromRepoRoot(t, filepath.Join(dir, "latest.md"))
+	output := filepath.Join(dir, "latest.md")
 	if err := os.WriteFile(impactReport, []byte(requiredDownstreamImpactReportFixture()), 0o644); err != nil {
 		t.Fatalf("write impact report fixture: %v", err)
 	}
 
 	var stdout, stderr bytes.Buffer
-	code := run([]string{"downstream-sync-plan", "--impact-report", impactReport, "--output", outputRel}, strings.NewReader(""), &stdout, &stderr)
+	code := run([]string{"downstream-sync-plan", "--impact-report", impactReport, "--output", output}, strings.NewReader(""), &stdout, &stderr)
 	if code != 0 {
 		t.Fatalf("run returned %d; stderr=%s stdout=%s", code, stderr.String(), stdout.String())
 	}
-	outputAbs := filepath.Join(dir, "latest.md")
-	if _, err := os.Stat(outputAbs); err != nil {
+	if _, err := os.Stat(output); err != nil {
 		t.Fatalf("output missing: %v", err)
 	}
-}
-
-// localDownstreamSyncPlanTestDir 返回基于 repo root 的唯一绝对路径，
-// 避免并行测试中共享父目录冲突和 chdir 导致相对路径解析失败。
-func localDownstreamSyncPlanTestDir(t *testing.T) string {
-	t.Helper()
-	root := repoRoot(t)
-	dir, err := os.MkdirTemp(root, ".downstream-sync-plan-test-")
-	if err != nil {
-		t.Fatalf("create test dir: %v", err)
-	}
-	t.Cleanup(func() {
-		_ = os.RemoveAll(dir)
-	})
-	return dir
-}
-
-// relativeFromRepoRoot 将绝对路径转换为相对于 repo root 的路径，
-// 用于传递给要求 repository-relative 路径的命令。
-func relativeFromRepoRoot(t *testing.T, abs string) string {
-	t.Helper()
-	root := repoRoot(t)
-	rel, err := filepath.Rel(root, abs)
-	if err != nil {
-		t.Fatalf("compute relative path from %s to %s: %v", root, abs, err)
-	}
-	return rel
 }
 
 func requiredDownstreamImpactReportFixture() string {
