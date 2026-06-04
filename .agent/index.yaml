@@ -933,6 +933,21 @@ files:
     validator: upgrade-runtime
     purpose: 标准升级说明。
 
+  - path: .agent/research/phase0-baseline-report.md
+    layer: documentation
+    authority: historical_snapshot
+    mutability: hand_written
+    owner: governance
+    validator: docs-check
+    purpose: Issue 59 Phase 0 .agent 分类基线分析报告。
+  - path: .agent/rules/enforcement-normalization.yaml
+    layer: policy
+    authority: source_of_truth
+    mutability: hand_written
+    owner: governance
+    validator: command-registry
+    purpose: rules enforced_by 引用归一化策略。
+
   - path: .agent/registries/physical-migration-manifest.yaml
     layer: registry
     authority: source_of_truth
