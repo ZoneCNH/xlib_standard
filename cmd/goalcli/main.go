@@ -55,6 +55,8 @@ func run(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) int
 		return runCommandRegistry(args[1:], stdout, stderr)
 	case "makefile-baseline":
 		return runMakefileBaseline(args[1:], stdout, stderr)
+	case "adoption-check":
+		return runAdoptionCheck(args[1:], stdout, stderr)
 	case "audit-goal":
 		return runAuditGoal(args[1:], stdout, stderr)
 	case "dashboard-generate":
@@ -274,6 +276,7 @@ const usage = `usage: goalcli <command> [args]
 
 commands:
   agent-team-contract [--dry-run]
+  adoption-check [--verify] [--json] [--root <path>]
   acceptance-matrix
   architecture [debt args]
   audit-goal [--goal-id <id>] [--matrix .agent/traceability/traceability-matrix.md] [--json]

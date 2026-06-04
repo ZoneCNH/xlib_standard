@@ -133,7 +133,13 @@
 - `runtime-file-ownership`
 - `downstream-baseline --repo kernel/configx --mode patch-only`
 - `downstream-adoption --repo kernel/configx --mode patch-only`
+- `adoption-check [--verify] [--json] [--root <path>]`
 - `execution-context`
+
+
+## Adoption check command
+
+`goalcli adoption-check [--verify] [--json] [--root <path>]` 是渲染 downstream 仓库内的本地只读采纳验证器。它检查 `xlib-standard.lock`、`.githooks/pre-commit`、`.githooks/pre-push`、`.github/workflows/adoption-check.yml`、`mk/governance.mk`、`.agent/harness/harness.yaml`、command/makefile registries 和 `Makefile` 的 `adoption-check` target；发现缺口时输出 `status=failed` 并返回非 0。该命令不访问外部系统、不创建 downstream 仓库，也不写 Evidence。
 
 ## Goalcli MVA commands
 
@@ -197,7 +203,7 @@ goalcli MVA commands 是由 `.agent/harness/harness.yaml` 背书的本地 `cmd/g
 - `--verify` 或 `--strict` 不能把 `planned`/`gap` 当作成功证据。
 - `--context` 仅允许 `local_write`、`local_readonly`、`ci_pull_request`、`ci_main_verify` 和 `release_verify`。
 - `--repo` 指向的 downstream 仓库不存在时，命令必须返回 `gap`，且不得自动创建目录。
-- 新增命令时必须同步 `run` dispatch、`plannedCommandFiles`、Makefile gate、CLI contract 和测试表。
+- 新增 planned dry-run 命令时必须同步 `plannedCommandFiles`；新增非 planned 命令必须同步 `run` dispatch、usage、Makefile gate、registry、CLI contract 和测试表。
 
 ## 语义校验
 

@@ -16,6 +16,24 @@ scripts/render_template.sh \
 
 `--out` 必须指向不存在或为空的目录，避免覆盖已有仓库内容。
 
+## Repository Governance Pack
+
+需要把标准治理面落地到下游仓库时，渲染命令必须启用 governance pack：
+
+```bash
+scripts/render_template.sh \
+  --module-name kernel \
+  --module-path github.com/ZoneCNH/kernel \
+  --package-name kernel \
+  --layer L0 \
+  --enable-governance \
+  --standard-version v0.5.0 \
+  --standard-commit "$(git rev-parse HEAD)" \
+  --out ../kernel
+```
+
+`--enable-governance` 会写入 `xlib-standard.lock`，并在渲染结束前验证 `.githooks/pre-commit`、`.githooks/pre-push`、`.github/workflows/adoption-check.yml`、`mk/governance.mk`、`.agent/harness/harness.yaml` 已随下游控制面一起落地。下游仓库必须运行 `GOWORK=off make adoption-check`，证明 Repository Governance Pack、lock、workflow、registry、Makefile target 和 harness gate 没有被裁剪。
+
 ## 渲染范围
 
 - `{{MODULE_NAME}}` 替换为 `--module-name`。
@@ -33,6 +51,7 @@ scripts/render_template.sh \
 
 ```bash
 GOWORK=off make release-check
+GOWORK=off make adoption-check # 仅适用于启用 --enable-governance 的渲染 downstream 仓库
 ```
 
 模板自身的 `make integration` 会渲染三个临时下游库：

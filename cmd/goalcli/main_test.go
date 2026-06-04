@@ -130,6 +130,42 @@ func TestCommandImplementationStatusCommandsStayRegistered(t *testing.T) {
 	}
 }
 
+func TestAdoptionCheckPassesGovernancePackFixture(t *testing.T) {
+	root := adoptionCheckFixture(t)
+	var stdout, stderr bytes.Buffer
+
+	got := run([]string{"adoption-check", "--verify", "--root", root}, strings.NewReader(""), &stdout, &stderr)
+
+	if got != 0 {
+		t.Fatalf("adoption-check exit = %d, stderr %q, stdout %q; want 0", got, stderr.String(), stdout.String())
+	}
+	for _, needle := range []string{`"command": "adoption-check"`, `"status": "passed"`, "governance lock present"} {
+		if !strings.Contains(stdout.String(), needle) {
+			t.Fatalf("stdout = %q; want %q", stdout.String(), needle)
+		}
+	}
+}
+
+func TestAdoptionCheckBlocksMissingGovernanceLock(t *testing.T) {
+	root := adoptionCheckFixture(t)
+	if err := os.Remove(filepath.Join(root, "xlib-standard.lock")); err != nil {
+		t.Fatalf("remove governance lock: %v", err)
+	}
+	var stdout, stderr bytes.Buffer
+
+	got := run([]string{"adoption-check", "--verify", "--root", root}, strings.NewReader(""), &stdout, &stderr)
+
+	if got != 1 {
+		t.Fatalf("adoption-check exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+	}
+	if !strings.Contains(stdout.String(), `"status": "failed"`) || !strings.Contains(stdout.String(), "missing xlib-standard.lock") {
+		t.Fatalf("stdout = %q; want failed missing lock report", stdout.String())
+	}
+	if !strings.Contains(stderr.String(), "adoption-check found") {
+		t.Fatalf("stderr = %q; want adoption gap summary", stderr.String())
+	}
+}
+
 func TestGoalCLISyncContractDocumentsRequiredSurfaces(t *testing.T) {
 	root := repoRoot(t)
 	files := map[string][]string{
@@ -1398,6 +1434,8 @@ func TestRunDoctorAllowsRenderedDownstreamWithoutSourceGoal(t *testing.T) {
 		".agent/registries/command-registry.yaml":         "commands: [version, doctor]\n",
 		".agent/registries/makefile-target-registry.yaml": "targets: []\n",
 		".agent/registries/makefile-baseline.yaml":        "targets: []\n",
+		".github/workflows/adoption-check.yml":            "name: adoption-check\non: [pull_request, workflow_dispatch]\njobs:\n  adoption-check:\n    steps:\n      - run: GOWORK=off make adoption-check\n",
+		"mk/governance.mk":                                ".PHONY: adoption-check\nadoption-check:\n\t$(GOALCLI) adoption-check --verify\n",
 		"docs/standard/goalcli-cli-contract.md":           "goalcli doctor\n",
 		"contracts/goalcli-report.schema.json":            "{\"type\":\"object\"}\n",
 		"Makefile":                                        "doctor:\n\tgo run ./cmd/goalcli doctor\n",
@@ -3087,6 +3125,31 @@ func writeTestFiles(t *testing.T, root string, files map[string]string) {
 			t.Fatalf("write %s: %v", path, err)
 		}
 	}
+}
+
+func adoptionCheckFixture(t *testing.T) string {
+	t.Helper()
+	root := t.TempDir()
+	writeTestFiles(t, root, map[string]string{
+		"xlib-standard.lock": "schema_version: \"1\"\n" +
+			"standard_version: \"v0.5.0\"\n" +
+			"standard_commit: \"abcdef1234567890\"\n" +
+			"module_name: \"kernel\"\n" +
+			"module_path: \"github.com/ZoneCNH/kernel\"\n" +
+			"package_name: \"kernel\"\n" +
+			"layer: \"L0\"\n" +
+			"adoption_check: \"GOWORK=off make adoption-check\"\n",
+		".githooks/pre-commit":                            "#!/bin/sh\n",
+		".githooks/pre-push":                              "#!/bin/sh\n",
+		".github/workflows/adoption-check.yml":            "name: adoption-check\non:\n  pull_request:\n  workflow_dispatch:\njobs:\n  adoption-check:\n    steps:\n      - run: GOWORK=off make adoption-check\n",
+		"mk/governance.mk":                                "$(GOALCLI) adoption-check --verify\nadoption-check:\n",
+		".agent/harness/harness.yaml":                     "required_gates:\n  - id: adoption_check\n    command: GOWORK=off make adoption-check\n",
+		".agent/registries/command-registry.yaml":         "commands:\n  - name: adoption-check\n",
+		".agent/registries/makefile-target-registry.yaml": "targets:\n  - adoption-check\n",
+		".agent/registries/makefile-baseline.yaml":        "baseline_targets:\n  adoption-check: $(GOALCLI) adoption-check --verify\n",
+		"Makefile": ".PHONY: adoption-check\nadoption-check:\n\t$(GOALCLI) adoption-check --verify\n",
+	})
+	return root
 }
 
 func commandRegistryFixture(extra string) string {

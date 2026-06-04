@@ -49,6 +49,18 @@ integration:
 docker-toolchain-check:
 	./scripts/docker/check_toolchain.sh
 
+.PHONY: docker-build
+docker-build:
+	$(DOCKER_GATE) build
+
+.PHONY: docker-build-check
+docker-build-check:
+	$(DOCKER_GATE) build-check
+
+.PHONY: docker-shell
+docker-shell:
+	$(DOCKER_GATE) shell
+
 .PHONY: docker-ci
 docker-ci:
 	$(DOCKER_GATE) ci
@@ -56,6 +68,34 @@ docker-ci:
 .PHONY: docker-release-check
 docker-release-check:
 	$(DOCKER_GATE) release-check
+
+.PHONY: docker-release-final-check
+docker-release-final-check:
+	$(DOCKER_GATE) release-final-check
+
+.PHONY: docker-goalcli
+docker-goalcli:
+	$(DOCKER_GATE) goalcli
+
+.PHONY: docker-goalcli-image
+docker-goalcli-image:
+	$(DOCKER_GATE) goalcli-image
+
+.PHONY: docker-goalcli-version
+docker-goalcli-version:
+	$(DOCKER_GATE) goalcli-version
+
+.PHONY: docker-runtime-check
+docker-runtime-check:
+	$(DOCKER_GATE) runtime-check
+
+.PHONY: docker-drift-check
+docker-drift-check:
+	./scripts/docker/check_toolchain.sh --drift
+
+.PHONY: docker-contract
+docker-contract:
+	$(DOCKER_GATE) contract
 
 .PHONY: dependency-check
 dependency-check:
@@ -117,6 +157,10 @@ downstream-debt:
 .PHONY: downstream-sync-plan
 downstream-sync-plan: standard-impact-check
 	$(GOALCLI) downstream-sync-plan
+
+.PHONY: adoption-check
+adoption-check: require-gowork-off
+	$(GOALCLI) adoption-check --verify
 
 debt:
 	$(GOALCLI) debt --config .agent/policies/debt/rules.yaml --exceptions .agent/policies/debt/exceptions.yaml --dependency-purpose .agent/policies/debt/dependency-purpose.yaml --mode enforce --min-score 9.8
