@@ -235,7 +235,11 @@ func TestRunDispatchesDownstreamSyncPlan(t *testing.T) {
 func localDownstreamSyncPlanTestDir(t *testing.T) string {
 	t.Helper()
 	name := strings.NewReplacer("/", "_", "\\", "_", " ", "_", ":", "_").Replace(t.Name())
-	dir := filepath.Join(".downstream-sync-plan-test", name)
+	parent := ".downstream-sync-plan-test"
+	if err := os.MkdirAll(parent, 0o755); err != nil {
+		t.Fatalf("create parent test dir %s: %v", parent, err)
+	}
+	dir := filepath.Join(parent, name)
 	if err := os.RemoveAll(dir); err != nil {
 		t.Fatalf("remove stale downstream sync plan test dir: %v", err)
 	}
@@ -243,10 +247,8 @@ func localDownstreamSyncPlanTestDir(t *testing.T) string {
 		t.Fatalf("create local test dir %s: %v", dir, err)
 	}
 	t.Cleanup(func() {
-		if err := os.RemoveAll(dir); err != nil {
-			t.Errorf("remove downstream sync plan test dir: %v", err)
-		}
-		_ = os.Remove(".downstream-sync-plan-test")
+		os.RemoveAll(dir)
+		_ = os.Remove(parent)
 	})
 	return dir
 }

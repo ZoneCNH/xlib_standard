@@ -382,12 +382,16 @@ func runCommandRegistry(args []string, stdout io.Writer, stderr io.Writer) int {
 	appendGeneratedArtifactsGaps(".agent/registries/generated-artifacts.yaml", ".agent/index.yaml", &gaps)
 	appendHarnessAliasGaps(".agent/harness/harness.yaml", &gaps)
 	appendHarnessGateLinkSemanticsGaps(".agent/harness/harness.yaml", &gaps)
+	appendHarnessDAGCycleGaps(".agent/harness/harness.yaml", &gaps)
 	appendRulesEnforcedByGaps(".agent/rules/registry.yaml", &gaps)
+	appendRegistryCrosscheckGaps(".agent/registries/command-registry.yaml", ".agent/registries/command-implementation-status.yaml", &gaps)
+	appendStatusNoOverclaimGaps(".agent/registries/command-implementation-status.yaml", &gaps)
+	appendExecutionContextCrosscheckGaps(".agent/policies/execution-context.yaml", &gaps)
 	if len(gaps) > 0 {
 		write(stderr, "ERROR: command-registry found %d gap(s)\n", len(gaps))
 		return emitReport(stdout, "command-registry", "failed", nil, gaps)
 	}
-	return emitReport(stdout, "command-registry", "passed", []string{"command registry entries are complete and unique", ".agent/index.yaml control-plane classification satisfied", ".agent generated-artifact and harness gate-link contracts satisfied"}, nil)
+	return emitReport(stdout, "command-registry", "passed", []string{"command registry entries are complete and unique", ".agent/index.yaml control-plane classification satisfied", ".agent generated-artifact and harness gate-link contracts satisfied", "registry↔status cross-check satisfied", "status-no-overclaim semantics valid", "execution-context policy consistent", "required_gates DAG acyclic"}, nil)
 }
 
 func runMakefileBaseline(args []string, stdout io.Writer, stderr io.Writer) int {
@@ -1989,6 +1993,135 @@ func appendHarnessGateLinkSemanticsGaps(path string, gaps *[]string) {
 	}
 }
 
+func appendRegistryCrosscheckGaps(registryPath string, statusPath string, gaps *[]string) {
+	registryCommands, err := yamlListScalarValues(registryPath, "name")
+	if err != nil {
+		*gaps = append(*gaps, "missing "+registryPath)
+		return
+	}
+	statusContent, err := os.ReadFile(statusPath)
+	if err != nil {
+		*gaps = append(*gaps, "missing "+statusPath)
+		return
+	}
+	groups := parseYAMLSequenceBlocks(string(statusContent), "groups", "id")
+	statusCommands := map[string]bool{}
+	for _, group := range groups {
+		for _, cmd := range blockYAMLListValues(group.block, "commands") {
+			statusCommands[cmd] = true
+		}
+	}
+	for _, cmd := range registryCommands {
+		if !statusCommands[cmd] {
+			*gaps = append(*gaps, statusPath+" missing status entry for command "+cmd)
+		}
+	}
+}
+
+func appendStatusNoOverclaimGaps(statusPath string, gaps *[]string) {
+	content, err := os.ReadFile(statusPath)
+	if err != nil {
+		return
+	}
+	groups := parseYAMLSequenceBlocks(string(content), "groups", "id")
+	for _, group := range groups {
+		implStatus, _ := blockYAMLValue(group.block, "implementation_status")
+		execStatus, _ := blockYAMLValue(group.block, "execution_status")
+		releaseUsable, _ := blockYAMLValue(group.block, "release_usable")
+		if releaseUsable == "true" {
+			if implStatus != "implemented" {
+				*gaps = append(*gaps, statusPath+" group "+group.value+" release_usable=true requires implementation_status=implemented; got "+implStatus)
+			}
+			if execStatus != "passed" {
+				*gaps = append(*gaps, statusPath+" group "+group.value+" release_usable=true requires execution_status=passed; got "+execStatus)
+			}
+		}
+		if implStatus == "dry_run_ready" && releaseUsable == "true" {
+			*gaps = append(*gaps, statusPath+" group "+group.value+" dry_run_ready must not set release_usable=true")
+		}
+	}
+}
+
+func appendExecutionContextCrosscheckGaps(policyPath string, gaps *[]string) {
+	content, err := os.ReadFile(policyPath)
+	if err != nil {
+		*gaps = append(*gaps, "missing "+policyPath)
+		return
+	}
+	text := string(content)
+	required := []string{"schema_version:", "contexts:", "local_write:", "local_readonly:", "ci_pull_request:", "ci_main_verify:", "release_verify:"}
+	for _, needle := range required {
+		if !strings.Contains(text, needle) {
+			*gaps = append(*gaps, policyPath+" missing "+needle)
+		}
+	}
+}
+
+func appendHarnessDAGCycleGaps(path string, gaps *[]string) {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return
+	}
+	text := string(content)
+	entries := parseYAMLSequenceBlocks(text, "required_gates", "id")
+	if len(entries) == 0 {
+		return
+	}
+	byID := map[string]bool{}
+	edges := map[string][]string{}
+	for _, entry := range entries {
+		byID[entry.value] = true
+		refsVal, ok := blockYAMLValue(entry.block, "refs")
+		if !ok || refsVal == "" {
+			continue
+		}
+		refsVal = strings.Trim(refsVal, "[]")
+		for _, ref := range strings.Split(refsVal, ",") {
+			ref = strings.TrimSpace(ref)
+			if ref != "" {
+				edges[entry.value] = append(edges[entry.value], ref)
+			}
+		}
+	}
+	const (
+		white = 0
+		gray  = 1
+		black = 2
+	)
+	color := map[string]int{}
+	var dfs func(node string, trace []string)
+	dfs = func(node string, trace []string) {
+		if color[node] == gray {
+			cycleStart := -1
+			for i, p := range trace {
+				if p == node {
+					cycleStart = i
+					break
+				}
+			}
+			if cycleStart >= 0 {
+				cycle := append(trace[cycleStart:], node)
+				*gaps = append(*gaps, fmt.Sprintf("%s required_gates DAG cycle: %s", path, strings.Join(cycle, " → ")))
+			}
+			return
+		}
+		if color[node] == black {
+			return
+		}
+		color[node] = gray
+		trace = append(trace, node)
+		for _, next := range edges[node] {
+			dfs(next, trace)
+		}
+		color[node] = black
+	}
+	for id := range byID {
+		if color[id] == white {
+			dfs(id, nil)
+		}
+	}
+}
+
 func scalarSet(values ...string) map[string]bool {
 	set := make(map[string]bool, len(values))
 	for _, value := range values {
@@ -2271,6 +2404,28 @@ func blockHasYAMLListItem(block string, key string) bool {
 		}
 	}
 	return false
+}
+
+func blockYAMLListValues(block string, key string) []string {
+	lines := strings.Split(block, "\n")
+	inList := false
+	prefix := key + ":"
+	var values []string
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if !inList {
+			if strings.HasPrefix(trimmed, prefix) {
+				inList = true
+			}
+			continue
+		}
+		if strings.HasPrefix(trimmed, "- ") {
+			values = append(values, trimYAMLScalar(strings.TrimPrefix(trimmed, "- ")))
+		} else if trimmed != "" && !strings.HasPrefix(trimmed, "#") {
+			break
+		}
+	}
+	return values
 }
 
 func trimYAMLScalar(value string) string {
