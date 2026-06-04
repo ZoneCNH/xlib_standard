@@ -42,7 +42,9 @@ build_target() {
   local tag="$2"
   require_docker
   local build_context_args=()
-  if [[ -d "$repo_root/.cache/docker-tools" ]]; then
+  if [[ -d "$repo_root/.cache/docker-tools" ]] \
+    && [[ -f "$repo_root/.cache/docker-tools/usr/local/bin/golangci-lint" ]] \
+    && [[ -f "$repo_root/.cache/docker-tools/usr/local/bin/govulncheck" ]]; then
     build_context_args+=(--build-context "tools=$repo_root/.cache/docker-tools")
   fi
 
