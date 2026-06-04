@@ -246,7 +246,6 @@ func localDownstreamSyncPlanTestDir(t *testing.T) string {
 		if err := os.RemoveAll(dir); err != nil {
 			t.Errorf("remove downstream sync plan test dir: %v", err)
 		}
-		_ = os.Remove(".downstream-sync-plan-test")
 	})
 	return dir
 }

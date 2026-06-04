@@ -37,6 +37,6 @@ Required Gates 是 `xlib-standard` 和所有生成基础库的强制基线。Ext
 
 ## Goal v2.9.3 Governance Gates
 
-- P0 Governance Gate：`XLIB_CONTEXT=local_write GOWORK=off make governance-check`，串联 `main-guard`、`worktree-guard`、`evidence-check`、`boundary`、`security`、`cli-contract`、`issue-registry`、`command-registry` 和 `makefile-baseline`。
-- P1 Governance Dry Run：`GOWORK=off make p1-governance-check`，只做本地文档/registry/schema 证明，不读取 GitHub secrets，不写外部路径。
-- P2 Runtime Dry Run：`GOWORK=off make p2-runtime-check`，验证 conformance profile、pack contract、downstream patch-only、runtime-file-ownership 和 execution-context 文档契约。
+- P0 Governance Gate：`XLIB_CONTEXT=local_write GOWORK=off make governance-check`，串联 `main-guard`、`worktree-guard`、`evidence-check`、`boundary`、`architecture`、`domain`、`security`、`security-debt`、`contracts`、`docs-check`、`cli-contract`、`issue-registry`、`command-registry`、`makefile-baseline`、`audit-goal`、`rules-consistency-check`、`debt` 和 `traceability-check`。
+- P1 Governance Dry Run：`GOWORK=off make p1-governance-check`，验证 `agent-team-contract`、`scope-lock`、`pr-template`、`acceptance-matrix`、`runtime-health`、`upgrade-standard`、`conformance-profile`、`downstream-registry`、`self-healing-skeleton`、`goal-runtime`、`github-governance`、`supply-chain`、`changelog`、`governance-fixture-test`、`autoresearch`、`policy-schema`、`github-settings`、`toolchain`、`evidence-artifacts` 和 `naming` 的本地 dry-run 契约；不读取 GitHub secrets，不写外部路径。
+- P2 Runtime Dry Run：`GOWORK=off make p2-runtime-check`，验证 `install-runtime`、`upgrade-runtime`、`release-ready`、`evidence-replay`、`attest-conformance`、`pack-standard`、`pack-gate`、`pack-evidence`、`downstream-baseline`、`downstream-adoption`、`runtime-file-ownership` 和 `execution-context` 的本地 dry-run 契约。

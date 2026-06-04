@@ -72,7 +72,11 @@ require_goalcli_sync_contract() {
   require_text "cmd/goalcli/main.go" "execution-context"
 
   require_text "cmd/goalcli/main_test.go" "TestUsageDocumentsCommandRegistryRequiredCommands"
+  require_text "cmd/goalcli/main_test.go" "TestCommandRegistryRequiredCommandsMatchRegistryFile"
+  require_text "cmd/goalcli/main_test.go" "TestCommandRegistryCommandsStayDocumentedInUsage"
+  require_text "cmd/goalcli/main_test.go" "TestCommandImplementationStatusCommandsStayRegistered"
   require_text "cmd/goalcli/main_test.go" "commandRegistryRequiredCommands"
+  require_text "cmd/goalcli/main_test.go" "implementationStatusCommandsFromText"
   require_text "cmd/goalcli/main_test.go" "usage missing command"
   require_text "cmd/goalcli/main_test.go" "Makefile must define GOALCLI as the cmd/goalcli execution surface"
   require_text "cmd/goalcli/main_test.go" ".agent/registries/command-registry.yaml missing name: execution-context"
