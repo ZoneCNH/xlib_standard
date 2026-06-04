@@ -91,7 +91,7 @@ run_make() {
     --volume go-mod-cache:/go/pkg/mod \
     --env "CI=1" \
     --env "GOWORK=${GOWORK:-off}" \
-    --env "XLIB_CONTEXT=${XLIB_CONTEXT:-docker_toolchain}" \
+    --env "XLIB_CONTEXT=${XLIB_CONTEXT:-ci_pull_request}" \
     --env "VERSION=${VERSION:-}" \
     --env "DOWNSTREAM=${DOWNSTREAM:-}" \
     --env "XLIB_ENABLE_VULNCHECK=${XLIB_ENABLE_VULNCHECK:-}" \
@@ -118,7 +118,7 @@ run_shell() {
     --volume go-build-cache:/home/xlib/.cache/go-build \
     --volume go-mod-cache:/go/pkg/mod \
     --env "GOWORK=${GOWORK:-off}" \
-    --env "XLIB_CONTEXT=${XLIB_CONTEXT:-docker_toolchain}" \
+    --env "XLIB_CONTEXT=${XLIB_CONTEXT:-ci_pull_request}" \
     --env "VERSION=${VERSION:-}" \
     --env "DOWNSTREAM=${DOWNSTREAM:-}" \
     --env "XLIB_ENABLE_VULNCHECK=${XLIB_ENABLE_VULNCHECK:-}" \
