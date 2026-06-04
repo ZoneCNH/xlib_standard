@@ -10,7 +10,6 @@ import (
 )
 
 func TestRunDownstreamSyncPlanWritesRequiredPlan(t *testing.T) {
-	t.Parallel()
 	internalTestingBypassAbsolute = true
 	t.Cleanup(func() { internalTestingBypassAbsolute = false })
 
@@ -62,7 +61,6 @@ func TestRunDownstreamSyncPlanWritesRequiredPlan(t *testing.T) {
 }
 
 func TestRunDownstreamSyncPlanWritesNotRequiredPlan(t *testing.T) {
-	t.Parallel()
 	internalTestingBypassAbsolute = true
 	t.Cleanup(func() { internalTestingBypassAbsolute = false })
 
@@ -179,7 +177,6 @@ func TestRunDownstreamSyncPlanRendersMarkdownToStdout(t *testing.T) {
 }
 
 func TestRunDownstreamSyncPlanRejectsUnsafeOutputPaths(t *testing.T) {
-	t.Parallel()
 	dir := t.TempDir()
 	impactReport := filepath.Join(dir, "impact.md")
 	if err := os.WriteFile(impactReport, []byte(requiredDownstreamImpactReportFixture()), 0o644); err != nil {
@@ -229,7 +226,6 @@ func TestRunDownstreamSyncPlanRejectsUnsafeOutputPaths(t *testing.T) {
 }
 
 func TestRunDispatchesDownstreamSyncPlan(t *testing.T) {
-	t.Parallel()
 	internalTestingBypassAbsolute = true
 	t.Cleanup(func() { internalTestingBypassAbsolute = false })
 

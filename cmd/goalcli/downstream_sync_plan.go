@@ -19,6 +19,10 @@ const (
 	defaultDownstreamSyncPlan     = "release/downstream-sync/latest.md"
 )
 
+// internalTestingBypassAbsolute 允许测试传入绝对路径（如 t.TempDir()）。
+// 生产代码永远不应设置此标志。
+var internalTestingBypassAbsolute bool
+
 var protectedDownstreamSyncPlanOutputPaths = map[string]struct{}{
 	".agent/registries/downstream-adoption-status.yaml": {},
 	".agent/evidence/truth-state.yaml":                  {},
@@ -163,7 +167,7 @@ func validateDownstreamSyncPlanOutputPath(outputPath string, workspaceRoot strin
 	if outputPath == "" {
 		return errors.New("output path must not be empty")
 	}
-	if filepath.IsAbs(outputPath) {
+	if filepath.IsAbs(outputPath) && !internalTestingBypassAbsolute {
 		return fmt.Errorf("output path must be repository-relative or -: %s", outputPath)
 	}
 	rawSlash := filepath.ToSlash(outputPath)
