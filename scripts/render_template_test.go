@@ -134,6 +134,7 @@ func TestRenderTemplateIncludesDockerContract(t *testing.T) {
 	for _, required := range []string{
 		"GOLANGCI_LINT_VERSION",
 		"GOVULNCHECK_VERSION",
+		"python3-yaml",
 		"github.com/golangci/golangci-lint/v2/cmd/golangci-lint",
 		"golang.org/x/vuln/cmd/govulncheck",
 		"safe.directory /workspace",

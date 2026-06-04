@@ -23,6 +23,7 @@ RUN apt-get update \
       git \
       jq \
       make \
+      python3-yaml \
     && git config --global --add safe.directory /workspace \
     && rm -rf /var/lib/apt/lists/*
 
