@@ -10,8 +10,8 @@ import (
 )
 
 func TestRunDownstreamSyncPlanWritesRequiredPlan(t *testing.T) {
-	t.Parallel()
 	dir := localDownstreamSyncPlanTestDir(t)
+	chdir(t, repoRoot(t))
 	impactReport := filepath.Join(dir, "impact.md")
 	outputRel := relativeFromRepoRoot(t, filepath.Join(dir, "release", "downstream-sync", "latest.md"))
 	workspaceRoot := filepath.Join(dir, "workspace")
@@ -57,8 +57,8 @@ func TestRunDownstreamSyncPlanWritesRequiredPlan(t *testing.T) {
 }
 
 func TestRunDownstreamSyncPlanWritesNotRequiredPlan(t *testing.T) {
-	t.Parallel()
 	dir := localDownstreamSyncPlanTestDir(t)
+	chdir(t, repoRoot(t))
 	impactReport := filepath.Join(dir, "impact.md")
 	outputRel := relativeFromRepoRoot(t, filepath.Join(dir, "latest.md"))
 	if err := os.WriteFile(impactReport, []byte(notRequiredDownstreamImpactReportFixture()), 0o644); err != nil {
@@ -216,8 +216,8 @@ func TestRunDownstreamSyncPlanRejectsUnsafeOutputPaths(t *testing.T) {
 }
 
 func TestRunDispatchesDownstreamSyncPlan(t *testing.T) {
-	t.Parallel()
 	dir := localDownstreamSyncPlanTestDir(t)
+	chdir(t, repoRoot(t))
 	impactReport := filepath.Join(dir, "impact.md")
 	outputRel := relativeFromRepoRoot(t, filepath.Join(dir, "latest.md"))
 	if err := os.WriteFile(impactReport, []byte(requiredDownstreamImpactReportFixture()), 0o644); err != nil {
@@ -235,19 +235,17 @@ func TestRunDispatchesDownstreamSyncPlan(t *testing.T) {
 	}
 }
 
-// localDownstreamSyncPlanTestDir 返回基于 repo root 的绝对路径，
-// 避免并行测试中 chdir 导致相对路径解析失败。
+// localDownstreamSyncPlanTestDir 返回基于 repo root 的唯一绝对路径，
+// 避免并行测试中共享父目录冲突和 chdir 导致相对路径解析失败。
 func localDownstreamSyncPlanTestDir(t *testing.T) string {
 	t.Helper()
 	root := repoRoot(t)
-	name := strings.NewReplacer("/", "_", "\\", "_", " ", "_", ":", "_").Replace(t.Name())
-	dir := filepath.Join(root, ".downstream-sync-plan-test", name)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		t.Fatalf("create test dir %s: %v", dir, err)
+	dir, err := os.MkdirTemp(root, ".downstream-sync-plan-test-")
+	if err != nil {
+		t.Fatalf("create test dir: %v", err)
 	}
 	t.Cleanup(func() {
 		_ = os.RemoveAll(dir)
-		_ = os.Remove(filepath.Dir(dir))
 	})
 	return dir
 }
