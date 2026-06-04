@@ -1222,9 +1222,12 @@ func validatePlannedCommandFile(command string, path string, content []byte) []s
 
 func releaseReadyDecisionDetails(args []string, fileContents map[string]string, gaps *[]string) []string {
 	context := fallback(flagValue(args, "context", ""), "release_verify")
-	requireReadiness := plannedCommandVerifyRequested(args)
+	verifyRequested := plannedCommandVerifyRequested(args)
+	dryRunRequested := flagProvided(args, "dry-run")
+	requireContract := verifyRequested
+	requireReadiness := verifyRequested && !dryRunRequested
 	details := []string{"context=" + context}
-	if requireReadiness && context != "release_verify" {
+	if requireContract && context != "release_verify" {
 		*gaps = append(*gaps, "release-ready requires context release_verify; got "+context)
 	}
 
@@ -1238,7 +1241,7 @@ func releaseReadyDecisionDetails(args []string, fileContents map[string]string, 
 	verdict := "ready"
 	if requiredGates == 0 {
 		verdict = "gap"
-		if requireReadiness {
+		if requireContract {
 			*gaps = append(*gaps, ".agent/release-required-gates.yaml gates must include required release gates")
 		}
 	} else if blockedGates > 0 {
@@ -1249,15 +1252,20 @@ func releaseReadyDecisionDetails(args []string, fileContents map[string]string, 
 	}
 
 	evidenceFields := countYAMLListItems(fileContents[".agent/release-required-gates.yaml"], "required_release_evidence")
-	if requireReadiness && evidenceFields == 0 {
+	if requireContract && evidenceFields == 0 {
 		*gaps = append(*gaps, ".agent/release-required-gates.yaml missing required_release_evidence items")
 	}
 	replayReady := strings.Contains(fileContents[".agent/evidence-replay.yaml"], "replay:") && strings.Contains(fileContents[".agent/evidence-replay.yaml"], "strict: true")
-	if requireReadiness && !replayReady {
+	if requireContract && !replayReady {
 		*gaps = append(*gaps, ".agent/evidence-replay.yaml replay must be strict")
 	}
 
+	mode := "readiness_gate"
+	if dryRunRequested {
+		mode = "dry_run_contract"
+	}
 	details = append(details,
+		"mode="+mode,
 		"verdict="+verdict,
 		fmt.Sprintf("score=%d/100", score),
 		fmt.Sprintf("required_gates=%d", requiredGates),
