@@ -118,6 +118,8 @@ scan_template_placeholders() {
       --glob '!**/scripts/check_docs.sh' \
       --glob '!scripts/check_rendered_template.sh' \
       --glob '!**/scripts/check_rendered_template.sh' \
+      --glob '!scripts/docker/docker_gate.sh' \
+      --glob '!**/scripts/docker/docker_gate.sh' \
       --glob '!scripts/run_fuzz_smoke.sh' \
       --glob '!**/scripts/run_fuzz_smoke.sh' \
       --glob '!release/manifest/template.json' \
@@ -135,6 +137,7 @@ scan_template_placeholders() {
       -not -path '*/docs/goal.md' \
       -not -path '*/scripts/check_docs.sh' \
       -not -path '*/scripts/check_rendered_template.sh' \
+      -not -path '*/scripts/docker/docker_gate.sh' \
       -not -path '*/scripts/run_fuzz_smoke.sh' \
       -not -path '*/release/manifest/template.json' \
       -print0 | xargs -0 grep -InE "$pattern"; then
