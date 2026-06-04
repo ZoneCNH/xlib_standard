@@ -15,6 +15,9 @@ func TestRunDownstreamSyncPlanWritesRequiredPlan(t *testing.T) {
 	impactReport := filepath.Join(dir, "impact.md")
 	output := filepath.Join(dir, "release", "downstream-sync", "latest.md")
 	workspaceRoot := filepath.Join(dir, "workspace")
+	if err := os.MkdirAll(filepath.Dir(output), 0o755); err != nil {
+		t.Fatalf("create output dir: %v", err)
+	}
 	if err := os.WriteFile(impactReport, []byte(requiredDownstreamImpactReportFixture()), 0o644); err != nil {
 		t.Fatalf("write impact report fixture: %v", err)
 	}
@@ -133,6 +136,39 @@ func TestRunDownstreamSyncPlanRendersJSONToStdout(t *testing.T) {
 	}
 	if plan.ConsumerReview.Name != "x.go" {
 		t.Fatalf("ConsumerReview.Name=%q, want x.go", plan.ConsumerReview.Name)
+	}
+}
+
+func TestRunDownstreamSyncPlanRendersMarkdownToStdout(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	impactReport := filepath.Join(dir, "impact.md")
+	if err := os.WriteFile(impactReport, []byte(requiredDownstreamImpactReportFixture()), 0o644); err != nil {
+		t.Fatalf("write impact report fixture: %v", err)
+	}
+
+	var stdout, stderr bytes.Buffer
+	code := runDownstreamSyncPlan([]string{
+		"--impact-report", impactReport,
+		"--output", "-",
+	}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("runDownstreamSyncPlan returned %d; stderr=%s stdout=%s", code, stderr.String(), stdout.String())
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("stderr = %q, want empty", stderr.String())
+	}
+	for _, want := range []string{
+		"# Downstream Sync Plan",
+		"downstream_sync_required: `true`",
+		"| `kernel` | `L0` | `P0` | `primary_sync_required` | `blocked_pending_downstream_workspace` |",
+	} {
+		if !strings.Contains(stdout.String(), want) {
+			t.Fatalf("stdout missing %q:\n%s", want, stdout.String())
+		}
+	}
+	if strings.Contains(stdout.String(), `"status": "passed"`) {
+		t.Fatalf("markdown stdout must not be replaced by status report:\n%s", stdout.String())
 	}
 }
 
