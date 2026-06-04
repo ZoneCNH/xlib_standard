@@ -42,6 +42,7 @@ jobs:
 
       - name: Docker release gate
         env:
+          XLIB_CONTEXT: release_verify
           VERSION: docker-contract-${{ github.run_id }}
         run: make docker-release-check
 

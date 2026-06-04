@@ -59,7 +59,7 @@ for required_path in "${required_paths[@]}"; do
 done
 
 for required_target in docker-toolchain-check docker-ci docker-release-check; do
-  if ! grep -Eq "^\.PHONY:.*(^| )${required_target}( |$)|^${required_target}:" "$repo_dir/Makefile"; then
+  if ! grep -Eq "^\\.PHONY:.*[[:space:]]${required_target}([[:space:]]|$)|^${required_target}:" "$repo_dir/Makefile"; then
     echo "ERROR: rendered Makefile missing Docker contract target: $required_target" >&2
     exit 1
   fi
