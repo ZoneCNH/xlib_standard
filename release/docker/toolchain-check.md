@@ -3,7 +3,7 @@
 - status: passed
 - mode: static
 - context: unset
-- gowork: off
+- gowork: unset
 - docker_cli: Docker version 29.5.0, build 98f1464
 - docker_daemon: available
 - docker_buildx: github.com/docker/buildx v0.34.0 3e73561e39785683b31b05eeab1ef645be44ca42
@@ -20,6 +20,7 @@
 - passed file:.devcontainer/devcontainer.json: .devcontainer/devcontainer.json exists
 - passed file:scripts/docker/check_toolchain.sh: scripts/docker/check_toolchain.sh exists
 - passed file:scripts/docker/docker_gate.sh: scripts/docker/docker_gate.sh exists
+- passed file:scripts/docker/prefetch_tools.sh: scripts/docker/prefetch_tools.sh exists
 - passed file:.github/workflows/docker-contract.yml: .github/workflows/docker-contract.yml exists
 - passed file:contracts/docker-toolchain.schema.json: contracts/docker-toolchain.schema.json exists
 - passed file:docs/standard/docker-toolchain-standard.md: docs/standard/docker-toolchain-standard.md exists
@@ -41,6 +42,7 @@
 - passed dockerfile:--mount=type=cache,target=/root/.cache/go-build: Dockerfile contains --mount=type=cache,target=/root/.cache/go-build
 - passed dockerfile:golangci-lint: Dockerfile contains golangci-lint
 - passed dockerfile:govulncheck: Dockerfile contains govulncheck
+- passed dockerfile:COPY --from=tools: Dockerfile contains COPY --from=tools
 - passed dockerfile:FROM scratch AS goalcli-runtime: Dockerfile contains FROM scratch AS goalcli-runtime
 - passed dockerfile:ENTRYPOINT ["/goalcli"]: Dockerfile contains ENTRYPOINT ["/goalcli"]
 - passed dockerfile:no-distroless-runtime: Dockerfile does not contain gcr.io/distroless
@@ -101,6 +103,8 @@
 - passed docker-gate:DOCKER_RUNTIME_IMAGE: scripts/docker/docker_gate.sh contains DOCKER_RUNTIME_IMAGE
 - passed docker-gate:DOCKER_RUNTIME_IMAGE_DIGEST: scripts/docker/docker_gate.sh contains DOCKER_RUNTIME_IMAGE_DIGEST
 - passed docker-gate:release-final-check: scripts/docker/docker_gate.sh contains release-final-check
+- passed docker-gate:build-context: scripts/docker/docker_gate.sh contains build-context
+- passed docker-gate:docker inspect: scripts/docker/docker_gate.sh contains docker inspect
 - passed workflow:docker/setup-buildx-action: .github/workflows/docker-contract.yml contains docker/setup-buildx-action
 - passed workflow:make docker-build-check: .github/workflows/docker-contract.yml contains make docker-build-check
 - passed workflow:make docker-drift-check: .github/workflows/docker-contract.yml contains make docker-drift-check

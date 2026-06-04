@@ -200,6 +200,7 @@ for file in \
   ".devcontainer/devcontainer.json" \
   "scripts/docker/check_toolchain.sh" \
   "scripts/docker/docker_gate.sh" \
+  "scripts/docker/prefetch_tools.sh" \
   ".github/workflows/docker-contract.yml" \
   "contracts/docker-toolchain.schema.json" \
   "docs/standard/docker-toolchain-standard.md" \
@@ -225,6 +226,7 @@ for text in \
   "--mount=type=cache,target=/root/.cache/go-build" \
   "golangci-lint" \
   "govulncheck" \
+  "COPY --from=tools" \
   "FROM scratch AS goalcli-runtime" \
   "ENTRYPOINT [\"/goalcli\"]"; do
   check_contains "Dockerfile" "$text" "dockerfile:$text"
@@ -278,7 +280,9 @@ for text in \
   "DOCKER_TOOLCHAIN_IMAGE_DIGEST" \
   "DOCKER_RUNTIME_IMAGE" \
   "DOCKER_RUNTIME_IMAGE_DIGEST" \
-  "release-final-check"; do
+  "release-final-check" \
+  "build-context" \
+  "docker inspect"; do
   check_contains "scripts/docker/docker_gate.sh" "$text" "docker-gate:$text"
 done
 

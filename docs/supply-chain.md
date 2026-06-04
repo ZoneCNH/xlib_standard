@@ -46,7 +46,7 @@ Release manifest 相关测试必须在临时 fixture 仓库内构造所需 `.omc
 
 ## 下游模板安全线
 
-`make integration` 会渲染 `kernel` 和 `corekit` 两个临时下游库，检查旧模板标识是否清空，并在下游库内生成、校验 release Evidence。这保证模板替换逻辑、contract gate、boundary gate 和 Evidence 工具不会只在模板仓库自身成立。旧 `foundationx` 只作为迁移兼容扫描项，不再作为默认下游。
+`make integration` 会渲染 `kernel`、`configx` 和 `redisx` 三个临时下游库，检查旧模板标识是否清空，并在下游库内运行 Docker toolchain、test、contracts、boundary、standard impact、debt 和 release Evidence 校验。这保证模板替换逻辑、contract gate、boundary gate、债务证据和 Evidence 工具不会只在模板仓库自身成立。旧 `foundationx` 只作为迁移兼容扫描项，不再作为默认下游。
 
 ## Score 与 Workflow Evidence
 

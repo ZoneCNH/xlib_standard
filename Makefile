@@ -46,12 +46,17 @@ lint:
 integration:
 	$(GOALCLI) integration
 
+# ── Docker 预下载工具到本地缓存 ──────────────────────────────
+.PHONY: docker-prefetch
+docker-prefetch:
+	./scripts/docker/prefetch_tools.sh
+
 .PHONY: docker-toolchain-check
-docker-toolchain-check:
+docker-toolchain-check: docker-prefetch
 	$(GOALCLI) docker-toolchain-check
 
 .PHONY: docker-build
-docker-build:
+docker-build: docker-prefetch
 	$(GOALCLI) docker-build
 
 .PHONY: docker-build-check

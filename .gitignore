@@ -80,6 +80,9 @@ override.tf.json
 .omc/
 .omx/
 .worktree/
+
+# Docker tool prefetch cache
+.cache/
 .claude/settings.local.json
 
 # env file

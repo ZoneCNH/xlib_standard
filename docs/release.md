@@ -139,12 +139,18 @@ Extended Evidence 推荐额外记录：
 
 `source_digest` 基于 `git ls-files` 中的受跟踪文件内容计算；`contracts` 固定记录核心 contract 文件的 SHA256；`dependencies` 来自 `go list -m -json all`；`tools` 记录 Go、`golangci-lint` 和按 `XLIB_ENABLE_VULNCHECK` 启用状态记录的 `govulncheck` 版本或可用状态。这些字段由 `internal/tools/releasemanifest` 生成并校验，不再由 shell 拼接 JSON。
 
-`make integration` 会通过 `cmd/goalcli integration` 调用 `scripts/render_template.sh`，生成临时 `kernel` 和 `corekit` 两个下游库，并对每个生成目录执行：
+`make integration` 会通过 `cmd/goalcli integration` 调用 `scripts/render_template.sh`，生成临时 `kernel`、`configx` 和 `redisx` 三个下游库，并对每个生成目录执行：
 
 - 模块路径、包目录和旧模板标识扫描。
+- `GOWORK=off go mod tidy` 并检查 `go.mod` / `go.sum` clean。
+- `GOWORK=off make docker-toolchain-check`。
 - `GOWORK=off go test ./...`
 - `GOWORK=off make contracts`
 - `GOWORK=off make boundary`
+- `GOWORK=off make standard-impact-check`
+- `GOWORK=off make debt`
+- `GOWORK=off make debt-evidence`
+- `GOWORK=off make debt-evidence-checksum-check`
 - `CHECK_STATUS=passed GOWORK=off make evidence`
 - `RELEASE_EVIDENCE_REQUIRE_PASSED=1 GOWORK=off make release-evidence-check`
 
