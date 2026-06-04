@@ -65,3 +65,7 @@ GOWORK=off make release-final-check
 ## 边界
 
 生成后的基础库仍必须保持独立，不能依赖 `github.com/bytechainx/x.go`、`github.com/ZoneCNH/x.go` 或任何 `x.go/internal/*` 包；标准规则继续引用独立仓库 [`xlib-standard`](https://github.com/ZoneCNH/xlib-standard)。
+
+## Docker Toolchain Runtime 模板继承
+
+生成后的下游库必须继承 Docker Toolchain Runtime contract：`Dockerfile`、`docker-compose.yml`、`.dockerignore`、`.devcontainer/devcontainer.json`、`scripts/docker/check_toolchain.sh`、`scripts/docker/docker_gate.sh` 以及 `make docker-toolchain-check`、`make docker-ci`、`make docker-release-check`。`scripts/check_rendered_template.sh` 会扫描这些文件和 targets，防止下游 Docker contract 漂移。

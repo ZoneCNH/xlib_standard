@@ -171,3 +171,14 @@ go run ./cmd/goalcli score --min 9.8
 ## Debt evidence
 
 Release checks generate debt evidence with `make debt-evidence` before manifest generation. `release-final-check` enforces `goalcli debt --mode enforce --min-score 9.8` and release evidence verification validates the manifest `debt` block. Generated `release/debt/*` artifacts are not committed.
+
+## Docker Toolchain Runtime 发布验证
+
+发布验证可以使用 Docker Toolchain Runtime 复现工具链，但 Docker 不是第二套 gate。发布语境必须保留：
+
+```bash
+XLIB_CONTEXT=release_verify GOWORK=off make docker-release-check
+XLIB_CONTEXT=release_verify GOWORK=off make release-final-check
+```
+
+`.git` 必须被 `.dockerignore` 排除在 image build context 外；release/evidence 命令可以通过 bind-mounted 工作区读取 Git metadata，用于 manifest、commit、tree SHA、score 和 workflow Evidence。`release/docker/toolchain-check.md` 与 release manifest artifact 是审计锚点，不应提交为源码文件。

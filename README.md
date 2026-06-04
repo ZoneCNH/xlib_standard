@@ -118,3 +118,15 @@ Full Goal Runtime v3.1 位于 [.agent](.agent/)，其中 [goal-runtime](.agent/r
 `go test ./...` 必须覆盖公共包、`internal/`、`contracts/`、`testkit/` 和 `examples/`。当前示例 smoke 测试会验证 `examples/basic` 输出模块名、`examples/config` 输出脱敏值、`examples/health` 输出健康状态，防止文档示例和模板行为漂移。
 
 `scripts/run_fuzz_smoke.sh` 默认执行快速 fuzz smoke，`FUZZ_SMOKE_TIME` 未设置时每个 fuzz target 使用 `10s`。需要深度 fuzz 时显式设置更长时间，例如 `FUZZ_SMOKE_TIME=2m make fuzz-smoke`，并在最终 Evidence/DONE 说明中记录该时间配置。
+
+## Docker Toolchain Runtime
+
+[Docker Toolchain Runtime](docs/standard/docker-toolchain-standard.md) 是工具链运行时，不是第二套 gate。它定义 `.dockerignore` / `.git` build context 边界、BuildKit/cache/volume、环境变量 pass-through（`XLIB_CONTEXT`、`GOWORK`、`VERSION`、`DOWNSTREAM`、`XLIB_ENABLE_VULNCHECK`）和下游模板继承规则。
+
+```bash
+GOWORK=off make docker-toolchain-check
+GOWORK=off make docker-ci
+XLIB_CONTEXT=release_verify GOWORK=off make docker-release-check
+```
+
+`docker-ci` 只在容器运行时中调用既有 `make ci`；`docker-release-check` 只在容器运行时中调用既有 `make release-check`。发布、Harness、CI 和 downstream verification 仍必须使用 `GOWORK=off`。
