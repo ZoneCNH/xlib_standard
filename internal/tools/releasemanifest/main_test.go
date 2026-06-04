@@ -156,6 +156,17 @@ func TestRunCLIGeneratesManifestToOut(t *testing.T) {
 	if manifest.Workflow.WorkflowRunID == "" || manifest.Workflow.ArtifactName == "" || manifest.Workflow.ArtifactURL == "" {
 		t.Fatalf("workflow evidence is incomplete: %+v", manifest.Workflow)
 	}
+	if manifest.Docker.Enabled {
+		t.Fatalf("docker.enabled = true, want default local evidence disabled")
+	}
+	if manifest.Docker.ContractVersion == "" || manifest.Docker.GoVersion == "" || manifest.Docker.GolangCILintVersion == "" || manifest.Docker.GovulncheckVersion == "" {
+		t.Fatalf("docker toolchain version evidence is incomplete: %+v", manifest.Docker)
+	}
+	for _, validator := range []string{"docker-toolchain-check", "docker-ci", "docker-release-check"} {
+		if !contains(manifest.Docker.ValidatedBy, validator) {
+			t.Fatalf("docker.validated_by = %v, want %s", manifest.Docker.ValidatedBy, validator)
+		}
+	}
 	if manifest.Score.Threshold != 9.8 || manifest.Score.Status == "" || len(manifest.Score.Dimensions) == 0 {
 		t.Fatalf("score report is incomplete: %+v", manifest.Score)
 	}
@@ -310,6 +321,86 @@ func TestBuildWorkflowEvidencePrefersExplicitEnvironment(t *testing.T) {
 
 	if got.WorkflowRunID != "12345" || got.ArtifactName != "manifest-artifact" || got.ArtifactURL != "https://example.invalid/artifacts/manifest" {
 		t.Fatalf("workflow evidence = %+v, want explicit env values", got)
+	}
+}
+
+func TestBuildDockerEvidencePrefersExplicitEnvironment(t *testing.T) {
+	t.Setenv("WORKFLOW_RUN_ID", "12345")
+	t.Setenv("ARTIFACT_NAME", "manifest-artifact")
+	t.Setenv("ARTIFACT_URL", "https://example.invalid/artifacts/manifest")
+	t.Setenv("DOCKER_TOOLCHAIN_ENABLED", "true")
+	t.Setenv("DOCKER_CONTRACT_VERSION", "docker-toolchain/v2")
+	t.Setenv("DOCKER_GO_VERSION", "go1.25.0")
+	t.Setenv("DOCKER_GOLANGCI_LINT_VERSION", "golangci-lint v2.0.0")
+	t.Setenv("DOCKER_GOVULNCHECK_VERSION", "govulncheck v1.2.3")
+	t.Setenv("DOCKER_BUILDKIT_REQUIRED", "true")
+	t.Setenv("DOCKER_CACHE_MOUNTS", "go-build,go-mod,lint-cache")
+	t.Setenv("DOCKER_BASE_IMAGE", "golang:1.25")
+	t.Setenv("DOCKER_BASE_IMAGE_DIGEST", "sha256:base")
+	t.Setenv("DOCKER_TOOLCHAIN_IMAGE", "ghcr.io/example/toolchain:latest")
+	t.Setenv("DOCKER_TOOLCHAIN_IMAGE_DIGEST", "sha256:toolchain")
+	t.Setenv("DOCKER_RUNTIME_IMAGE", "ghcr.io/example/runtime:latest")
+	t.Setenv("DOCKER_RUNTIME_IMAGE_DIGEST", "sha256:runtime")
+	t.Setenv("DOCKER_VALIDATED_BY", "docker-toolchain-check,docker-ci,docker-release-check,docker-contract")
+	t.Setenv("DOCKER_ARTIFACT_NAME", "docker-evidence")
+	t.Setenv("DOCKER_ARTIFACT_URL", "https://example.invalid/artifacts/docker")
+
+	got := buildDockerEvidence()
+
+	if !got.Enabled || got.ContractVersion != "docker-toolchain/v2" || got.GoVersion != "go1.25.0" {
+		t.Fatalf("docker evidence basic fields = %+v, want explicit env values", got)
+	}
+	if got.BaseImageDigest != "sha256:base" || got.ToolchainImageDigest != "sha256:toolchain" || got.RuntimeImageDigest != "sha256:runtime" {
+		t.Fatalf("docker digests = %+v, want explicit digest env values", got)
+	}
+	if got.ArtifactName != "docker-evidence" || got.ArtifactURL != "https://example.invalid/artifacts/docker" || got.WorkflowRunID != "12345" {
+		t.Fatalf("docker artifact evidence = %+v, want explicit artifact values", got)
+	}
+	for _, validator := range []string{"docker-toolchain-check", "docker-ci", "docker-release-check", "docker-contract"} {
+		if !contains(got.ValidatedBy, validator) {
+			t.Fatalf("docker.validated_by = %v, want %s", got.ValidatedBy, validator)
+		}
+	}
+}
+
+func TestVerifyManifestRejectsEnabledDockerEvidenceWithoutDigests(t *testing.T) {
+	t.Setenv("GOWORK", "off")
+	t.Setenv("CHECK_STATUS", "passed")
+	repo := releaseManifestFixtureRepo(t)
+	writeStandardImpactReportFixture(t, repo)
+	chdir(t, repo)
+
+	manifest, err := buildManifest()
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest.Docker.Enabled = true
+	manifest.Docker.BaseImage = "golang:1.25"
+	manifest.Docker.BaseImageDigest = ""
+	manifest.Docker.ToolchainImage = "ghcr.io/example/toolchain:latest"
+	manifest.Docker.ToolchainImageDigest = "not-a-sha"
+	manifest.Docker.RuntimeImage = "ghcr.io/example/runtime:latest"
+	manifest.Docker.RuntimeImageDigest = ""
+
+	path := filepath.Join(t.TempDir(), "manifest.json")
+	if err := writeManifest(path, manifest); err != nil {
+		t.Fatal(err)
+	}
+
+	err = verifyManifest(path, false, false, "", 0)
+	if err == nil {
+		t.Fatal("verify manifest with missing Docker digests succeeded, want error")
+	}
+	message := err.Error()
+	for _, want := range []string{
+		"docker does not match current Docker Toolchain evidence",
+		"docker.base_image_digest is required",
+		"docker.toolchain_image_digest must start with sha256:",
+		"docker.runtime_image_digest is required",
+	} {
+		if !strings.Contains(message, want) {
+			t.Fatalf("error = %q, want substring %q", message, want)
+		}
 	}
 }
 
@@ -541,6 +632,14 @@ func TestBuildManifestRecordsFixtureRepositoryFacts(t *testing.T) {
 	}
 	if manifest.Tools["go"] == "" {
 		t.Fatal("tools.go is empty")
+	}
+	if manifest.Docker.ContractVersion != "docker-toolchain/v1" || len(manifest.Docker.CacheMounts) == 0 {
+		t.Fatalf("docker evidence = %+v, want default contract and cache evidence", manifest.Docker)
+	}
+	for _, validator := range []string{"docker-toolchain-check", "docker-ci", "docker-release-check"} {
+		if !contains(manifest.Docker.ValidatedBy, validator) {
+			t.Fatalf("docker.validated_by = %v, want %s", manifest.Docker.ValidatedBy, validator)
+		}
 	}
 	if manifest.StandardImpact.ReportPath != standardImpactReportPath {
 		t.Fatalf("standard_impact.report_path = %q, want %q", manifest.StandardImpact.ReportPath, standardImpactReportPath)
