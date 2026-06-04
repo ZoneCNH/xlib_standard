@@ -2,6 +2,8 @@ GOALCLI ?= go run ./cmd/goalcli
 XLIB_CONTEXT ?= local_write
 GOAL_ID ?= GOAL-20260603-XLIB-GOALCLI-001
 GOAL_RUNTIME_MODE ?= FULL
+DOCKER_IMAGE ?= $(notdir $(CURDIR))-toolchain:local
+DOCKER_GATE ?= ./scripts/docker/docker_gate.sh
 
 .PHONY: require-gowork-off
 require-gowork-off:
@@ -42,6 +44,18 @@ lint:
 .PHONY: integration
 integration:
 	$(GOALCLI) integration
+
+.PHONY: docker-toolchain-check
+docker-toolchain-check:
+	./scripts/docker/check_toolchain.sh
+
+.PHONY: docker-ci
+docker-ci:
+	$(DOCKER_GATE) ci
+
+.PHONY: docker-release-check
+docker-release-check:
+	$(DOCKER_GATE) release-check
 
 .PHONY: dependency-check
 dependency-check:

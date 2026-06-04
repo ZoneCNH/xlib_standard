@@ -27,6 +27,9 @@ targets:
   - rules-verify
   - downstream-debt
   - downstream-sync-plan
+  - docker-toolchain-check
+  - docker-ci
+  - docker-release-check
   - debt-evidence-hash
   - debt-evidence-checksum-check
   - evidence

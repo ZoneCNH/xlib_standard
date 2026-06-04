@@ -42,6 +42,29 @@ if [[ "$package_name" != "templatex" && -e "$repo_dir/pkg/templatex" ]]; then
   exit 1
 fi
 
+required_paths=(
+  "Dockerfile"
+  "docker-compose.yml"
+  ".dockerignore"
+  ".devcontainer/devcontainer.json"
+  "scripts/docker/check_toolchain.sh"
+  "scripts/docker/docker_gate.sh"
+)
+
+for required_path in "${required_paths[@]}"; do
+  if [[ ! -e "$repo_dir/$required_path" ]]; then
+    echo "ERROR: rendered Docker contract path missing: $required_path" >&2
+    exit 1
+  fi
+done
+
+for required_target in docker-toolchain-check docker-ci docker-release-check; do
+  if ! grep -Eq "^\.PHONY:.*(^| )${required_target}( |$)|^${required_target}:" "$repo_dir/Makefile"; then
+    echo "ERROR: rendered Makefile missing Docker contract target: $required_target" >&2
+    exit 1
+  fi
+done
+
 scan_regex() {
   local pattern="$1"
   local label="$2"
