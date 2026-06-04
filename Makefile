@@ -16,6 +16,20 @@ require-gowork-off:
 build:
 	go build ./...
 
+.PHONY: build-check
+build-check: build
+
+.PHONY: goalcli
+goalcli:
+	go build ./cmd/goalcli
+
+.PHONY: goalcli-image
+goalcli-image: goalcli
+
+.PHONY: shell
+shell:
+	bash
+
 .PHONY: fmt
 fmt:
 	go fmt ./...
@@ -49,6 +63,28 @@ integration:
 docker-toolchain-check:
 	./scripts/docker/check_toolchain.sh
 
+.PHONY: docker-build
+docker-build: docker-toolchain-check
+	DOCKER_BUILDKIT=1 docker buildx build --load --target toolchain --build-arg GO_VERSION=$${GO_VERSION:-1.23} --tag $(DOCKER_IMAGE) .
+
+.PHONY: docker-build-check
+docker-build-check:
+	$(DOCKER_GATE) build-check
+
+.PHONY: docker-shell
+docker-shell: docker-build
+	docker run --rm -it \
+		--workdir /workspace \
+		--volume "$(CURDIR):/workspace" \
+		--volume go-build-cache:/root/.cache/go-build \
+		--volume go-mod-cache:/go/pkg/mod \
+		--env "GOWORK=$${GOWORK:-off}" \
+		--env "XLIB_CONTEXT=$${XLIB_CONTEXT:-docker_toolchain}" \
+		--env "VERSION=$${VERSION:-}" \
+		--env "DOWNSTREAM=$${DOWNSTREAM:-}" \
+		--env "XLIB_ENABLE_VULNCHECK=$${XLIB_ENABLE_VULNCHECK:-}" \
+		$(DOCKER_IMAGE) bash
+
 .PHONY: docker-ci
 docker-ci:
 	$(DOCKER_GATE) ci
@@ -56,6 +92,31 @@ docker-ci:
 .PHONY: docker-release-check
 docker-release-check:
 	$(DOCKER_GATE) release-check
+
+.PHONY: docker-release-final-check
+docker-release-final-check:
+	$(DOCKER_GATE) release-final-check
+
+.PHONY: docker-goalcli
+docker-goalcli:
+	$(DOCKER_GATE) goalcli
+
+.PHONY: docker-goalcli-image
+docker-goalcli-image: docker-build
+
+.PHONY: docker-goalcli-version
+docker-goalcli-version:
+	$(DOCKER_GATE) goalcli-version
+
+.PHONY: docker-runtime-check
+docker-runtime-check:
+	$(DOCKER_GATE) runtime-check
+
+.PHONY: docker-drift-check
+docker-drift-check: drift-check
+
+.PHONY: docker-contract
+docker-contract: docker-toolchain-check docker-build-check docker-runtime-check docker-drift-check
 
 .PHONY: dependency-check
 dependency-check:
@@ -193,9 +254,24 @@ score-check:
 version:
 	$(GOALCLI) version
 
+.PHONY: goalcli-version
+goalcli-version: version
+
 .PHONY: doctor
 doctor:
 	$(GOALCLI) doctor
+
+.PHONY: runtime-check
+runtime-check: doctor
+
+.PHONY: drift-check
+drift-check:
+	$(GOALCLI) docs-check
+	$(GOALCLI) command-registry
+	$(GOALCLI) makefile-baseline
+
+.PHONY: contract
+contract: runtime-check drift-check
 
 .PHONY: main-guard
 main-guard:

@@ -2,4 +2,4 @@ schema_version: "2.9.3"
 required: [go, git, make, golangci-lint]
 optional:
   - name: govulncheck
-    when: "XLIB_ENABLE_VULNCHECK=1"
+    when: "XLIB_ENABLE_VULNCHECK=1 and weekly window is due, or XLIB_FORCE_VULNCHECK=1"

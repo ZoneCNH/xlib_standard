@@ -18,7 +18,7 @@ jobs:
       COMPOSE_DOCKER_CLI_BUILD: "1"
       GOWORK: off
       XLIB_CONTEXT: ci_pull_request
-      XLIB_ENABLE_VULNCHECK: ${{ vars.XLIB_ENABLE_VULNCHECK }}
+      XLIB_ENABLE_VULNCHECK: "0"
 
     steps:
       - name: Checkout

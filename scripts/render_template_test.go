@@ -131,7 +131,21 @@ func TestRenderTemplateIncludesDockerContract(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read rendered Makefile: %v", err)
 	}
-	for _, target := range []string{"docker-toolchain-check", "docker-ci", "docker-release-check"} {
+	for _, target := range []string{
+		"docker-toolchain-check",
+		"docker-build",
+		"docker-build-check",
+		"docker-shell",
+		"docker-ci",
+		"docker-release-check",
+		"docker-release-final-check",
+		"docker-goalcli",
+		"docker-goalcli-image",
+		"docker-goalcli-version",
+		"docker-runtime-check",
+		"docker-drift-check",
+		"docker-contract",
+	} {
 		if !strings.Contains(string(makefile), target) {
 			t.Fatalf("rendered Makefile missing Docker contract target %s", target)
 		}
