@@ -3259,32 +3259,40 @@ required_gates:
     command: "GOWORK=off make p2-runtime-check"
     purpose: "fixture"
   - id: governance_chain
+    alias_of: governance_check
     refs: [governance_check]
     purpose: "fixture"
     semantic_role: "fixture"
   - id: p1_governance_chain
+    alias_of: p1_governance_check
     refs: [p1_governance_check]
     purpose: "fixture"
     semantic_role: "fixture"
   - id: p2_runtime_chain
+    alias_of: p2_runtime_check
     refs: [p2_runtime_check]
     purpose: "fixture"
     semantic_role: "fixture"
   - id: governance_release_scope
+    alias_of: governance_check
     refs: [governance_check]
     purpose: "fixture"
     semantic_role: "fixture"
   - id: p1_governance_release_scope
+    alias_of: p1_governance_check
     refs: [p1_governance_check]
     purpose: "fixture"
     semantic_role: "fixture"
   - id: p2_runtime_release_scope
+    alias_of: p2_runtime_check
     refs: [p2_runtime_check]
     purpose: "fixture"
     semantic_role: "fixture"
 gate_link_semantics:
   dag_mode: true
   composite_gates_use_refs: true
+  duplicate_command_links: aliases
+  duplicate_entries_do_not_create_new_authorities: true
   authority_source: required_gates[].id
 `
 }

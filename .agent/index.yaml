@@ -190,6 +190,13 @@ files:
     owner: governance
     validator: governance-check
     purpose: 自动研究策略。
+  - path: .agent/research/phase0-baseline-report.md
+    layer: evidence
+    authority: source_of_truth
+    mutability: hand_written
+    owner: governance
+    validator: evidence-check
+    purpose: Phase 0 基线分析报告。
   - path: .agent/policies/boundary.yaml
     layer: policy
     authority: source_of_truth
@@ -750,6 +757,13 @@ files:
     owner: security
     validator: docs-check
     purpose: 安全规则。
+  - path: .agent/rules/enforcement-normalization.yaml
+    layer: machine_contract
+    authority: source_of_truth
+    mutability: hand_written
+    owner: governance
+    validator: rules-verify
+    purpose: 将 rules/registry.yaml 中 enforced_by 归一为结构化形式。
   - path: .agent/rules/self-improving-rules.md
     layer: policy
     authority: source_of_truth
