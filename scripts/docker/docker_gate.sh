@@ -41,6 +41,11 @@ build_target() {
   local target="$1"
   local tag="$2"
   require_docker
+  local build_context_args=()
+  if [[ -d "$repo_root/.cache/docker-tools" ]]; then
+    build_context_args+=(--build-context "tools=$repo_root/.cache/docker-tools")
+  fi
+
   docker buildx build \
     --load \
     --target "$target" \
@@ -49,19 +54,40 @@ build_target() {
     --build-arg "GO_BASE_IMAGE_DIGEST=$go_base_image_digest" \
     --build-arg "GOLANGCI_LINT_VERSION=$golangci_lint_version" \
     --build-arg "GOVULNCHECK_VERSION=$govulncheck_version" \
+    "${build_context_args[@]}" \
     --tag "$tag" \
     "$repo_root"
+
+  # 构建后通过 docker inspect 获取真实 digest，替换占位符默认值
+  local real_digest=""
+  real_digest="$(docker inspect --format='{{index .RepoDigests 0}}' "$tag" 2>/dev/null | cut -d@ -f2 || true)"
+  if [[ -z "$real_digest" ]]; then
+    # 本地构建的镜像可能没有 RepoDigests，使用镜像 ID 作为 fallback
+    real_digest="$(docker inspect --format='{{.Id}}' "$tag" 2>/dev/null || true)"
+  fi
+  if [[ -n "$real_digest" ]]; then
+    case "$target" in
+      toolchain)
+        export DOCKER_TOOLCHAIN_IMAGE_DIGEST="$real_digest"
+        ;;
+      goalcli-runtime)
+        export DOCKER_RUNTIME_IMAGE_DIGEST="$real_digest"
+        ;;
+    esac
+  fi
 }
 
 run_make() {
   local make_target="$1"
   shift || true
   build_target toolchain "$image"
+  # 使用 build_target 导出的真实 digest（如果可用），否则回退到占位符默认值
   docker run --rm \
     --workdir /workspace \
     --volume "$repo_root:/workspace" \
     --volume go-build-cache:/root/.cache/go-build \
     --volume go-mod-cache:/go/pkg/mod \
+    --env "CI=1" \
     --env "GOWORK=${GOWORK:-off}" \
     --env "XLIB_CONTEXT=${XLIB_CONTEXT:-docker_toolchain}" \
     --env "VERSION=${VERSION:-}" \
@@ -72,9 +98,9 @@ run_make() {
     --env "DOCKER_BASE_IMAGE=${DOCKER_BASE_IMAGE:-$go_base_image}" \
     --env "DOCKER_BASE_IMAGE_DIGEST=${DOCKER_BASE_IMAGE_DIGEST:-$go_base_image_digest}" \
     --env "DOCKER_TOOLCHAIN_IMAGE=${DOCKER_TOOLCHAIN_IMAGE:-$image}" \
-    --env "DOCKER_TOOLCHAIN_IMAGE_DIGEST=$toolchain_image_digest" \
+    --env "DOCKER_TOOLCHAIN_IMAGE_DIGEST=${DOCKER_TOOLCHAIN_IMAGE_DIGEST:-$toolchain_image_digest}" \
     --env "DOCKER_RUNTIME_IMAGE=${DOCKER_RUNTIME_IMAGE:-$runtime_image}" \
-    --env "DOCKER_RUNTIME_IMAGE_DIGEST=$runtime_image_digest" \
+    --env "DOCKER_RUNTIME_IMAGE_DIGEST=${DOCKER_RUNTIME_IMAGE_DIGEST:-$runtime_image_digest}" \
     "$image" make "$make_target" "$@"
 }
 
@@ -98,9 +124,9 @@ run_shell() {
     --env "DOCKER_BASE_IMAGE=${DOCKER_BASE_IMAGE:-$go_base_image}" \
     --env "DOCKER_BASE_IMAGE_DIGEST=${DOCKER_BASE_IMAGE_DIGEST:-$go_base_image_digest}" \
     --env "DOCKER_TOOLCHAIN_IMAGE=${DOCKER_TOOLCHAIN_IMAGE:-$image}" \
-    --env "DOCKER_TOOLCHAIN_IMAGE_DIGEST=$toolchain_image_digest" \
+    --env "DOCKER_TOOLCHAIN_IMAGE_DIGEST=${DOCKER_TOOLCHAIN_IMAGE_DIGEST:-$toolchain_image_digest}" \
     --env "DOCKER_RUNTIME_IMAGE=${DOCKER_RUNTIME_IMAGE:-$runtime_image}" \
-    --env "DOCKER_RUNTIME_IMAGE_DIGEST=$runtime_image_digest" \
+    --env "DOCKER_RUNTIME_IMAGE_DIGEST=${DOCKER_RUNTIME_IMAGE_DIGEST:-$runtime_image_digest}" \
     "$image" bash "$@"
 }
 
@@ -114,9 +140,9 @@ run_goalcli_runtime() {
     --env "DOCKER_BASE_IMAGE=${DOCKER_BASE_IMAGE:-$go_base_image}" \
     --env "DOCKER_BASE_IMAGE_DIGEST=${DOCKER_BASE_IMAGE_DIGEST:-$go_base_image_digest}" \
     --env "DOCKER_TOOLCHAIN_IMAGE=${DOCKER_TOOLCHAIN_IMAGE:-$image}" \
-    --env "DOCKER_TOOLCHAIN_IMAGE_DIGEST=$toolchain_image_digest" \
+    --env "DOCKER_TOOLCHAIN_IMAGE_DIGEST=${DOCKER_TOOLCHAIN_IMAGE_DIGEST:-$toolchain_image_digest}" \
     --env "DOCKER_RUNTIME_IMAGE=${DOCKER_RUNTIME_IMAGE:-$runtime_image}" \
-    --env "DOCKER_RUNTIME_IMAGE_DIGEST=$runtime_image_digest" \
+    --env "DOCKER_RUNTIME_IMAGE_DIGEST=${DOCKER_RUNTIME_IMAGE_DIGEST:-$runtime_image_digest}" \
     "$runtime_image" "$@"
 }
 
