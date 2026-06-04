@@ -136,6 +136,7 @@ func TestRenderTemplateIncludesDockerContract(t *testing.T) {
 		"GOVULNCHECK_VERSION",
 		"github.com/golangci/golangci-lint/v2/cmd/golangci-lint",
 		"golang.org/x/vuln/cmd/govulncheck",
+		"safe.directory /workspace",
 	} {
 		if !strings.Contains(string(dockerfile), required) {
 			t.Fatalf("rendered Dockerfile missing toolchain marker %s", required)
@@ -151,6 +152,9 @@ func TestRenderTemplateIncludesDockerContract(t *testing.T) {
 	}
 	if !strings.Contains(string(makefile), `GOLANGCI_LINT_VERSION=$${GOLANGCI_LINT_VERSION:-v2.1.6}`) {
 		t.Fatalf("rendered Makefile missing Docker lint toolchain build arg")
+	}
+	if !strings.Contains(string(makefile), `GIT_CONFIG_VALUE_0=/workspace`) {
+		t.Fatalf("rendered Makefile missing Docker Git workspace trust config")
 	}
 	for _, target := range []string{
 		"docker-toolchain-check",
@@ -184,6 +188,9 @@ func TestRenderTemplateIncludesDockerContract(t *testing.T) {
 	}
 	if !strings.Contains(string(dockerGate), `GOVULNCHECK_VERSION:-v1.1.4`) {
 		t.Fatalf("rendered Docker gate missing govulncheck toolchain build arg")
+	}
+	if !strings.Contains(string(dockerGate), `GIT_CONFIG_VALUE_0=/workspace`) {
+		t.Fatalf("rendered Docker gate missing Git workspace trust config")
 	}
 }
 

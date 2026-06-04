@@ -40,4 +40,7 @@ docker run --rm \
   --env "XLIB_ENABLE_VULNCHECK=${XLIB_ENABLE_VULNCHECK:-}" \
   --env "CI=${CI:-}" \
   --env "GITHUB_ACTIONS=${GITHUB_ACTIONS:-}" \
+  --env "GIT_CONFIG_COUNT=1" \
+  --env "GIT_CONFIG_KEY_0=safe.directory" \
+  --env "GIT_CONFIG_VALUE_0=/workspace" \
   "$image" make "$target" "$@"
