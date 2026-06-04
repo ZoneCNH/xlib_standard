@@ -53,6 +53,13 @@
 
 **当前阶段**：`goalcli` 是唯一机器裁判与执行器名称。
 
+## GoalCLI 同步契约
+
+`goalcli` 的命名、命令、Makefile、registry、harness、schema 和文档必须同批同步，不能只更新其中一个 surface。命令新增、重命名、删除或语义变化时，同一变更至少同步：`cmd/goalcli/main.go`、`cmd/goalcli/main_test.go`、`Makefile`、`.agent/registries/command-registry.yaml`、`.agent/registries/command-implementation-status.yaml`、`.agent/registries/makefile-baseline.yaml`、`.agent/registries/makefile-target-registry.yaml`、`.agent/harness/harness.yaml`、`.agent/harness/gates.md`、`docs/standard/goalcli-cli-contract.md` 和 `internal/goalcli/README.md`。
+
+`cmd/goalcli/main_test.go` 必须锁定 Go 内置命令清单、`.agent/registries/command-registry.yaml`、`usage` 和 `.agent/registries/command-implementation-status.yaml` 的同步关系，防止只改 registry、只改 usage 或只改实现状态表。
+
+`GOWORK=off make docs-check` 是 release-blocking 漂移检查，必须验证这些 surface 的关键锚点仍然一致。`GOWORK=off make command-registry`、`GOWORK=off make makefile-baseline` 和 `GOWORK=off make cli-contract` 是同步后的最小 registry/Makefile/CLI contract 证据。
 
 ---
 

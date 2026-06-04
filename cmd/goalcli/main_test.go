@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 	"testing"
 
@@ -80,6 +81,86 @@ func TestUsageDocumentsCommandRegistryRequiredCommands(t *testing.T) {
 		needle := "\n  " + command
 		if !strings.Contains(usage, needle) {
 			t.Errorf("usage missing command %q", command)
+		}
+	}
+}
+
+func TestCommandRegistryRequiredCommandsMatchRegistryFile(t *testing.T) {
+	root := repoRoot(t)
+	text := readText(t, filepath.Join(root, ".agent", "registries", "command-registry.yaml"))
+
+	expected := commandRegistryRequiredCommands()
+	actual := registryCommandNamesFromText(text)
+	missing, extra := diffStringSlices(expected, actual)
+	if len(missing) > 0 || len(extra) > 0 {
+		t.Fatalf("commandRegistryRequiredCommands drifted from .agent/registries/command-registry.yaml: missing in registry=%v extra in registry=%v", missing, extra)
+	}
+}
+
+func TestCommandRegistryCommandsStayDocumentedInUsage(t *testing.T) {
+	root := repoRoot(t)
+	text := readText(t, filepath.Join(root, ".agent", "registries", "command-registry.yaml"))
+
+	documented := usageCommandNamesFromText(usage)
+	var missing []string
+	for _, command := range registryCommandNamesFromText(text) {
+		if !documented[command] {
+			missing = append(missing, command)
+		}
+	}
+	if len(missing) > 0 {
+		t.Fatalf("usage missing command-registry entries: %v", missing)
+	}
+}
+
+func TestCommandImplementationStatusCommandsStayRegistered(t *testing.T) {
+	root := repoRoot(t)
+	registryText := readText(t, filepath.Join(root, ".agent", "registries", "command-registry.yaml"))
+	statusText := readText(t, filepath.Join(root, ".agent", "registries", "command-implementation-status.yaml"))
+
+	registered := scalarSet(registryCommandNamesFromText(registryText)...)
+	var missing []string
+	for _, command := range implementationStatusCommandsFromText(statusText) {
+		if !registered[command] {
+			missing = append(missing, command)
+		}
+	}
+	if len(missing) > 0 {
+		t.Fatalf(".agent/registries/command-implementation-status.yaml has commands missing from command registry: %v", missing)
+	}
+}
+
+func TestGoalCLISyncContractDocumentsRequiredSurfaces(t *testing.T) {
+	root := repoRoot(t)
+	files := map[string][]string{
+		"docs/standard/goalcli-cli-contract.md": {
+			"GoalCLI 同步契约",
+			"cmd/goalcli/main.go",
+			".agent/registries/command-implementation-status.yaml",
+			"TestCommandRegistryRequiredCommandsMatchRegistryFile",
+			"GOWORK=off make docs-check",
+			"GOWORK=off make command-registry",
+		},
+		".agent/docs/standard/goalcli-mapping.md": {
+			"GoalCLI 同步契约",
+			".agent/registries/command-registry.yaml",
+			".agent/harness/harness.yaml",
+			"Makefile",
+		},
+		"internal/goalcli/README.md": {
+			"GoalCLI 同步契约",
+			"cmd/goalcli",
+			"docs-check",
+			"cmd/goalcli/main_test.go",
+		},
+	}
+
+	for path, needles := range files {
+		text := readText(t, filepath.Join(root, filepath.FromSlash(path)))
+		for _, needle := range needles {
+			if !strings.Contains(text, needle) {
+				t.Fatalf("%s missing %q", path, needle)
+			}
 		}
 	}
 }
@@ -3413,6 +3494,84 @@ func readText(t *testing.T, path string) string {
 		t.Fatalf("read %s: %v", path, err)
 	}
 	return string(data)
+}
+
+func registryCommandNamesFromText(text string) []string {
+	return yamlNamedListValuesFromText(text, "name")
+}
+
+func yamlNamedListValuesFromText(text string, key string) []string {
+	prefix := "- " + key + ": "
+	var values []string
+	for _, line := range strings.Split(text, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if !strings.HasPrefix(trimmed, prefix) {
+			continue
+		}
+		value := strings.TrimSpace(strings.TrimPrefix(trimmed, prefix))
+		value = strings.Trim(value, `"`)
+		if value != "" {
+			values = append(values, value)
+		}
+	}
+	return values
+}
+
+func implementationStatusCommandsFromText(text string) []string {
+	var commands []string
+	inCommands := false
+	for _, line := range strings.Split(text, "\n") {
+		if strings.TrimSpace(line) == "commands:" {
+			inCommands = true
+			continue
+		}
+		if !inCommands {
+			continue
+		}
+		if strings.HasPrefix(line, "      - ") {
+			command := strings.TrimSpace(strings.TrimPrefix(line, "      - "))
+			if command != "" {
+				commands = append(commands, command)
+			}
+			continue
+		}
+		if strings.HasPrefix(line, "  - id: ") || strings.TrimSpace(line) == "forbidden_gate_interpretations:" {
+			inCommands = false
+		}
+	}
+	return commands
+}
+
+func usageCommandNamesFromText(text string) map[string]bool {
+	commands := make(map[string]bool)
+	for _, line := range strings.Split(text, "\n") {
+		if !strings.HasPrefix(line, "  ") || strings.HasPrefix(line, "    ") {
+			continue
+		}
+		command := strings.Fields(strings.TrimSpace(line))
+		if len(command) > 0 {
+			commands[command[0]] = true
+		}
+	}
+	return commands
+}
+
+func diffStringSlices(expected, actual []string) (missing, extra []string) {
+	expectedSet := scalarSet(expected...)
+	actualSet := scalarSet(actual...)
+	for _, value := range expected {
+		if !actualSet[value] {
+			missing = append(missing, value)
+		}
+	}
+	for _, value := range actual {
+		if !expectedSet[value] {
+			extra = append(extra, value)
+		}
+	}
+	sort.Strings(missing)
+	sort.Strings(extra)
+	return missing, extra
 }
 
 func latestChangelogVersion(t *testing.T, text string) string {

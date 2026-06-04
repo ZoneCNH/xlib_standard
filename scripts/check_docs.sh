@@ -20,7 +20,6 @@ required_files=(
   "docs/standard/agent-team-contract.md"
   "docs/standard/goalcli-cli-contract.md"
   "docs/standard/template-generation-contract.md"
-  "docs/standard/goalcli-cli-contract.md"
   "docs/standard/dod.md"
   "docs/standard/downstream-compatibility.md"
   "docs/standard/layer-governance-rules.md"
@@ -32,10 +31,18 @@ required_files=(
   ".agent/runtime/standard/goal-runtime-canonical.md"
   ".agent/docs/standard/goalcli-mapping.md"
   ".agent/archive/standard/audit-2026-06-03.md"
+  ".agent/registries/command-registry.yaml"
+  ".agent/registries/command-implementation-status.yaml"
+  ".agent/registries/makefile-baseline.yaml"
+  ".agent/registries/makefile-target-registry.yaml"
+  ".agent/harness/harness.yaml"
+  ".agent/harness/gates.md"
   ".agent/rules/iron-rules.md"
   ".agent/rules/registry.yaml"
   ".agent/rules/README.md"
   "contracts/layer-governance.schema.json"
+  "contracts/goalcli-report.schema.json"
+  "internal/goalcli/README.md"
 )
 
 for file in "${required_files[@]}"; do
@@ -54,6 +61,71 @@ require_text() {
     exit 1
   fi
 }
+
+require_goalcli_sync_contract() {
+  require_text "cmd/goalcli/main.go" "command-registry"
+  require_text "cmd/goalcli/main.go" "makefile-baseline"
+  require_text "cmd/goalcli/main.go" "cli-contract"
+  require_text "cmd/goalcli/main.go" "docs-check"
+  require_text "cmd/goalcli/main.go" "release-final-check"
+  require_text "cmd/goalcli/main.go" "goal-runtime-final"
+  require_text "cmd/goalcli/main.go" "execution-context"
+
+  require_text "cmd/goalcli/main_test.go" "TestUsageDocumentsCommandRegistryRequiredCommands"
+  require_text "cmd/goalcli/main_test.go" "TestCommandRegistryRequiredCommandsMatchRegistryFile"
+  require_text "cmd/goalcli/main_test.go" "TestCommandRegistryCommandsStayDocumentedInUsage"
+  require_text "cmd/goalcli/main_test.go" "TestCommandImplementationStatusCommandsStayRegistered"
+  require_text "cmd/goalcli/main_test.go" "commandRegistryRequiredCommands"
+  require_text "cmd/goalcli/main_test.go" "implementationStatusCommandsFromText"
+  require_text "cmd/goalcli/main_test.go" "usage missing command"
+  require_text "cmd/goalcli/main_test.go" "Makefile must define GOALCLI as the cmd/goalcli execution surface"
+  require_text "cmd/goalcli/main_test.go" ".agent/registries/command-registry.yaml missing name: execution-context"
+
+  require_text "Makefile" "GOALCLI ?= go run ./cmd/goalcli"
+  require_text "Makefile" '$(GOALCLI) command-registry'
+  require_text "Makefile" '$(GOALCLI) makefile-baseline'
+  require_text "Makefile" '$(GOALCLI) cli-contract'
+  require_text "Makefile" '$(GOALCLI) docs-check'
+  require_text "Makefile" '$(GOALCLI) release-evidence-checksum-check'
+  require_text "Makefile" "GOWORK=off is required for release targets"
+
+  require_text ".agent/registries/command-registry.yaml" 'schema_version: "2.9.3"'
+  require_text ".agent/registries/command-registry.yaml" "name: command-registry"
+  require_text ".agent/registries/command-registry.yaml" "name: makefile-baseline"
+  require_text ".agent/registries/command-registry.yaml" "name: goal-runtime-final"
+  require_text ".agent/registries/command-registry.yaml" "name: execution-context"
+
+  require_text ".agent/registries/command-implementation-status.yaml" "source_registry: .agent/registries/command-registry.yaml"
+  require_text ".agent/registries/command-implementation-status.yaml" "truth_state: .agent/evidence/truth-state.yaml"
+  require_text ".agent/registries/command-implementation-status.yaml" "goalcli_v0_1_0_mva_blocking"
+  require_text ".agent/registries/command-implementation-status.yaml" "goal-runtime-final"
+  require_text ".agent/registries/command-implementation-status.yaml" "execution-context"
+
+  require_text ".agent/registries/makefile-baseline.yaml" 'schema_version: "2.9.3"'
+  require_text ".agent/registries/makefile-baseline.yaml" 'command-registry: "$(GOALCLI) command-registry"'
+  require_text ".agent/registries/makefile-baseline.yaml" 'makefile-baseline: "$(GOALCLI) makefile-baseline"'
+  require_text ".agent/registries/makefile-baseline.yaml" 'cli-contract: "$(GOALCLI) cli-contract"'
+  require_text ".agent/registries/makefile-baseline.yaml" 'goal-runtime-final: "$(GOALCLI) goal-runtime-final'
+
+  require_text ".agent/registries/makefile-target-registry.yaml" "command-registry"
+  require_text ".agent/registries/makefile-target-registry.yaml" "makefile-baseline"
+  require_text ".agent/registries/makefile-target-registry.yaml" "cli-contract"
+  require_text ".agent/registries/makefile-target-registry.yaml" "goal-runtime-final"
+  require_text ".agent/registries/makefile-target-registry.yaml" "execution-context"
+
+  require_text ".agent/harness/harness.yaml" 'GOWORK: "off"'
+  require_text ".agent/harness/harness.yaml" "cli_contract"
+  require_text ".agent/harness/harness.yaml" "command_registry"
+  require_text ".agent/harness/harness.yaml" "makefile_baseline"
+  require_text ".agent/harness/harness.yaml" "goalcli_v0_1_0"
+  require_text ".agent/harness/harness.yaml" "goalcli_mva_gates"
+
+  require_text "docs/standard/goalcli-cli-contract.md" "GoalCLI 同步契约"
+  require_text ".agent/docs/standard/goalcli-mapping.md" "GoalCLI 同步契约"
+  require_text "internal/goalcli/README.md" "GoalCLI 同步契约"
+}
+
+require_goalcli_sync_contract
 
 require_text "README.md" "GOWORK=off make docs-check"
 require_text "README.md" "GOWORK=off make dependency-check"
