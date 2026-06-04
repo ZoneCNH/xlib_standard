@@ -12,8 +12,9 @@ FROM ${GO_BASE_IMAGE} AS tools
 ARG GOLANGCI_LINT_VERSION
 ARG GOVULNCHECK_VERSION
 ENV GOTOOLCHAIN=auto
-RUN curl -sSfL "https://github.com/golangci/golangci-lint/releases/download/${GOLANGCI_LINT_VERSION}/golangci-lint-${GOLANGCI_LINT_VERSION}-linux-amd64.tar.gz" \
-      | tar -xz --strip-components=1 -C /usr/local/bin golangci-lint-${GOLANGCI_LINT_VERSION}-linux-amd64/golangci-lint \
+RUN GOLANGCI_LINT_SEMVER="${GOLANGCI_LINT_VERSION#v}" \
+    && curl -sSfL "https://github.com/golangci/golangci-lint/releases/download/${GOLANGCI_LINT_VERSION}/golangci-lint-${GOLANGCI_LINT_SEMVER}-linux-amd64.tar.gz" \
+      | tar -xz --strip-components=1 -C /usr/local/bin "golangci-lint-${GOLANGCI_LINT_SEMVER}-linux-amd64/golangci-lint" \
     && go install golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION} \
     && cp "$(go env GOPATH)/bin/govulncheck" /usr/local/bin/govulncheck
 
