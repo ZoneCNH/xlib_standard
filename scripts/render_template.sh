@@ -89,6 +89,7 @@ copy_from_live_tree() {
     cd "$repo_root"
     tar \
     --exclude='./.git' \
+    --exclude='./.omc' \
     --exclude='./.omx' \
     --exclude='./.worktree' \
     --exclude='./.agent/inbox' \
@@ -103,6 +104,8 @@ copy_from_live_tree() {
     --exclude='./profile.cov' \
     --exclude='./release/manifest/latest.json' \
     --exclude='./release/manifest/latest.json.sha256' \
+    --exclude='./release/standard-impact/latest.md' \
+    --exclude='./release/downstream-sync/latest.md' \
     --exclude='./release/debt/latest.json' \
     --exclude='./release/debt/latest.md' \
     --exclude='./release/debt/latest.json.sha256' \
@@ -114,11 +117,16 @@ copy_from_live_tree() {
 }
 
 prune_render_omissions() {
+  rm -rf "$out_dir/.omc"
+  rm -rf "$out_dir/.omx"
+  rm -rf "$out_dir/.worktree"
   rm -rf "$out_dir/.agent/inbox"
   rm -rf "$out_dir/docs/adr"
   rm -f "$out_dir/docs/goal.md"
   rm -f "$out_dir/release/manifest/latest.json"
   rm -f "$out_dir/release/manifest/latest.json.sha256"
+  rm -f "$out_dir/release/standard-impact/latest.md"
+  rm -f "$out_dir/release/downstream-sync/latest.md"
   rm -f "$out_dir/release/debt/latest.json"
   rm -f "$out_dir/release/debt/latest.md"
   rm -f "$out_dir/release/debt/latest.json.sha256"
@@ -144,26 +152,6 @@ if [[ "$use_git_archive" == "1" ]]; then
   copy_from_git_archive
 else
   copy_from_live_tree
-fi
-
-# Raw inbox archives are intentionally omitted from rendered downstream repos.
-# Keep the rendered control-plane index aligned with that reduced file set.
-index_path="$out_dir/.agent/index.yaml"
-if [[ -f "$index_path" ]]; then
-  awk '
-    /^  - path: \.agent\/inbox\// {
-      skip = 1
-      next
-    }
-    skip && /^    / {
-      next
-    }
-    {
-      skip = 0
-      print
-    }
-  ' "$index_path" > "$index_path.tmp"
-  mv "$index_path.tmp" "$index_path"
 fi
 
 # Raw inbox archives are intentionally omitted from rendered downstream repos.
