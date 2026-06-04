@@ -52,7 +52,7 @@ RUN --mount=type=cache,target=/var/cache/apt \
       python3-yaml \
       tar \
       xz-utils \
-    && git config --global --add safe.directory /workspace
+    && git config --system --add safe.directory /workspace
 
 # ── 预编译工具：从本地缓存目录复制（零下载）─────────────────
 # 构建前先运行: make docker-prefetch
