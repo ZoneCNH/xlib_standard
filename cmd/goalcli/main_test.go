@@ -166,6 +166,82 @@ func TestAdoptionCheckBlocksMissingGovernanceLock(t *testing.T) {
 	}
 }
 
+func TestAdoptionCheckBlocksUnguardedMakefileTarget(t *testing.T) {
+	root := adoptionCheckFixture(t)
+	if err := os.WriteFile(filepath.Join(root, "Makefile"), []byte(".PHONY: adoption-check\nadoption-check:\n\t$(GOALCLI) adoption-check --verify\n"), 0o644); err != nil {
+		t.Fatalf("write unguarded Makefile: %v", err)
+	}
+	var stdout, stderr bytes.Buffer
+
+	got := run([]string{"adoption-check", "--verify", "--root", root}, strings.NewReader(""), &stdout, &stderr)
+
+	if got != 1 {
+		t.Fatalf("adoption-check exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "Makefile missing adoption-check: require-gowork-off") {
+		t.Fatalf("stdout = %q; want guarded Makefile target gap", stdout.String())
+	}
+}
+
+func TestAdoptionCheckBlocksUnguardedGovernanceFragment(t *testing.T) {
+	root := adoptionCheckFixture(t)
+	if err := os.WriteFile(filepath.Join(root, "mk", "governance.mk"), []byte("adoption-check:\n\t$(GOALCLI) adoption-check --verify\n"), 0o644); err != nil {
+		t.Fatalf("write unguarded governance fragment: %v", err)
+	}
+	var stdout, stderr bytes.Buffer
+
+	got := run([]string{"adoption-check", "--verify", "--root", root}, strings.NewReader(""), &stdout, &stderr)
+
+	if got != 1 {
+		t.Fatalf("adoption-check exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "mk/governance.mk missing .PHONY: require-gowork-off") {
+		t.Fatalf("stdout = %q; want guarded governance fragment gap", stdout.String())
+	}
+}
+
+func TestAdoptionCheckAllowsSourceRepositoryWithoutGovernanceLock(t *testing.T) {
+	root := adoptionCheckFixture(t)
+	if err := os.Remove(filepath.Join(root, "xlib-standard.lock")); err != nil {
+		t.Fatalf("remove governance lock: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "go.mod"), []byte("module github.com/ZoneCNH/xlib-standard\n\ngo 1.23\n"), 0o644); err != nil {
+		t.Fatalf("write source go.mod: %v", err)
+	}
+	var stdout, stderr bytes.Buffer
+
+	got := run([]string{"adoption-check", "--verify", "--root", root}, strings.NewReader(""), &stdout, &stderr)
+
+	if got != 0 {
+		t.Fatalf("adoption-check exit = %d, stderr %q, stdout %q; want 0", got, stderr.String(), stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "source repository governance pack present") {
+		t.Fatalf("stdout = %q; want source repository detail", stdout.String())
+	}
+	if strings.Contains(stdout.String(), "missing xlib-standard.lock") {
+		t.Fatalf("stdout = %q; source repository must not require downstream lock", stdout.String())
+	}
+}
+
+func TestAdoptionCheckBlocksRulesetBypass(t *testing.T) {
+	root := adoptionCheckFixture(t)
+	rulesetPath := filepath.Join(root, ".github", "rulesets", "protect-main.json")
+	ruleset := strings.Replace(validProtectMainRulesetFixture(), `"bypass_actors": []`, `"bypass_actors": [{"actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always"}]`, 1)
+	if err := os.WriteFile(rulesetPath, []byte(ruleset), 0o644); err != nil {
+		t.Fatalf("write ruleset fixture: %v", err)
+	}
+	var stdout, stderr bytes.Buffer
+
+	got := run([]string{"adoption-check", "--verify", "--root", root}, strings.NewReader(""), &stdout, &stderr)
+
+	if got != 1 {
+		t.Fatalf("adoption-check exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "protect-main.json must not allow bypass actors") {
+		t.Fatalf("stdout = %q; want bypass gap", stdout.String())
+	}
+}
+
 func TestGoalCLISyncContractDocumentsRequiredSurfaces(t *testing.T) {
 	root := repoRoot(t)
 	files := map[string][]string{
@@ -3139,17 +3215,83 @@ func adoptionCheckFixture(t *testing.T) string {
 			"package_name: \"kernel\"\n" +
 			"layer: \"L0\"\n" +
 			"adoption_check: \"GOWORK=off make adoption-check\"\n",
-		".githooks/pre-commit":                            "#!/bin/sh\n",
-		".githooks/pre-push":                              "#!/bin/sh\n",
-		".github/workflows/adoption-check.yml":            "name: adoption-check\non:\n  pull_request:\n  workflow_dispatch:\njobs:\n  adoption-check:\n    steps:\n      - run: GOWORK=off make adoption-check\n",
-		"mk/governance.mk":                                "$(GOALCLI) adoption-check --verify\nadoption-check:\n",
+		".githooks/pre-commit": "#!/bin/sh\n",
+		".githooks/pre-push":   "#!/bin/sh\n",
+		".github/workflows/adoption-check.yml": "name: adoption-check\n" +
+			"on:\n" +
+			"  pull_request:\n" +
+			"  workflow_dispatch:\n" +
+			"jobs:\n" +
+			"  adoption-check:\n" +
+			"    steps:\n" +
+			"      - if: ${{ github.event.repository.name != format('{0}{1}', 'xlib-', 'standard') }}\n" +
+			"        run: GOWORK=off make adoption-check\n",
+		".github/rulesets/protect-main.json": validProtectMainRulesetFixture(),
+		"mk/governance.mk": ".PHONY: require-gowork-off\n" +
+			"require-gowork-off:\n" +
+			"\t@if [ \"$${GOWORK:-}\" != \"off\" ]; then exit 1; fi\n" +
+			"adoption-check: require-gowork-off\n" +
+			"\t$(GOALCLI) adoption-check --verify\n",
 		".agent/harness/harness.yaml":                     "required_gates:\n  - id: adoption_check\n    command: GOWORK=off make adoption-check\n",
 		".agent/registries/command-registry.yaml":         "commands:\n  - name: adoption-check\n",
 		".agent/registries/makefile-target-registry.yaml": "targets:\n  - adoption-check\n",
 		".agent/registries/makefile-baseline.yaml":        "baseline_targets:\n  adoption-check: $(GOALCLI) adoption-check --verify\n",
-		"Makefile": ".PHONY: adoption-check\nadoption-check:\n\t$(GOALCLI) adoption-check --verify\n",
+		"Makefile": ".PHONY: adoption-check\nadoption-check: require-gowork-off\n\t$(GOALCLI) adoption-check --verify\n",
 	})
 	return root
+}
+
+func validProtectMainRulesetFixture() string {
+	return `{
+  "name": "protect-main",
+  "target": "branch",
+  "enforcement": "active",
+  "bypass_actors": [],
+  "conditions": {
+    "ref_name": {
+      "include": ["~DEFAULT_BRANCH"],
+      "exclude": []
+    }
+  },
+  "rules": [
+    {
+      "type": "pull_request",
+      "parameters": {
+        "required_approving_review_count": 1,
+        "dismiss_stale_reviews_on_push": true,
+        "require_code_owner_review": false,
+        "require_last_push_approval": false,
+        "required_review_thread_resolution": true,
+        "allowed_merge_methods": ["merge", "squash", "rebase"],
+        "required_reviewers": []
+      }
+    },
+    {
+      "type": "required_status_checks",
+      "parameters": {
+        "strict_required_status_checks_policy": true,
+        "do_not_enforce_on_create": false,
+        "required_status_checks": [
+          { "context": "ci" },
+          { "context": "security" },
+          { "context": "adoption-check" },
+          { "context": "governance-check" },
+          { "context": "release-check" }
+        ]
+      }
+    },
+    {
+      "type": "required_linear_history"
+    },
+    {
+      "type": "non_fast_forward"
+    },
+    {
+      "type": "deletion"
+    }
+  ]
+}
+`
 }
 
 func commandRegistryFixture(extra string) string {

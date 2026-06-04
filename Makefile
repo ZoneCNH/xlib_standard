@@ -319,7 +319,7 @@ traceability-check:
 	$(GOALCLI) traceability-check
 
 .PHONY: governance-check
-governance-check: require-gowork-off main-guard worktree-guard evidence-check boundary architecture domain security security-debt contracts docs-check cli-contract issue-registry command-registry makefile-baseline audit-goal rules-consistency-check debt traceability-check
+governance-check: require-gowork-off main-guard worktree-guard evidence-check adoption-check boundary architecture domain security security-debt contracts docs-check cli-contract issue-registry command-registry makefile-baseline audit-goal rules-consistency-check debt traceability-check
 
 .PHONY: rules-consistency-check
 rules-consistency-check:

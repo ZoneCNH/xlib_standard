@@ -126,6 +126,7 @@ func TestRenderTemplateIncludesGovernancePack(t *testing.T) {
 		filepath.Join(".githooks", "pre-commit"),
 		filepath.Join(".githooks", "pre-push"),
 		filepath.Join(".github", "workflows", "adoption-check.yml"),
+		filepath.Join(".github", "rulesets", "protect-main.json"),
 		filepath.Join("mk", "governance.mk"),
 		filepath.Join(".agent", "harness", "harness.yaml"),
 	} {

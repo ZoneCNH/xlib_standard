@@ -24,7 +24,7 @@ Full Goal Runtime v3.1 以 `cmd/goalcli` 作为 Go gate runtime。Makefile targe
 | Score | `GOWORK=off make score` / `GOWORK=off go run ./cmd/goalcli score --min 9.8` | 校验 v3.1 gate runtime、CI 和文档契约一致性 |
 | Evidence | `CHECK_STATUS=passed GOWORK=off make evidence` | 生成 release manifest |
 | Release Evidence | `RELEASE_EVIDENCE_REQUIRE_PASSED=1 GOWORK=off make release-evidence-check` | 校验 manifest 与仓库事实 |
-| Adoption Check | `GOWORK=off make adoption-check` | 仅在渲染 downstream 仓库内验证 Repository Governance Pack、`xlib-standard.lock`、本地 hooks、GitHub workflow、`mk/governance.mk` 和 harness gate |
+| Adoption Check | `GOWORK=off make adoption-check` | 在渲染 downstream 仓库内验证 Repository Governance Pack、`xlib-standard.lock`、本地 hooks、GitHub workflow、main ruleset、`mk/governance.mk` 和 harness gate；在标准源仓库内不要求 downstream lock，但仍验证 main ruleset 禁止 bypass 且要求 `adoption-check`、`governance-check` 和 `release-check` |
 
 
 ## Goal v2.9.3 Governance Gate

@@ -14,7 +14,7 @@
 - Integration Gate：`GOWORK=off make integration`，默认下游为 `kernel`
 - Evidence Gate：`CHECK_STATUS=passed GOWORK=off make evidence`
 - Release Gate：`GOWORK=off make release-check`
-- Adoption Gate：`GOWORK=off make adoption-check`，仅在渲染 downstream 仓库内运行，验证 Repository Governance Pack、`xlib-standard.lock`、本地 hooks、GitHub workflow、`mk/governance.mk` 和 harness gate 已被保留。
+- Adoption Gate：`GOWORK=off make adoption-check`，在渲染 downstream 仓库内验证 Repository Governance Pack、`xlib-standard.lock`、本地 hooks、GitHub workflow、main ruleset、`mk/governance.mk` 和 harness gate 已被保留；在标准源仓库内不要求 downstream lock，但仍验证 main ruleset 禁止 bypass 且要求 `adoption-check`、`governance-check` 和 `release-check`。
 
 ## Final Gates
 

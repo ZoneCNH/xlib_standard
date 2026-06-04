@@ -262,6 +262,7 @@ verify_governance_pack() {
     ".githooks/pre-commit"
     ".githooks/pre-push"
     ".github/workflows/adoption-check.yml"
+    ".github/rulesets/protect-main.json"
     "mk/governance.mk"
     ".agent/harness/harness.yaml"
   )
