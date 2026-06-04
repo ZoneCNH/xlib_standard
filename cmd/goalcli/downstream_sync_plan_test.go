@@ -247,7 +247,7 @@ func localDownstreamSyncPlanTestDir(t *testing.T) string {
 		t.Fatalf("create local test dir %s: %v", dir, err)
 	}
 	t.Cleanup(func() {
-		os.RemoveAll(dir)
+		_ = os.RemoveAll(dir)
 		_ = os.Remove(parent)
 	})
 	return dir
