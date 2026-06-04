@@ -2826,10 +2826,19 @@ func TestVersionConstantsTrackChangelogRelease(t *testing.T) {
 		if err != nil {
 			t.Fatalf("read %s: %v", path, err)
 		}
-		if !strings.Contains(string(text), latest) {
+		content := string(text)
+		if rel == "AGENTS.md" && isDisposableTeamWorkerAgentsOverlay(content) {
+			continue
+		}
+		if !strings.Contains(content, latest) {
 			t.Fatalf("%s does not contain latest release version %s", rel, latest)
 		}
 	}
+}
+
+func isDisposableTeamWorkerAgentsOverlay(text string) bool {
+	return strings.Contains(text, "# Team Worker Runtime Instructions") &&
+		strings.Contains(text, "generated for a live OMX team worker run and is disposable")
 }
 
 func TestAgentPhysicalMigrationManifestGuardsNewPaths(t *testing.T) {
