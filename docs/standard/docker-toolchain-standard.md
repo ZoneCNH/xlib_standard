@@ -38,6 +38,7 @@ Docker Toolchain Runtime 必须显式传递并记录以下环境变量语义：
 - `VERSION`：release/preflight 命令使用的版本输入。
 - `DOWNSTREAM`：integration 或下游验证选择的目标库。
 - `XLIB_ENABLE_VULNCHECK`：仅在显式为 `1` 时启用漏洞扫描工具链。
+- `CI`、`GITHUB_ACTIONS`：仅传递执行语境标志，确保 GitHub Actions 内的容器化 `make ci` 仍按 CI 语义跳过本地 hooks 配置检查；本地未设置时保持空值，继续执行 `doctor-hooks-local`。
 
 未列入 contract 的私密变量不得默认传入容器；需要时必须在调用点显式声明并脱敏记录。
 

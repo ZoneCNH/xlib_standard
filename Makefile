@@ -83,6 +83,8 @@ docker-shell: docker-build
 		--env "VERSION=$${VERSION:-}" \
 		--env "DOWNSTREAM=$${DOWNSTREAM:-}" \
 		--env "XLIB_ENABLE_VULNCHECK=$${XLIB_ENABLE_VULNCHECK:-}" \
+		--env "CI=$${CI:-}" \
+		--env "GITHUB_ACTIONS=$${GITHUB_ACTIONS:-}" \
 		$(DOCKER_IMAGE) bash
 
 .PHONY: docker-ci

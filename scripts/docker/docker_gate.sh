@@ -34,4 +34,6 @@ docker run --rm \
   --env "VERSION=${VERSION:-}" \
   --env "DOWNSTREAM=${DOWNSTREAM:-}" \
   --env "XLIB_ENABLE_VULNCHECK=${XLIB_ENABLE_VULNCHECK:-}" \
+  --env "CI=${CI:-}" \
+  --env "GITHUB_ACTIONS=${GITHUB_ACTIONS:-}" \
   "$image" make "$target" "$@"

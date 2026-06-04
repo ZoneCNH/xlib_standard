@@ -131,6 +131,9 @@ func TestRenderTemplateIncludesDockerContract(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read rendered Makefile: %v", err)
 	}
+	if !strings.Contains(string(makefile), `GITHUB_ACTIONS=$${GITHUB_ACTIONS:-}`) {
+		t.Fatalf("rendered Makefile missing Docker CI environment passthrough")
+	}
 	for _, target := range []string{
 		"docker-toolchain-check",
 		"docker-build",
@@ -149,6 +152,14 @@ func TestRenderTemplateIncludesDockerContract(t *testing.T) {
 		if !strings.Contains(string(makefile), target) {
 			t.Fatalf("rendered Makefile missing Docker contract target %s", target)
 		}
+	}
+
+	dockerGate, err := os.ReadFile(filepath.Join(outDir, "scripts", "docker", "docker_gate.sh"))
+	if err != nil {
+		t.Fatalf("read rendered Docker gate: %v", err)
+	}
+	if !strings.Contains(string(dockerGate), `GITHUB_ACTIONS=${GITHUB_ACTIONS:-}`) {
+		t.Fatalf("rendered Docker gate missing GitHub Actions environment passthrough")
 	}
 }
 
