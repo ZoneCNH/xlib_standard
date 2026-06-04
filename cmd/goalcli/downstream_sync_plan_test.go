@@ -13,7 +13,7 @@ func TestRunDownstreamSyncPlanWritesRequiredPlan(t *testing.T) {
 	t.Parallel()
 	dir := localDownstreamSyncPlanTestDir(t)
 	impactReport := filepath.Join(dir, "impact.md")
-	output := filepath.Join(dir, "release", "downstream-sync", "latest.md")
+	outputRel := relativeFromRepoRoot(t, filepath.Join(dir, "release", "downstream-sync", "latest.md"))
 	workspaceRoot := filepath.Join(dir, "workspace")
 	if err := os.WriteFile(impactReport, []byte(requiredDownstreamImpactReportFixture()), 0o644); err != nil {
 		t.Fatalf("write impact report fixture: %v", err)
@@ -22,7 +22,7 @@ func TestRunDownstreamSyncPlanWritesRequiredPlan(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	code := runDownstreamSyncPlan([]string{
 		"--impact-report", impactReport,
-		"--output", output,
+		"--output", outputRel,
 		"--workspace-root", workspaceRoot,
 	}, &stdout, &stderr)
 	if code != 0 {
@@ -34,7 +34,8 @@ func TestRunDownstreamSyncPlanWritesRequiredPlan(t *testing.T) {
 	if !strings.Contains(stdout.String(), `"status": "passed"`) {
 		t.Fatalf("stdout missing passed report: %s", stdout.String())
 	}
-	data, err := os.ReadFile(output)
+	outputAbs := filepath.Join(dir, "release", "downstream-sync", "latest.md")
+	data, err := os.ReadFile(outputAbs)
 	if err != nil {
 		t.Fatalf("read output: %v", err)
 	}
@@ -59,17 +60,18 @@ func TestRunDownstreamSyncPlanWritesNotRequiredPlan(t *testing.T) {
 	t.Parallel()
 	dir := localDownstreamSyncPlanTestDir(t)
 	impactReport := filepath.Join(dir, "impact.md")
-	output := filepath.Join(dir, "latest.md")
+	outputRel := relativeFromRepoRoot(t, filepath.Join(dir, "latest.md"))
 	if err := os.WriteFile(impactReport, []byte(notRequiredDownstreamImpactReportFixture()), 0o644); err != nil {
 		t.Fatalf("write impact report fixture: %v", err)
 	}
 
 	var stdout, stderr bytes.Buffer
-	code := runDownstreamSyncPlan([]string{"--impact-report", impactReport, "--output", output}, &stdout, &stderr)
+	code := runDownstreamSyncPlan([]string{"--impact-report", impactReport, "--output", outputRel}, &stdout, &stderr)
 	if code != 0 {
 		t.Fatalf("runDownstreamSyncPlan returned %d; stderr=%s stdout=%s", code, stderr.String(), stdout.String())
 	}
-	data, err := os.ReadFile(output)
+	outputAbs := filepath.Join(dir, "latest.md")
+	data, err := os.ReadFile(outputAbs)
 	if err != nil {
 		t.Fatalf("read output: %v", err)
 	}
@@ -217,40 +219,49 @@ func TestRunDispatchesDownstreamSyncPlan(t *testing.T) {
 	t.Parallel()
 	dir := localDownstreamSyncPlanTestDir(t)
 	impactReport := filepath.Join(dir, "impact.md")
-	output := filepath.Join(dir, "latest.md")
+	outputRel := relativeFromRepoRoot(t, filepath.Join(dir, "latest.md"))
 	if err := os.WriteFile(impactReport, []byte(requiredDownstreamImpactReportFixture()), 0o644); err != nil {
 		t.Fatalf("write impact report fixture: %v", err)
 	}
 
 	var stdout, stderr bytes.Buffer
-	code := run([]string{"downstream-sync-plan", "--impact-report", impactReport, "--output", output}, strings.NewReader(""), &stdout, &stderr)
+	code := run([]string{"downstream-sync-plan", "--impact-report", impactReport, "--output", outputRel}, strings.NewReader(""), &stdout, &stderr)
 	if code != 0 {
 		t.Fatalf("run returned %d; stderr=%s stdout=%s", code, stderr.String(), stdout.String())
 	}
-	if _, err := os.Stat(output); err != nil {
+	outputAbs := filepath.Join(dir, "latest.md")
+	if _, err := os.Stat(outputAbs); err != nil {
 		t.Fatalf("output missing: %v", err)
 	}
 }
 
+// localDownstreamSyncPlanTestDir 返回基于 repo root 的绝对路径，
+// 避免并行测试中 chdir 导致相对路径解析失败。
 func localDownstreamSyncPlanTestDir(t *testing.T) string {
 	t.Helper()
+	root := repoRoot(t)
 	name := strings.NewReplacer("/", "_", "\\", "_", " ", "_", ":", "_").Replace(t.Name())
-	parent := ".downstream-sync-plan-test"
-	if err := os.MkdirAll(parent, 0o755); err != nil {
-		t.Fatalf("create parent test dir %s: %v", parent, err)
-	}
-	dir := filepath.Join(parent, name)
-	if err := os.RemoveAll(dir); err != nil {
-		t.Fatalf("remove stale downstream sync plan test dir: %v", err)
-	}
+	dir := filepath.Join(root, ".downstream-sync-plan-test", name)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
-		t.Fatalf("create local test dir %s: %v", dir, err)
+		t.Fatalf("create test dir %s: %v", dir, err)
 	}
 	t.Cleanup(func() {
 		_ = os.RemoveAll(dir)
-		_ = os.Remove(parent)
+		_ = os.Remove(filepath.Dir(dir))
 	})
 	return dir
+}
+
+// relativeFromRepoRoot 将绝对路径转换为相对于 repo root 的路径，
+// 用于传递给要求 repository-relative 路径的命令。
+func relativeFromRepoRoot(t *testing.T, abs string) string {
+	t.Helper()
+	root := repoRoot(t)
+	rel, err := filepath.Rel(root, abs)
+	if err != nil {
+		t.Fatalf("compute relative path from %s to %s: %v", root, abs, err)
+	}
+	return rel
 }
 
 func requiredDownstreamImpactReportFixture() string {

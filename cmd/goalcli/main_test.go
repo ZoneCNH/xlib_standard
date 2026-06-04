@@ -1641,7 +1641,7 @@ func TestCommandRegistryRequiresFullCommandSurface(t *testing.T) {
 		statusFixture := commandImplementationStatusFixture()
 		statusFixture = strings.Replace(statusFixture, "      - version\n", "", 1)
 		writeTestFiles(t, root, map[string]string{
-			".agent/registries/command-registry.yaml":             commandRegistryFixture(""),
+			".agent/registries/command-registry.yaml":              commandRegistryFixture(""),
 			".agent/registries/command-implementation-status.yaml": statusFixture,
 		})
 		chdir(t, root)
@@ -1661,7 +1661,7 @@ func TestCommandRegistryRequiresFullCommandSurface(t *testing.T) {
 		writeValidAgentIndexFixture(t, root)
 		statusFixture := "schema_version: \"1.0\"\ngroups:\n  - id: test_group\n    implementation_status: dry_run_ready\n    release_usable: \"true\"\n    execution_status: passed\n    commands:\n      - version\n"
 		writeTestFiles(t, root, map[string]string{
-			".agent/registries/command-registry.yaml":             commandRegistryFixture(""),
+			".agent/registries/command-registry.yaml":              commandRegistryFixture(""),
 			".agent/registries/command-implementation-status.yaml": statusFixture,
 		})
 		chdir(t, root)
@@ -1681,7 +1681,7 @@ func TestCommandRegistryRequiresFullCommandSurface(t *testing.T) {
 		writeValidAgentIndexFixture(t, root)
 		ctxFixture := "schema_version: \"2.9.3\"\ncontexts:\n  local_write:\n    write_scope: worktree\n  local_readonly:\n    write_scope: read_only\n"
 		writeTestFiles(t, root, map[string]string{
-			".agent/registries/command-registry.yaml":  commandRegistryFixture(""),
+			".agent/registries/command-registry.yaml": commandRegistryFixture(""),
 			".agent/policies/execution-context.yaml":  ctxFixture,
 		})
 		chdir(t, root)
@@ -3110,13 +3110,13 @@ func commandRegistryFixture(extra string) string {
 func writeValidAgentIndexFixture(t *testing.T, root string) {
 	t.Helper()
 	files := map[string]string{
-		".agent/registries/generated-artifacts.yaml":  validGeneratedArtifactsFixture(),
-		".agent/harness/harness.yaml":                 validHarnessAliasFixture(),
-		".agent/index.yaml":                           validAgentIndexFixture(),
-		".agent/rules/registry.yaml":                  validRulesRegistryFixture("goalcli version"),
-		".agent/rules/agent-runtime-rules.md":         "fixture\n",
-		".agent/rules/core-rules.md":                  "fixture\n",
-		".agent/rules/schema-registry-rules.md":       "fixture\n",
+		".agent/registries/generated-artifacts.yaml":           validGeneratedArtifactsFixture(),
+		".agent/harness/harness.yaml":                          validHarnessAliasFixture(),
+		".agent/index.yaml":                                    validAgentIndexFixture(),
+		".agent/rules/registry.yaml":                           validRulesRegistryFixture("goalcli version"),
+		".agent/rules/agent-runtime-rules.md":                  "fixture\n",
+		".agent/rules/core-rules.md":                           "fixture\n",
+		".agent/rules/schema-registry-rules.md":                "fixture\n",
 		".agent/registries/command-implementation-status.yaml": commandImplementationStatusFixture(),
 		".agent/policies/execution-context.yaml":               executionContextFixture(),
 	}
