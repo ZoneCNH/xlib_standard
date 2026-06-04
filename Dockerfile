@@ -37,10 +37,14 @@ RUN apt-get update \
       xz-utils \
     && rm -rf /var/lib/apt/lists/*
 
+# golangci-lint: 使用预编译二进制，避免 go install 下载大量传递依赖导致超时
+RUN curl -sSfL https://github.com/golangci/golangci-lint/releases/download/${GOLANGCI_LINT_VERSION}/golangci-lint-${GOLANGCI_LINT_VERSION#v}-linux-amd64.tar.gz \
+    | tar -xz --strip-components=1 -C /usr/local/bin golangci-lint-${GOLANGCI_LINT_VERSION#v}-linux-amd64/golangci-lint
+
+# govulncheck: v1.2.0+ 要求 Go >= 1.25，Go 1.23 环境使用 v1.1.4（兼容 go 1.22+）
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@${GOLANGCI_LINT_VERSION} \
-    && go install golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}
+    go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
 
 WORKDIR /workspace
 

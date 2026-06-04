@@ -1,7 +1,7 @@
 {
   "status": "passed",
   "mode": "static",
-  "context": "release_verify",
+  "context": "unset",
   "gowork": "off",
   "docker_cli": "Docker version 29.5.0, build 98f1464",
   "docker_daemon": "available",
