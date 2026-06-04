@@ -48,6 +48,8 @@ RUN --mount=type=cache,target=/var/cache/apt \
       jq \
       make \
       openssh-client \
+      python3 \
+      python3-yaml \
       tar \
       xz-utils \
     && git config --global --add safe.directory /workspace
