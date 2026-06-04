@@ -158,6 +158,18 @@ goalcli MVA commands 是由 `.agent/harness/harness.yaml` 背书的本地 `cmd/g
 - 只有显式传入 `--write-evidence` 时，命令才会写入 `.agent/evidence/ledger.jsonl`。
 - `goal-runtime-final --write-evidence` 只有在 source ledger 已存在同一 `GOAL_ID` 的五个 prerequisite entries 后，才会写入 generated evidence pack。
 
+## GoalCLI 同步契约
+
+`goalcli` 整套体系必须作为同一个 contract surface 同步。新增、重命名、删除或改变任一命令语义时，同一变更必须同步以下权威面：`cmd/goalcli/main.go` 的 dispatch 与 usage、`cmd/goalcli/main_test.go` 的契约测试、`Makefile` 的 `GOALCLI` gate 路由、`.agent/registries/command-registry.yaml`、`.agent/registries/command-implementation-status.yaml`、`.agent/registries/makefile-baseline.yaml`、`.agent/registries/makefile-target-registry.yaml`、`.agent/harness/harness.yaml`、`.agent/harness/gates.md`、`contracts/goalcli-report.schema.json`、本文件、`.agent/docs/standard/goalcli-mapping.md` 和 `internal/goalcli/README.md`。
+
+`docs-check` 是该同步契约的 drift guard：它必须检查上述 surface 的存在、关键命令锚点和 `GoalCLI 同步契约` 文档锚点。同步完成后至少运行：
+
+- `GOWORK=off go test ./cmd/goalcli`
+- `GOWORK=off make docs-check`
+- `GOWORK=off make command-registry`
+- `GOWORK=off make makefile-baseline`
+- `GOWORK=off make cli-contract`
+
 ## 执行约束
 
 - `--dry-run` 只能执行本地 contract、manifest 或 patch planning 检查。

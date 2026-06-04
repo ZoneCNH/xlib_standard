@@ -84,6 +84,40 @@ func TestUsageDocumentsCommandRegistryRequiredCommands(t *testing.T) {
 	}
 }
 
+func TestGoalCLISyncContractDocumentsRequiredSurfaces(t *testing.T) {
+	root := repoRoot(t)
+	files := map[string][]string{
+		"docs/standard/goalcli-cli-contract.md": {
+			"GoalCLI 同步契约",
+			"cmd/goalcli/main.go",
+			".agent/registries/command-implementation-status.yaml",
+			"GOWORK=off make docs-check",
+			"GOWORK=off make command-registry",
+		},
+		".agent/docs/standard/goalcli-mapping.md": {
+			"GoalCLI 同步契约",
+			".agent/registries/command-registry.yaml",
+			".agent/harness/harness.yaml",
+			"Makefile",
+		},
+		"internal/goalcli/README.md": {
+			"GoalCLI 同步契约",
+			"cmd/goalcli",
+			"docs-check",
+			"cmd/goalcli/main_test.go",
+		},
+	}
+
+	for path, needles := range files {
+		text := readText(t, filepath.Join(root, filepath.FromSlash(path)))
+		for _, needle := range needles {
+			if !strings.Contains(text, needle) {
+				t.Fatalf("%s missing %q", path, needle)
+			}
+		}
+	}
+}
+
 func TestUsageDocumentsDebtEvidenceCommandsAndHelpers(t *testing.T) {
 	for _, needle := range []string{
 		"\n  debt-evidence",
