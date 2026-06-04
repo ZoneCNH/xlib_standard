@@ -21,10 +21,13 @@ ENV CGO_ENABLED=1 \
     XLIB_CONTEXT=docker_toolchain \
     GOPATH=/go \
     GOCACHE=/root/.cache/go-build \
+    GOPROXY=https://goproxy.cn,https://proxy.golang.org,direct \
     GOLANGCI_LINT_VERSION=${GOLANGCI_LINT_VERSION} \
     GOVULNCHECK_VERSION=${GOVULNCHECK_VERSION}
 
-RUN apt-get update \
+RUN --mount=type=cache,target=/var/cache/apt \
+    --mount=type=cache,target=/var/lib/apt/lists \
+    apt-get update \
     && apt-get install -y --no-install-recommends \
       bash \
       ca-certificates \
@@ -35,16 +38,13 @@ RUN apt-get update \
       openssh-client \
       tar \
       xz-utils \
-    && rm -rf /var/lib/apt/lists/*
+    && git config --global --add safe.directory /workspace
 
-# golangci-lint: 使用预编译二进制，避免 go install 下载大量传递依赖导致超时
-RUN curl -sSfL https://github.com/golangci/golangci-lint/releases/download/${GOLANGCI_LINT_VERSION}/golangci-lint-${GOLANGCI_LINT_VERSION#v}-linux-amd64.tar.gz \
-    | tar -xz --strip-components=1 -C /usr/local/bin golangci-lint-${GOLANGCI_LINT_VERSION#v}-linux-amd64/golangci-lint
-
-# govulncheck: v1.2.0+ 要求 Go >= 1.25，Go 1.23 环境使用 v1.1.4（兼容 go 1.22+）
-RUN --mount=type=cache,target=/go/pkg/mod \
-    --mount=type=cache,target=/root/.cache/go-build \
-    go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
+# ── 预编译工具：从本地缓存目录复制（零下载）─────────────────
+# 构建前先运行: make docker-prefetch
+# 然后: docker buildx build --build-context tools=.cache/docker-tools .
+COPY --from=tools /bin/golangci-lint /usr/local/bin/golangci-lint
+COPY --from=tools /bin/govulncheck  /usr/local/bin/govulncheck
 
 WORKDIR /workspace
 
