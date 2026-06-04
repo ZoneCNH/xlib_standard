@@ -11,12 +11,11 @@ ARG GOVULNCHECK_VERSION=v1.3.0
 FROM ${GO_BASE_IMAGE} AS tools
 ARG GOLANGCI_LINT_VERSION
 ARG GOVULNCHECK_VERSION
-RUN --mount=type=cache,target=/go/pkg/mod \
-    --mount=type=cache,target=/root/.cache/go-build \
-    go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@${GOLANGCI_LINT_VERSION} \
+ENV GOTOOLCHAIN=auto
+RUN curl -sSfL "https://github.com/golangci/golangci-lint/releases/download/${GOLANGCI_LINT_VERSION}/golangci-lint-${GOLANGCI_LINT_VERSION}-linux-amd64.tar.gz" \
+      | tar -xz --strip-components=1 -C /usr/local/bin golangci-lint-${GOLANGCI_LINT_VERSION}-linux-amd64/golangci-lint \
     && go install golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION} \
-    && cp "$(go env GOPATH)/bin/golangci-lint" /bin/golangci-lint \
-    && cp "$(go env GOPATH)/bin/govulncheck" /bin/govulncheck
+    && cp "$(go env GOPATH)/bin/govulncheck" /usr/local/bin/govulncheck
 
 FROM ${GO_BASE_IMAGE} AS toolchain
 
