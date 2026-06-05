@@ -357,7 +357,7 @@ files:
     mutability: hand_written
     owner: governance
     validator: evidence-check
-    purpose: L2 标准使用修复 Goal 执行证据。
+    purpose: L2 standard-usage fix Goal 执行证据。
   - path: .agent/evidence/README.md
     layer: evidence
     authority: source_of_truth
