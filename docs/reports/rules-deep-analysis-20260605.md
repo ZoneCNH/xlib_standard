@@ -1,272 +1,207 @@
-# `.agent/rules/` 深度分析报告（事实核对修订版）
-
-> 修订日期: 2026-06-05  
-> 分析范围: `.agent/rules/` 当前内容；仅修订本报告，不修改 `.agent/rules/` 规则源文件。  
-> 核对命令: `find .agent/rules -maxdepth 1 -type f | sort`、`wc -l .agent/rules/*`、`python3 scripts/verify_rules.py`、`rg`。
+# .agent/rules/ 深度分析报告（事实核对修订版）
 
----
+日期：2026-06-05
 
-## 0. 本次修订结论
+分析范围：`.agent/rules/` 当前版本、与规则生成/校验强相关的 `README.md`、`.agent/registries/generated-artifacts.yaml`、`scripts/verify_rules.py`。
 
-原报告中的部分判断已与当前仓库事实不符，需要纠正：
+本报告是在隔离 worktree `codex/rules-report-fix-20260605T062208Z` 中经 Agent Team 初修后做的 leader 终审版。目标不是重写规则，而是核对原报告结论，删除错误判断，保留能被当前仓库证据支撑的问题和修复顺序。
 
-- **纠正**: `.agent/rules/registry.yaml` 当前存在，且包含 `total_rules: 419`、`p0_count: 119`、`p1_count: 300`、`active_count: 363`、`indexed_count: 56`；“registry.yaml 缺失”不是当前问题。
-- **纠正**: `.agent/rules/README.md` 当前文件树使用现有文件名（如 `core-rules.md`、`schema-registry-rules.md`、`agent-runtime-rules.md`），未发现原报告所称 `00-index.md` / `01-core-rules.md` 数字前缀推荐段落；“命名体系不一致”不是当前可复现问题。
-- **保留但降级**: `goal-rules.md` 与 `iron-rules.md` / `core-rules.md` 存在明显重复，但 `scripts/render_domain_rules.py` 明确允许域文件重复引用 `RULE-CORE-001..006` 作为锚点；因此它更像可维护性债务，不应直接定性为 P0/P1 的规则冲突。
-- **保留**: `agent-runtime-rules.md` 的 `RULE-GOALCLI-EXIT-001` 退出码叙述仍与 `iron-rules.md` 标准退出码不一致，属于最高优先级的真实问题。
-- **保留**: 三个机器渲染文件体量大、`.worktree/goal-patch.md` 源引用在当前 worktree 不存在、部分手写规则文件较薄、手写文件间交叉引用不足，均为真实但优先级不同的问题。
+## 0. 终审结论
 
----
+原报告中最严重的两类结论需要下调或删除：
 
-## 1. 当前文件清单与规模
+- “`.agent/rules/registry.yaml` 缺失 / 治理索引不存在”是错误结论。当前目录存在 `.agent/rules/registry.yaml`，且 `python3 scripts/verify_rules.py` 可读取并通过校验。
+- “需要恢复 `00-index.md`、`01-core-rules.md` 等数字前缀文件名”是错误方向。当前 README 已声明真实树为 `README.md`、`registry.yaml`、`core-rules.md`、`schema-registry-rules.md`、`agent-runtime-rules.md` 等非数字前缀文件。
 
-`.agent/rules/` 当前包含 16 个 Markdown 规则/索引文件，合计 4818 行；另有 2 个 YAML 机器化数据文件，合计 3869 行。
+当前真实问题按风险排序如下：
 
-### 1.1 Markdown 文件
+1. **[P1] 退出码语义在不同规则文档之间漂移**：`iron-rules.md` 作为铁律表，与生成出的规则条目对 exit code 2、5、6、8、9、10 的含义不一致；`RULE-GOALCLI-EXIT-001` 还额外定义了铁律表未定义的 3、4。
+2. **[P1] 生成产物清单把规则生成器误标为 `goalcli rules-verify`**：当前 README 和生成文件头部指向 `scripts/extract_rules.py`、`scripts/render_domain_rules.py`，而 generated-artifacts 清单写成 `goalcli rules-verify`，这会误导后续治理自动化。
+3. **[P2] 生成文档中残留历史路径 `07-worktree-rules.md`**：当前真实文件是 `.agent/rules/worktree-rules.md`，但若干生成文档仍引用旧命名。
+4. **[P2] 规则文档体量集中在生成文件，人工维护面不应直接拆改**：应修源数据或生成器，而不是手工切开 generated Markdown。
+5. **[P3] 小型人工规则文件存在局部重复和可合并空间**：可整理，但没有证据支持“60% 可删除”这类强结论。
 
-| 文件 | 行数 | 类型 | 说明 |
-| --- | ---: | --- | --- |
-| `README.md` | 77 | 索引 | 权威顺序、生成流程、覆盖率说明 |
-| `iron-rules.md` | 49 | **SSOT** | 七律、标准退出码、P0 Gap 说明 |
-| `core-rules.md` | 1008 | 机器渲染 | Core/Context/State/SSOT/ID/Mode 等 |
-| `schema-registry-rules.md` | 1118 | 机器渲染 | Schema/Registry/Goal Pack/Migration 等 |
-| `agent-runtime-rules.md` | 1640 | 机器渲染 | Agent 运行时、goalcli、治理/度量等 |
-| `goal-rules.md` | 452 | 手写 | Goal 对象模型全生命周期 |
-| `worktree-rules.md` | 45 | 手写 | Worktree |
-| `commit-rules.md` | 43 | 手写 | Commit |
-| `pr-rules.md` | 43 | 手写 | PR |
-| `evidence-rules.md` | 49 | 手写 | Evidence |
-| `release-rules.md` | 60 | 手写 | Release |
-| `harness-rules.md` | 57 | 手写 | Harness |
-| `security-rules.md` | 39 | 手写 | Security |
-| `issue-rules.md` | 36 | 手写 | Issue |
-| `risk-decision-rules.md` | 51 | 手写 | Risk/Decision/Rollback |
-| `self-improving-rules.md` | 51 | 手写 | Retrospective/Self-improving |
+## 1. 当前目录事实
 
-**规模分布**: 3 个机器渲染 Markdown 文件占 3766 行（约 78%）；11 个手写 Markdown 文件占 935 行（约 19%）；`README.md` 占 77 行（约 2%）。
+`.agent/rules/` 当前共有 18 个文件：16 个 Markdown、2 个 YAML。
 
-### 1.2 YAML 文件
+核心文件：
 
-| 文件 | 行数 | 类型 | 当前事实 |
-| --- | ---: | --- | --- |
-| `registry.yaml` | 3798 | 机器化索引 | 存在；`total_rules: 419`、`p0_count: 119`、`p1_count: 300`、`active_count: 363`、`indexed_count: 56` |
-| `enforcement-normalization.yaml` | 71 | 归一化数据 | 存在；用于 enforcement/规则机器化辅助 |
+- `.agent/rules/README.md`
+- `.agent/rules/registry.yaml`
+- `.agent/rules/enforcement-normalization.yaml`
+- `.agent/rules/iron-rules.md`
+- `.agent/rules/core-rules.md`
+- `.agent/rules/schema-registry-rules.md`
+- `.agent/rules/agent-runtime-rules.md`
+- `.agent/rules/goal-rules.md`
+- `.agent/rules/worktree-rules.md`
+- `.agent/rules/commit-rules.md`
+- `.agent/rules/pr-rules.md`
+- `.agent/rules/evidence-rules.md`
+- `.agent/rules/release-rules.md`
+- `.agent/rules/harness-rules.md`
+- `.agent/rules/security-rules.md`
+- `.agent/rules/issue-rules.md`
+- `.agent/rules/risk-decision-rules.md`
+- `.agent/rules/self-improving-rules.md`
 
----
+行数分布：
 
-## 2. 真实问题与证据
+| 类别 | 文件 | 行数 |
+| --- | --- | ---: |
+| 生成 registry | `registry.yaml` | 3798 |
+| 生成归档/域文档 | `core-rules.md`、`schema-registry-rules.md`、`agent-runtime-rules.md` | 3766 |
+| 规范化清单 | `enforcement-normalization.yaml` | 71 |
+| README | `README.md` | 77 |
+| 铁律 | `iron-rules.md` | 49 |
+| 人工小型规则文档 | `goal-rules.md` 等 11 个文件 | 926 |
 
-### 2.1 [P0] `RULE-GOALCLI-EXIT-001` 退出码叙述与 `iron-rules.md` 标准退出码冲突
+Markdown 总计 4818 行，YAML 总计 3869 行，目录总计 8687 行。体量主要来自生成文件，这是维护策略问题，不是单纯“文档太长就错误”。
 
-`iron-rules.md` 是当前权威顺序中的第一位，并明确给出 `goalcli` 与所有 Gate 命令统一遵守的标准退出码：
+## 2. 真实问题
 
-| 退出码 | `iron-rules.md` 含义 |
-| ---: | --- |
-| 0 | OK |
-| 1 | 通用失败 |
-| 2 | 参数错误 |
-| 5 | worktree / main 违规 |
-| 6 | schema 校验失败 |
-| 7 | secret / 凭据泄漏 |
-| 8 | Evidence 缺失或伪造 |
-| 9 | Traceability 断链 |
-| 10 | Release 不完整 |
+### 2.1 [P1] 退出码语义漂移
 
-但 `agent-runtime-rules.md` §84 的 `RULE-GOALCLI-EXIT-001` 文本列出另一套映射：
+证据：
 
-```text
-0  = PASS
-1  = GENERAL_FAILURE
-2  = POLICY_VIOLATION
-3  = SCHEMA_INVALID
-4  = EVIDENCE_MISSING
-5  = TRACEABILITY_BROKEN
-6  = WORKTREE_INVALID
-7  = SECRET_DETECTED
-8  = RELEASE_BLOCKED
-9  = NEEDS_HUMAN_APPROVAL
-10 = INCONSISTENT_STATE
-```
+- `.agent/rules/iron-rules.md:20` 到 `.agent/rules/iron-rules.md:35` 定义铁律退出码表。
+- `.agent/rules/iron-rules.md:41` 明确 Traceability Gate 应返回 exit 9。
+- `.agent/rules/agent-runtime-rules.md:421` 到 `.agent/rules/agent-runtime-rules.md:447` 的 `RULE-GOALCLI-EXIT-001` 定义另一组 exit code 语义。
+- `.agent/rules/README.md:62` 声明 `exit_code` 字段应参见 `iron-rules.md`。
+- `.agent/rules/registry.yaml:2402` 到 `.agent/rules/registry.yaml:2404` 保留生成后的 `RULE-GOALCLI-EXIT-001` 条目。
 
-**冲突点**: 退出码 `2`、`5`、`6`、`8`、`9`、`10` 的语义与 `iron-rules.md` 不一致。例如 `iron-rules.md` 中 `5 = worktree / main 违规`，而 `RULE-GOALCLI-EXIT-001` 文本中 `5 = TRACEABILITY_BROKEN`。
+主要差异：
 
-**影响**: `agent-runtime-rules.md` 是机器渲染规则文件，读者或实现者可能按 §84 文本实现/判断退出码，导致 Makefile、Hooks、CI、Agent 串接语义与 SSOT 不一致。
+| exit code | `iron-rules.md` 含义 | `RULE-GOALCLI-EXIT-001` 含义 | 判断 |
+| --- | --- | --- | --- |
+| 0 | OK | PASS | 兼容 |
+| 1 | 通用失败 | GENERAL_FAILURE | 兼容 |
+| 2 | 参数错误 | POLICY_VIOLATION | 冲突 |
+| 3 | 未定义 | SCHEMA_INVALID | 额外定义 |
+| 4 | 未定义 | EVIDENCE_MISSING | 额外定义 |
+| 5 | worktree / main 违规 | TRACEABILITY_BROKEN | 冲突 |
+| 6 | schema 校验失败 | WORKTREE_INVALID | 冲突 |
+| 7 | secret / 凭据泄漏 | SECRET_DETECTED | 兼容 |
+| 8 | Evidence 缺失或伪造 | RELEASE_BLOCKED | 冲突 |
+| 9 | Traceability 断链 | NEEDS_HUMAN_APPROVAL | 冲突 |
+| 10 | Release 不完整 | INCONSISTENT_STATE | 冲突 |
 
-**建议**:
+这不是当前 P0 阻断，因为 `python3 scripts/verify_rules.py` 仍通过，且所有 active rule 的 `enforced_by` 命令都可解析。但它是 P1：一旦 CLI、CI、Agent 或 release gate 按不同文档解释相同 exit code，失败原因会被误分类。
 
-1. 以 `iron-rules.md` 的“标准退出码”为唯一权威。
-2. 修正 `RULE-GOALCLI-EXIT-001` 的源数据或 `scripts/render_domain_rules.py` 渲染输入，使其文本与 `iron-rules.md` 对齐。
-3. 重跑 `python3 scripts/extract_rules.py` 与 `python3 scripts/render_domain_rules.py`，再运行 `python3 scripts/verify_rules.py` / `make rules-verify`。
+修复建议：
 
----
+- 以 `.agent/rules/iron-rules.md` 为唯一退出码语义来源，或明确将其降级为 “P0 gate exit table”。二者只能选一，不应并存两套无转换关系的表。
+- 修正 registry 源数据中 `RULE-GOALCLI-EXIT-001` 的 `content` / `exit_code` 说明，再重新生成 `registry.yaml` 与域规则 Markdown。
+- 为 `scripts/verify_rules.py` 或新增校验补一条 exit code 一致性检查，至少比较 `README.md` 声明的权威表与 registry 中 exit-code 规则条目。
 
-### 2.2 [P1] `goal-rules.md` 与铁律/核心域规则存在大量重复，但需按“维护性债务”处理
+### 2.2 [P1] 生成产物清单误标生成器
 
-`goal-rules.md` 的“第一性原理铁律”章节重复列出 `RULE-CORE-001` 到 `RULE-CORE-006`；同时还包含 ID、状态机、上下文恢复等与 `core-rules.md` 重叠的内容，例如：
+证据：
 
-- `RULE-ID-001`、`RULE-ID-002`
-- `RULE-STATE-001`、`RULE-STATE-002`、`RULE-STATE-003`
-- `RULE-CONTEXT-001`、`RULE-CONTEXT-002`、`RULE-CONTEXT-003`
+- `.agent/registries/generated-artifacts.yaml:23` 到 `.agent/registries/generated-artifacts.yaml:41` 将 `.agent/rules/registry.yaml`、`core-rules.md`、`schema-registry-rules.md`、`agent-runtime-rules.md` 的 `generated_by` 标为 `goalcli rules-verify`。
+- `.agent/rules/README.md:39` 到 `.agent/rules/README.md:46` 写明生成命令是 `scripts/extract_rules.py` 与 `scripts/render_domain_rules.py`。
+- `.agent/rules/registry.yaml:3` 头部写明由 `scripts/extract_rules.py` 生成。
+- `.agent/rules/core-rules.md:3`、`.agent/rules/schema-registry-rules.md:3`、`.agent/rules/agent-runtime-rules.md:3` 头部写明由 `scripts/render_domain_rules.py` 生成。
+- `scripts/verify_rules.py:2` 的说明是校验 registry 中的 `enforced_by` 命令，不是生成规则文件。
 
-**需修正原报告判断**: 这类重复不应直接等同为“SSOT 违规”。`scripts/render_domain_rules.py` 文件头说明“不重写 `iron-rules.md` 已覆盖的 7 条铁律, 但允许域文件中重复引用 `RULE-CORE-001..006` 作为锚点（`goal-rules.md` 中已有先例）”。这说明部分重复是现有设计承认的导航/锚点重复。
+影响：
 
-**真实风险**:
+- 后续 Agent 或 CI 若按 `generated-artifacts.yaml` 决定再生成命令，会把 verifier 当 generator。
+- 报告、release evidence、自动修复流程可能产生“验证通过但未重建产物”的假阳性。
 
-- 人工维护 `goal-rules.md` 时容易与机器渲染域文件产生叙述漂移。
-- 读者可能分不清“锚点重复”与“独立权威定义”。
-- `goal-rules.md` 452 行中相当一部分用于跨域汇总，导航价值与维护成本需要重新权衡。
+修复建议：
 
-**建议**:
+- 将 `.agent/registries/generated-artifacts.yaml` 中相关条目的 `generated_by` 改为真实脚本。
+- 若项目希望统一经 `goalcli rules-verify` 入口管理，应新增真实的 `goalcli rules-generate` 或 `goalcli rules-sync`，不要把 verify 命令写成 generator。
 
-1. 保留 `goal-rules.md` 的 Goal 生命周期导航定位。
-2. 对重复章节增加明确注记：权威以 `iron-rules.md` / `registry.yaml` / 机器渲染域文件为准，此处为导航锚点。
-3. 若后续重构，优先把重复正文压缩为链接，不直接删除独有内容。
+### 2.3 [P2] 生成文档残留历史文件名
 
----
+证据：
 
-### 2.3 [P1] 机器渲染文件体量过大，影响可读性与审阅粒度
+- `.agent/rules/core-rules.md:738` 引用 `.agent/rules/07-worktree-rules.md`。
+- `.agent/rules/schema-registry-rules.md:218`、`.agent/rules/schema-registry-rules.md:282`、`.agent/rules/schema-registry-rules.md:902` 引用 `.agent/rules/07-worktree-rules.md`。
+- `.agent/rules/agent-runtime-rules.md:580` 引用 `.agent/rules/07-worktree-rules.md`。
+- 当前目录真实文件为 `.agent/rules/worktree-rules.md`。
 
-三个机器渲染 Markdown 文件合计 3766 行：
+影响：
 
-| 文件 | 行数 | 规则范围 |
-| --- | ---: | --- |
-| `agent-runtime-rules.md` | 1640 | Agent 协议、运行时、goalcli、Lease/Heartbeat、治理/度量等 |
-| `schema-registry-rules.md` | 1118 | Schema、Registry、Goal Pack、Migration 等 |
-| `core-rules.md` | 1008 | Core、Context、State、SSOT、ID、Mode 等 |
+- 新贡献者按生成文档追溯规则时会找不到文件。
+- 自动化 traceability 检查若未来启用路径存在性校验，会产生失败。
 
-**真实风险**:
+修复建议：
 
-- `agent-runtime-rules.md` 覆盖子域过多，单次审阅成本高。
-- 机器渲染文件由 `scripts/render_domain_rules.py` 生成，拆分必须同步调整生成逻辑，不能手工拆文件。
-- 大文件使局部变更 diff 不易审阅，但并不表示当前规则内容错误。
+- 找到这些条目的源 registry 或原始规则定义，改为 `.agent/rules/worktree-rules.md` 后重新生成。
+- 若这些引用用于历史迁移说明，应在内容里明确“历史路径”，而不是看起来像当前路径。
 
-**建议**:
+### 2.4 [P2] 生成文件体量集中，维护入口需要更明确
 
-1. 保持当前文件不手工拆分。
-2. 如需拆分，先调整 `scripts/render_domain_rules.py` 的分区规则和 README 文件树。
-3. 候选拆分方向：Agent 协议、goalcli 命令契约、治理/度量/Doctor/Repair。
+`core-rules.md`、`schema-registry-rules.md`、`agent-runtime-rules.md` 合计 3766 行，占 Markdown 规则文件约 78%。它们是生成产物，不应通过手工拆分解决。
 
----
+风险：
 
-### 2.4 [P2] `.worktree/goal-patch.md` 源引用在当前 worktree 不存在，影响考古与再生成可解释性
+- 人工修改 generated Markdown 会与下一次生成冲突。
+- 真正需要维护的是 registry 源、生成脚本、渲染模板和校验策略。
 
-`core-rules.md`、`schema-registry-rules.md`、`agent-runtime-rules.md` 的规则元信息包含 `source: §N Lxxxx`，README 也说明这些 derived artifacts 来自 `.worktree/goal-patch.md`。
+修复建议：
 
-当前 worktree 中未找到 `.worktree/goal-patch.md`。
+- 在 README 中把“人改哪里 / 机器生成哪里 / 如何重建 / 如何验证”写成明确流程。
+- 对 generated Markdown 增加更醒目的头部约束：不要手改，改源数据后重新生成。
 
-**需修正原报告判断**: README 已明确 `.worktree/goal-patch.md` 是“历史推导，**仅供考古，不可作为依据**”。因此它缺失不直接削弱当前规则权威；当前权威仍是 `iron-rules.md` 与 `registry.yaml`。
+### 2.5 [P3] 小型人工规则文档可做轻量去重
 
-**真实风险**:
+`commit-rules.md`、`pr-rules.md`、`evidence-rules.md`、`release-rules.md`、`harness-rules.md`、`security-rules.md`、`issue-rules.md`、`risk-decision-rules.md`、`self-improving-rules.md`、`worktree-rules.md` 等文件短小，部分与 registry/铁律存在重复表述。
 
-- 后续重跑 `scripts/extract_rules.py` / `scripts/render_domain_rules.py` 时，若缺少源文档，生成链路可复现性不足。
-- `source: §N Lxxxx` 的行号证据只能作为历史线索，不能作为当前审计证据。
+当前只能定为 P3，因为缺少逐条重复率证据。建议后续用 rule ID 和段落相似度做量化，再决定是否合并。不要直接按“删除 60%”执行。
 
-**建议**:
+## 3. 对原报告建议的修正
 
-1. README 中保留“仅供考古，不可作为依据”的提示。
-2. 若项目仍要求再生成能力，应补齐源文件或在 README 中记录新的生成源位置。
-3. 审计报告引用规则事实时，优先引用当前 `.agent/rules/*.md` 与 `registry.yaml`，不要依赖 `.worktree/goal-patch.md` 行号。
+应删除或改写的建议：
 
----
+- 删除“补建 `.agent/rules/registry.yaml`”建议；该文件存在。
+- 删除“恢复数字前缀规则文档”建议；当前 README 与目录结构都不支持这种命名。
+- 删除“把退出码问题列为 P0 且声明当前规则系统不可用”的说法；当前 verifier 通过，问题是语义漂移而非现时不可执行。
+- 删除“立即删除 60% 内容”的说法；没有量化证据，且多数体量来自 generated 文件。
+- 删除“直接手工拆分 generated Markdown”的方向；应修源数据/生成器再重建。
 
-### 2.5 [P2] 手写规则文件较薄，且交叉引用不足
+应保留并重排的建议：
 
-多个手写文件只有 3-5 条规则、36-60 行，例如：
+- 保留 exit code 一致性修复，但优先级调整为 P1。
+- 保留路径漂移修复，但定位为 P2。
+- 保留维护入口清晰化，但应围绕 generated/source contract，而不是围绕文件名重排。
 
-- `issue-rules.md`: 36 行
-- `security-rules.md`: 39 行
-- `commit-rules.md`: 43 行
-- `pr-rules.md`: 43 行
+## 4. 建议修复顺序
 
-**真实风险**:
+1. 修 `.agent/registries/generated-artifacts.yaml` 的 `generated_by` 字段，避免自动化继续使用错误入口。
+2. 修 registry 源数据中的 exit code 规则，与 `iron-rules.md` 或新指定的唯一权威表对齐。
+3. 重新生成 `.agent/rules/registry.yaml` 与域规则 Markdown。
+4. 为 exit code 语义增加一致性校验，防止再次漂移。
+5. 修正 `07-worktree-rules.md` 历史路径引用。
+6. 最后再做人工小规则文件的去重和 README 流程补强。
 
-- 文件粒度较细，导航时需要频繁跳转。
-- 跨域关系不够显式，例如 PR、Evidence、Release、Harness、Security 之间存在实际依赖，但手写文件中的相互链接不充分。
+## 5. 验证证据
 
-**建议**:
-
-1. 不建议仅因文件短而合并；“一个域一个文件”仍有清晰边界价值。
-2. 优先增加“相关规则”链接，而不是合并文件。
-3. 示例：`pr-rules.md` 链接 `evidence-rules.md` / `harness-rules.md`，`release-rules.md` 链接 `evidence-rules.md` / `risk-decision-rules.md`。
-
----
-
-## 3. 已纠正的原报告错误结论
-
-### 3.1 “registry.yaml 缺失”已证伪
-
-当前 `.agent/rules/registry.yaml` 存在，`wc -l` 为 3798 行；解析得到：
-
-```text
-total_rules = 419
-p0_count = 119
-p1_count = 300
-active_count = 363
-indexed_count = 56
-```
-
-因此原报告中的 P0“确认 registry.yaml 状态 / 如缺失重新生成”应改为：
-
-- **当前无需按缺失处理**。
-- 后续如修改规则源，仍应运行 `python3 scripts/extract_rules.py`、`python3 scripts/render_domain_rules.py` 和 `python3 scripts/verify_rules.py`。
-
-### 3.2 “文件命名不一致 / README 推荐数字前缀”未复现
-
-当前 `.agent/rules/README.md` 文件树列出的就是现有命名：
-
-- `core-rules.md`
-- `schema-registry-rules.md`
-- `agent-runtime-rules.md`
-- `goal-rules.md`
-- 以及各手写 `*-rules.md`
-
-未在当前 README 中发现原报告所称数字前缀结构。因此原 P2“统一命名体系”建议应删除，避免引入不必要的大规模重命名风险。
-
----
-
-## 4. 修订后优先级排序
-
-| 优先级 | 动作 | 影响 | 工作量 | 状态 |
-| --- | --- | --- | --- | --- |
-| P0 | 修正 `RULE-GOALCLI-EXIT-001` 退出码叙述，使其与 `iron-rules.md` 对齐 | 消除实现/CI/Agent 退出码歧义 | 低-中；需改源或渲染链路后重跑 | 真实问题 |
-| P1 | 为 `goal-rules.md` 重复章节增加“导航锚点，非独立权威”说明，或压缩为链接 | 降低 SSOT 漂移风险 | 中；只应在规则文档任务中修改 | 真实问题 |
-| P1 | 评估机器渲染文件拆分，并先改 `scripts/render_domain_rules.py` 分区逻辑 | 提升审阅性 | 中-高；涉及生成链路 | 真实问题 |
-| P2 | 处理 `.worktree/goal-patch.md` 源引用缺失的可复现性说明 | 提升考古/再生成可解释性 | 低-中 | 真实问题 |
-| P2 | 为手写规则文件增加跨域“相关规则”链接 | 提升可发现性 | 低 | 真实问题 |
-| 删除 | “registry.yaml 缺失” | 当前事实不成立 | — | 已纠正 |
-| 删除 | “采用数字前缀重命名规则文件” | 当前 README 未支持，且风险高 | — | 已纠正 |
-
----
-
-## 5. 验证记录
-
-本报告修订基于以下命令证据：
+已运行命令：
 
 ```bash
-find .agent/rules -maxdepth 1 -type f | sort
-wc -l .agent/rules/* docs/reports/rules-deep-analysis-20260605.md
-python3 - <<'PY'
-from pathlib import Path
-import yaml
-p = Path('.agent/rules/registry.yaml')
-data = yaml.safe_load(p.read_text())
-print(p.exists())
-print(data['total_rules'], data['p0_count'], data['p1_count'], data['active_count'], data['indexed_count'])
-PY
-rg -n "RULE-GOALCLI-EXIT-001|退出码|POLICY_VIOLATION|WORKTREE_INVALID|SECRET_DETECTED" .agent/rules/agent-runtime-rules.md -C 4
-rg -n "标准退出码|worktree / main|schema 校验失败|Traceability 断链|Release 不完整" .agent/rules/iron-rules.md -C 2
-rg -n "registry.yaml|419|active|00-index|01-core|权威顺序" .agent/rules/README.md -C 2
+rg --files .agent/rules
+wc -l .agent/rules/*
 python3 scripts/verify_rules.py
+rg -n "generated_by|scripts/extract_rules.py|scripts/render_domain_rules.py|rules-verify|07-worktree-rules|RULE-GOALCLI-EXIT-001|exit code|exit_code" .agent/rules .agent/registries/generated-artifacts.yaml README.md scripts/verify_rules.py
 ```
 
----
+关键输出：
 
-## 6. 结论
+```text
+rules total: 419
+rules active: 363
+goalcli subcommands available: 122
+makefile targets available: 116
+all active rules have valid enforced_by commands
+```
 
-`.agent/rules/` 当前规则体系并非缺少 `registry.yaml`，也不需要按数字前缀重命名。当前最重要的真实问题是 `agent-runtime-rules.md` 中 `RULE-GOALCLI-EXIT-001` 的退出码叙述与 `iron-rules.md` 标准退出码冲突；其余问题主要属于维护性、可读性、可复现性和导航优化。
+验证结论：
 
-建议优先修正退出码冲突，再处理 `goal-rules.md` 重复说明与机器渲染文件拆分策略；不要基于已证伪的“registry.yaml 缺失”或“数字前缀命名要求”发起变更。
-
----
-
-_报告结束_
+- 当前 `.agent/rules/registry.yaml` 存在，且 active rule 的 `enforced_by` 命令校验通过。
+- 当前报告已移除“registry 缺失”“恢复数字前缀命名”“P0 不可用”等错误判断。
+- 当前仍保留的 P1/P2/P3 问题均有本地文件证据支撑。
