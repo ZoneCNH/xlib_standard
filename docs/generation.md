@@ -16,6 +16,24 @@ scripts/render_template.sh \
 
 `--out` 必须指向不存在或为空的目录，避免覆盖已有仓库内容。
 
+## Repository Governance Pack
+
+需要把标准治理面落地到下游仓库时，渲染命令必须启用 governance pack：
+
+```bash
+scripts/render_template.sh \
+  --module-name kernel \
+  --module-path github.com/ZoneCNH/kernel \
+  --package-name kernel \
+  --layer L0 \
+  --enable-governance \
+  --standard-version v0.5.0 \
+  --standard-commit "$(git rev-parse HEAD)" \
+  --out ../kernel
+```
+
+`--enable-governance` 必须和 `--layer`、`--standard-version`、`--standard-commit` 同时使用；缺少任一 provenance 字段都会中止渲染。启用后脚本会写入 `xlib-standard.lock`，并在渲染结束前验证 `.githooks/pre-commit`、`.githooks/pre-push`、`.github/workflows/adoption-check.yml`、`.github/rulesets/protect-main.json`、`mk/governance.mk`、`.agent/harness/harness.yaml` 已随下游控制面一起落地。下游仓库必须运行 `GOWORK=off make adoption-check`，证明 Repository Governance Pack、lock、workflow、main ruleset、registry、Makefile target 和 harness gate 没有被裁剪；`mk/governance.mk` 自身也会阻断未设置 `GOWORK=off` 的本地执行。main ruleset 必须禁止 bypass，并要求 `adoption-check`、`governance-check` 和 `release-check`。标准源仓库没有 downstream lock，因此 source-template 的 GitHub workflow 会显式跳过这个 downstream-only gate，渲染后的下游仓库仍会执行 `GOWORK=off make adoption-check`。
+
 ## 渲染范围
 
 - `{{MODULE_NAME}}` 替换为 `--module-name`。
@@ -33,6 +51,7 @@ scripts/render_template.sh \
 
 ```bash
 GOWORK=off make release-check
+GOWORK=off make adoption-check # 仅适用于启用 --enable-governance 的渲染 downstream 仓库
 ```
 
 模板自身的 `make integration` 会渲染三个临时下游库：

@@ -64,31 +64,18 @@ docker-toolchain-check:
 	./scripts/docker/check_toolchain.sh
 
 .PHONY: docker-build
-docker-build: docker-toolchain-check
-	DOCKER_BUILDKIT=1 docker buildx build --load --target toolchain --build-arg GO_VERSION=$${GO_VERSION:-1.23} --build-arg GOLANGCI_LINT_VERSION=$${GOLANGCI_LINT_VERSION:-v2.1.6} --build-arg GOVULNCHECK_VERSION=$${GOVULNCHECK_VERSION:-v1.1.4} --tag $(DOCKER_IMAGE) .
+docker-build:
+	$(DOCKER_GATE) build
+
 
 .PHONY: docker-build-check
 docker-build-check:
 	$(DOCKER_GATE) build-check
 
 .PHONY: docker-shell
-docker-shell: docker-build
-	docker run --rm -it \
-		--workdir /workspace \
-		--volume "$(CURDIR):/workspace" \
-		--volume go-build-cache:/root/.cache/go-build \
-		--volume go-mod-cache:/go/pkg/mod \
-		--env "GOWORK=$${GOWORK:-off}" \
-		--env "XLIB_CONTEXT=$${XLIB_CONTEXT:-docker_toolchain}" \
-		--env "VERSION=$${VERSION:-}" \
-		--env "DOWNSTREAM=$${DOWNSTREAM:-}" \
-		--env "XLIB_ENABLE_VULNCHECK=$${XLIB_ENABLE_VULNCHECK:-}" \
-		--env "CI=$${CI:-}" \
-		--env "GITHUB_ACTIONS=$${GITHUB_ACTIONS:-}" \
-		--env "GIT_CONFIG_COUNT=1" \
-		--env "GIT_CONFIG_KEY_0=safe.directory" \
-		--env "GIT_CONFIG_VALUE_0=/workspace" \
-		$(DOCKER_IMAGE) bash
+docker-shell:
+	$(DOCKER_GATE) shell
+
 
 .PHONY: docker-ci
 docker-ci:
@@ -107,7 +94,9 @@ docker-goalcli:
 	$(DOCKER_GATE) goalcli
 
 .PHONY: docker-goalcli-image
-docker-goalcli-image: docker-build
+docker-goalcli-image:
+	$(DOCKER_GATE) goalcli-image
+
 
 .PHONY: docker-goalcli-version
 docker-goalcli-version:
@@ -118,10 +107,13 @@ docker-runtime-check:
 	$(DOCKER_GATE) runtime-check
 
 .PHONY: docker-drift-check
-docker-drift-check: drift-check
+docker-drift-check:
+	./scripts/docker/check_toolchain.sh --drift
 
 .PHONY: docker-contract
-docker-contract: docker-toolchain-check docker-build-check docker-runtime-check docker-drift-check
+docker-contract:
+	$(DOCKER_GATE) contract
+
 
 .PHONY: dependency-check
 dependency-check:
@@ -183,6 +175,10 @@ downstream-debt:
 .PHONY: downstream-sync-plan
 downstream-sync-plan: standard-impact-check
 	$(GOALCLI) downstream-sync-plan
+
+.PHONY: adoption-check
+adoption-check: require-gowork-off
+	$(GOALCLI) adoption-check --verify
 
 debt:
 	$(GOALCLI) debt --config .agent/policies/debt/rules.yaml --exceptions .agent/policies/debt/exceptions.yaml --dependency-purpose .agent/policies/debt/dependency-purpose.yaml --mode enforce --min-score 9.8
@@ -356,7 +352,7 @@ traceability-check:
 	$(GOALCLI) traceability-check
 
 .PHONY: governance-check
-governance-check: require-gowork-off main-guard worktree-guard evidence-check boundary architecture domain security security-debt contracts docs-check cli-contract issue-registry command-registry makefile-baseline audit-goal rules-consistency-check debt traceability-check
+governance-check: require-gowork-off main-guard worktree-guard evidence-check adoption-check boundary architecture domain security security-debt contracts docs-check cli-contract issue-registry command-registry makefile-baseline audit-goal rules-consistency-check debt traceability-check
 
 .PHONY: rules-consistency-check
 rules-consistency-check:
