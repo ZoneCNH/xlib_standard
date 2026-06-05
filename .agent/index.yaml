@@ -344,6 +344,13 @@ files:
     owner: release
     validator: evidence-check
     purpose: 证据说明。
+  - path: .agent/runs/GOAL-20260605-L2-STANDARD-001/evidence.md
+    layer: evidence
+    authority: source_of_truth
+    mutability: hand_written
+    owner: governance
+    validator: evidence-check
+    purpose: L2 标准 Goal 执行证据。
   - path: .agent/evidence/README.md
     layer: evidence
     authority: source_of_truth

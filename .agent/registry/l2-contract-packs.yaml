@@ -99,6 +99,7 @@ packs:
     required_evidence: [contract_report, retention_report]
     capabilities: [write_points, range_query, tags, retention, downsample]
 extension_backlog:
+  - ttl
   - pipeline
   - lock
   - stream
