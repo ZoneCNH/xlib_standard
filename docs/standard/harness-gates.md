@@ -45,7 +45,9 @@ Full Goal Runtime v3.1 以 `cmd/goalcli` 作为 Go gate runtime。Makefile targe
 
 `.agent/harness/harness.yaml` 的 `proof_depth` 是 gate 证据强度分类，不是额外通过条件。它按 `file_exists`（当前 traceability D3 路径存在性证明）、`command_registered`、`dry_run`、`positive_fixture`、`negative_fixture`、`mutation_fixture`、`live_run`、`evidence_replay`、`downstream_adoption` 递进记录证明深度。弱证明不得升级为强结论：`file_exists` 只证明引用路径可解析，不能替代 fresh gate output、release manifest replay 或 downstream adoption proof。
 
-状态调和以 `docs/standard/truth-state.md` 为上位语义：`declared -> registered`、`scaffolded -> planned`、`dry_run_ready -> dry_run_ready`、`partial_implemented -> partial_implemented`、`implemented -> implemented`、`executed -> executed`、`evidence_verified -> checksum_verified`、`release_usable -> usable`。当报告同时出现状态和 proof depth 时，较弱的一侧限制结论；例如 `traceability-check` 必须报告 `traceability_status=partial_implemented proof_depth=file_exists proof_depth_level=D3 full_lifecycle_graph=gap`，这只表示矩阵 gate 已实现并校验路径级证据，不表示 release evidence 已可 replay，也不表示完整 lifecycle graph 已闭环。
+每个 `required_gates[]` 条目必须显式设置 `required_gates[].proof_depth` 和 `required_gates[].target_depth`。`proof_depth` 表示当前已有证据强度，`target_depth` 表示该 gate 的目标 release/adoption 深度；当前弱证明不会因为目标更高而自动升级。两个字段的值都必须来自同一文件的 `proof_depth.taxonomy`，alias gate 也必须携带显式 metadata，不能静默继承目标 gate 的 proof depth。
+
+状态调和以 `docs/standard/truth-state.md` 为上位语义：`declared -> registered`、`scaffolded -> planned`、`dry_run_ready -> dry_run_ready`、`implemented -> implemented`、`executed -> executed`、`evidence_verified -> checksum_verified`、`release_usable -> usable`。当报告同时出现状态和 proof depth 时，较弱的一侧限制结论；例如 `traceability-check` 可报告 `traceability_status=implemented proof_depth=file_exists`，但这只表示矩阵 gate 已实现并校验路径级证据，不表示 release evidence 已可 replay。
 
 `traceability-check` 的机器化范围是：要求每个 REQ 行的主要产物列非空、验证/Evidence 单元格非空，并校验主要产物与 path-like Evidence 引用存在。Evidence 中的命令名或人工审查说明可保留为文本，不强制当作文件路径解析；凡是看起来像仓库路径的 Evidence token 都必须存在或由受控 gitignore 生成产物规则覆盖。完整 Goal → Req → AC → Task → Issue → Commit → PR → Evidence → Release 图验证仍为 `full_lifecycle_graph=gap`。
 
