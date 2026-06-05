@@ -1,6 +1,7 @@
 package debtcheck
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -186,6 +187,126 @@ func TestRunFailsOnLegacyProductionImport(t *testing.T) {
 	}
 	if !strings.Contains(ToMarkdown(report), "legacy ZoneCNH x module") {
 		t.Fatalf("markdown missing legacy import finding: %s", ToMarkdown(report))
+	}
+}
+
+func TestFindingOptionalMetadataRoundTripAndMarkdown(t *testing.T) {
+	releaseBlocking := false
+	report := Report{
+		SchemaVersion: SchemaVersion,
+		Status:        "warning",
+		Mode:          "warn",
+		Sections: []SectionReport{{
+			Name:   "docs",
+			Status: "warning",
+			P1:     1,
+			Findings: []Finding{{
+				ID:              "debt.docs.marker",
+				Severity:        "P1",
+				Path:            "docs/standard/debt-governance.md",
+				Message:         "documentation debt marker is present",
+				InvariantID:     "INV-DEBT-DOCS-001",
+				ReleaseBlocking: &releaseBlocking,
+				ProofDepth:      "evidence_replay",
+				Owner:           "standard",
+				Expiry:          "2026-07-01",
+				Remediation:     "remove the marker after publishing replacement guidance",
+				Detector:        "debtcheck.scanTextMarker",
+			}},
+		}},
+	}
+
+	data, err := json.Marshal(report)
+	if err != nil {
+		t.Fatal(err)
+	}
+	encoded := string(data)
+	for _, want := range []string{
+		`"invariant_id":"INV-DEBT-DOCS-001"`,
+		`"release_blocking":false`,
+		`"proof_depth":"evidence_replay"`,
+		`"owner":"standard"`,
+		`"expiry":"2026-07-01"`,
+		`"remediation":"remove the marker after publishing replacement guidance"`,
+		`"detector":"debtcheck.scanTextMarker"`,
+	} {
+		if !strings.Contains(encoded, want) {
+			t.Fatalf("encoded report = %s; want %s", encoded, want)
+		}
+	}
+
+	var roundTrip Report
+	if err := json.Unmarshal(data, &roundTrip); err != nil {
+		t.Fatal(err)
+	}
+	finding := roundTrip.Sections[0].Findings[0]
+	if finding.ReleaseBlocking == nil || *finding.ReleaseBlocking != false {
+		t.Fatalf("release_blocking = %v; want explicit false", finding.ReleaseBlocking)
+	}
+	if finding.InvariantID != "INV-DEBT-DOCS-001" || finding.ProofDepth != "evidence_replay" || finding.Owner != "standard" ||
+		finding.Expiry != "2026-07-01" || finding.Remediation == "" || finding.Detector != "debtcheck.scanTextMarker" {
+		t.Fatalf("round-trip finding = %+v; want optional metadata preserved", finding)
+	}
+
+	markdown := ToMarkdown(roundTrip)
+	for _, want := range []string{
+		"invariant_id=INV-DEBT-DOCS-001",
+		"release_blocking=false",
+		"proof_depth=evidence_replay",
+		"owner=standard",
+		"expiry=2026-07-01",
+		"remediation=remove the marker after publishing replacement guidance",
+		"detector=debtcheck.scanTextMarker",
+	} {
+		if !strings.Contains(markdown, want) {
+			t.Fatalf("markdown = %s; want optional metadata %q", markdown, want)
+		}
+	}
+}
+
+func TestReadReportAcceptsFindingsWithoutOptionalMetadata(t *testing.T) {
+	root := t.TempDir()
+	reportPath := filepath.Join(root, "legacy-debt-report.json")
+	writeFile(t, root, "legacy-debt-report.json", `{
+  "schema_version": "debt-report/v1",
+  "status": "warning",
+  "mode": "warn",
+  "active_profile": "xlib-standard-debt-v1",
+  "score": 9.9,
+  "min_score": 9.8,
+  "digests": {},
+  "summary": {"p0": 0, "p1": 1, "p2": 0},
+  "sections": [
+    {
+      "name": "dependency",
+      "status": "warning",
+      "p0": 0,
+      "p1": 1,
+      "p2": 0,
+      "findings": [
+        {
+          "id": "debt.dependency.unpinned-latest",
+          "severity": "P1",
+          "path": "Makefile",
+          "message": "non-documentation file references @latest"
+        }
+      ]
+    }
+  ]
+}`)
+
+	report, err := ReadReport(reportPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	finding := report.Sections[0].Findings[0]
+	if finding.ReleaseBlocking != nil || finding.InvariantID != "" || finding.ProofDepth != "" || finding.Owner != "" ||
+		finding.Expiry != "" || finding.Remediation != "" || finding.Detector != "" {
+		t.Fatalf("legacy finding = %+v; want absent optional metadata to stay zero-valued", finding)
+	}
+	markdown := ToMarkdown(report)
+	if strings.Contains(markdown, "release_blocking=") || strings.Contains(markdown, "proof_depth=") || strings.Contains(markdown, "owner=") {
+		t.Fatalf("legacy markdown = %s; want omitted optional metadata", markdown)
 	}
 }
 

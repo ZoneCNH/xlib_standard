@@ -73,10 +73,17 @@ type SectionReport struct {
 }
 
 type Finding struct {
-	ID       string `json:"id"`
-	Severity string `json:"severity"`
-	Path     string `json:"path,omitempty"`
-	Message  string `json:"message"`
+	ID              string `json:"id"`
+	Severity        string `json:"severity"`
+	Path            string `json:"path,omitempty"`
+	Message         string `json:"message"`
+	InvariantID     string `json:"invariant_id,omitempty"`
+	ReleaseBlocking *bool  `json:"release_blocking,omitempty"`
+	ProofDepth      string `json:"proof_depth,omitempty"`
+	Owner           string `json:"owner,omitempty"`
+	Expiry          string `json:"expiry,omitempty"`
+	Remediation     string `json:"remediation,omitempty"`
+	Detector        string `json:"detector,omitempty"`
 }
 
 func Run(opts Options) (Report, error) {
@@ -148,11 +155,40 @@ func ToMarkdown(report Report) string {
 			if path == "" {
 				path = "policy"
 			}
-			fmt.Fprintf(&b, "- [%s] %s %s: %s\n", finding.Severity, finding.ID, path, finding.Message)
+			fmt.Fprintf(&b, "- [%s] %s %s: %s%s\n", finding.Severity, finding.ID, path, finding.Message, findingMetadataMarkdown(finding))
 		}
 		fmt.Fprintf(&b, "\n")
 	}
 	return b.String()
+}
+
+func findingMetadataMarkdown(finding Finding) string {
+	var fields []string
+	if finding.InvariantID != "" {
+		fields = append(fields, "invariant_id="+finding.InvariantID)
+	}
+	if finding.ReleaseBlocking != nil {
+		fields = append(fields, fmt.Sprintf("release_blocking=%t", *finding.ReleaseBlocking))
+	}
+	if finding.ProofDepth != "" {
+		fields = append(fields, "proof_depth="+finding.ProofDepth)
+	}
+	if finding.Owner != "" {
+		fields = append(fields, "owner="+finding.Owner)
+	}
+	if finding.Expiry != "" {
+		fields = append(fields, "expiry="+finding.Expiry)
+	}
+	if finding.Remediation != "" {
+		fields = append(fields, "remediation="+finding.Remediation)
+	}
+	if finding.Detector != "" {
+		fields = append(fields, "detector="+finding.Detector)
+	}
+	if len(fields) == 0 {
+		return ""
+	}
+	return " (" + strings.Join(fields, "; ") + ")"
 }
 
 func ReportDigest(report Report) string {
