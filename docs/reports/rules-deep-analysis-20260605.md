@@ -13,8 +13,9 @@
 - **纠正**: `.agent/rules/registry.yaml` 当前存在，且包含 `total_rules: 419`、`p0_count: 119`、`p1_count: 300`、`active_count: 363`、`indexed_count: 56`；“registry.yaml 缺失”不是当前问题。
 - **纠正**: `.agent/rules/README.md` 当前文件树使用现有文件名（如 `core-rules.md`、`schema-registry-rules.md`、`agent-runtime-rules.md`），未发现原报告所称 `00-index.md` / `01-core-rules.md` 数字前缀推荐段落；“命名体系不一致”不是当前可复现问题。
 - **保留但降级**: `goal-rules.md` 与 `iron-rules.md` / `core-rules.md` 存在明显重复，但 `scripts/render_domain_rules.py` 明确允许域文件重复引用 `RULE-CORE-001..006` 作为锚点；因此它更像可维护性债务，不应直接定性为 P0/P1 的规则冲突。
-- **保留**: `agent-runtime-rules.md` 的 `RULE-GOALCLI-EXIT-001` 退出码叙述仍与 `iron-rules.md` 标准退出码不一致；该规则元信息为 P1，但因影响 Gate/CI/Agent 串接语义，属于本报告中的最高修复优先级问题。
-- **保留**: 三个机器渲染文件体量大、`.worktree/goal-patch.md` 源引用在当前 worktree 不存在、部分手写规则文件较薄、手写文件间交叉引用不足，均为真实但优先级不同的问题。
+- **保留**: `agent-runtime-rules.md` 的 `RULE-GOALCLI-EXIT-001` 退出码叙述仍与 `iron-rules.md` 标准退出码不一致；该规则元信息为 P1，但因影响 Gate/CI/Agent 串接语义，属于本报告中的最高修复优先级问题之一。
+- **保留**: `.agent/registries/generated-artifacts.yaml` 将 `registry.yaml` 与三个机器渲染 Markdown 的 `generated_by` 都标为 `goalcli rules-verify`，但当前 README 与文件头显示实际生成入口分别是 `scripts/extract_rules.py` / `scripts/render_domain_rules.py`，属于生成物清单元信息漂移。
+- **保留**: 三个机器渲染文件体量大、`.worktree/goal-patch.md` 源引用在当前 worktree 不存在、机器渲染文本仍残留 `07-worktree-rules.md` 历史路径、部分手写规则文件较薄、手写文件间交叉引用不足，均为真实但优先级不同的问题。
 
 - “`.agent/rules/registry.yaml` 缺失 / 治理索引不存在”是错误结论。当前目录存在 `.agent/rules/registry.yaml`，且 `python3 scripts/verify_rules.py` 可读取并通过校验。
 - “需要恢复 `00-index.md`、`01-core-rules.md` 等数字前缀文件名”是错误方向。当前 README 已声明真实树为 `README.md`、`registry.yaml`、`core-rules.md`、`schema-registry-rules.md`、`agent-runtime-rules.md` 等非数字前缀文件。
@@ -53,11 +54,9 @@
 | `registry.yaml` | 3798 | 机器化索引 | 存在；`total_rules: 419`、`p0_count: 119`、`p1_count: 300`、`active_count: 363`、`indexed_count: 56` |
 | `enforcement-normalization.yaml` | 71 | 归一化数据 | 存在；用于 enforcement/规则机器化辅助 |
 
-### 2.2 [HIGH] `goal-rules.md` 与其他文件存在概念重叠
-
 ## 2. 真实问题与证据
 
-### 2.1 [P0] `RULE-GOALCLI-EXIT-001` 退出码叙述与 `iron-rules.md` 标准退出码冲突
+### 2.1 [P1] `RULE-GOALCLI-EXIT-001` 退出码叙述与 `iron-rules.md` 标准退出码冲突
 
 `iron-rules.md` 是当前权威顺序中的第一位，并明确给出 `goalcli` 与所有 Gate 命令统一遵守的标准退出码：
 
@@ -101,7 +100,34 @@
 
 **剩余风险**: `registry.yaml` 是大型生成索引，应继续用 `python3 scripts/verify_rules.py`、`make rules-verify` 或 `go run ./cmd/goalcli rules-consistency-check` 验证新鲜度与一致性。
 
-### 2.2 [P1] `goal-rules.md` 与铁律/核心域规则存在大量重复，但需按“维护性债务”处理
+### 2.2 [P1] `generated-artifacts.yaml` 的生成入口记录与实际脚本不一致
+
+`.agent/registries/generated-artifacts.yaml` 当前把以下规则生成物的 `generated_by` 都记录为 `goalcli rules-verify`：
+
+- `.agent/rules/registry.yaml`
+- `.agent/rules/core-rules.md`
+- `.agent/rules/schema-registry-rules.md`
+- `.agent/rules/agent-runtime-rules.md`
+
+但当前文件头与 README 显示：
+
+- `.agent/rules/registry.yaml` 的头部写明重新生成命令是 `python3 scripts/extract_rules.py`。
+- 三个机器渲染 Markdown 的头部写明由 `scripts/render_domain_rules.py` 从 `registry.yaml` 生成。
+- `.agent/rules/README.md` 也把生成流程写为 `python3 scripts/extract_rules.py` 与 `python3 scripts/render_domain_rules.py`。
+
+**真实风险**:
+
+- `goalcli rules-verify` 更像校验入口，不是当前文本证据中的直接生成入口。
+- 生成物清单若被 Agent、CI 或审计脚本当成“如何重建”的依据，可能导致只验证不重建。
+- 后续规则变更时，生成链路和证明链路容易混淆。
+
+**建议**:
+
+1. 区分 `generated_by` 与 `verified_by`，或把生成入口改为当前实际脚本。
+2. 在 README 中把“人改哪里 / 机器生成哪里 / 如何重建 / 如何验证”写成明确流程。
+3. 修订后用 `rg` 固化 `generated_by`、`scripts/extract_rules.py`、`scripts/render_domain_rules.py`、`goalcli rules-verify` 的一致性证据。
+
+### 2.3 [P1] `goal-rules.md` 与铁律/核心域规则存在大量重复，但需按“维护性债务”处理
 
 `goal-rules.md` 的“第一性原理铁律”章节重复列出 `RULE-CORE-001` 到 `RULE-CORE-006`；同时还包含 ID、状态机、上下文恢复等与 `core-rules.md` 重叠的内容，例如：
 
@@ -123,10 +149,7 @@
 2. 对重复章节增加明确注记：权威以 `iron-rules.md` / `registry.yaml` / 机器渲染域文件为准，此处为导航锚点。
 3. 若后续重构，优先把重复正文压缩为链接，不直接删除独有内容。
 
-- 在 README 中把“人改哪里 / 机器生成哪里 / 如何重建 / 如何验证”写成明确流程。
-- 对 generated Markdown 增加更醒目的头部约束：不要手改，改源数据后重新生成。
-
-### 2.3 [P1] 机器渲染文件体量过大，影响可读性与审阅粒度
+### 2.4 [P1] 机器渲染文件体量过大，影响可读性与审阅粒度
 
 三个机器渲染 Markdown 文件合计 3766 行：
 
@@ -147,12 +170,9 @@
 1. 保持当前文件不手工拆分。
 2. 如需拆分，先调整 `scripts/render_domain_rules.py` 的分区规则和 README 文件树。
 3. 候选拆分方向：Agent 协议、goalcli 命令契约、治理/度量/Doctor/Repair。
+4. 对 generated Markdown 增加更醒目的头部约束：不要手改，改源数据后重新生成。
 
-- 保留 exit code 一致性修复，但优先级调整为 P1。
-- 保留路径漂移修复，但定位为 P2。
-- 保留维护入口清晰化，但应围绕 generated/source contract，而不是围绕文件名重排。
-
-### 2.4 [P2] `.worktree/goal-patch.md` 源引用在当前 worktree 不存在，影响考古与再生成可解释性
+### 2.5 [P2] `.worktree/goal-patch.md` 源引用在当前 worktree 不存在，影响考古与再生成可解释性
 
 `core-rules.md`、`schema-registry-rules.md`、`agent-runtime-rules.md` 的规则元信息包含 `source: §N Lxxxx`，README 也说明这些 derived artifacts 来自 `.worktree/goal-patch.md`。
 
@@ -171,14 +191,29 @@
 2. 若项目仍要求再生成能力，应补齐源文件或在 README 中记录新的生成源位置。
 3. 审计报告引用规则事实时，优先引用当前 `.agent/rules/*.md` 与 `registry.yaml`，不要依赖 `.worktree/goal-patch.md` 行号。
 
-```bash
-rg --files .agent/rules
-wc -l .agent/rules/*
-python3 scripts/verify_rules.py
-rg -n "generated_by|scripts/extract_rules.py|scripts/render_domain_rules.py|rules-verify|07-worktree-rules|RULE-GOALCLI-EXIT-001|exit code|exit_code" .agent/rules .agent/registries/generated-artifacts.yaml README.md scripts/verify_rules.py
-```
+### 2.6 [P2] 机器渲染文本残留 `07-worktree-rules.md` 历史路径
 
-### 2.5 [P2] 手写规则文件较薄，且交叉引用不足
+当前 README、`iron-rules.md`、`goal-rules.md` 均使用现有文件名 `worktree-rules.md`，但机器渲染文本中仍出现历史路径：
+
+- `core-rules.md`: `详见 .agent/rules/07-worktree-rules.md`
+- `agent-runtime-rules.md`: 文件树片段仍列出 `07-worktree-rules.md`
+- `schema-registry-rules.md`: 多处引用 `.agent/rules/07-worktree-rules.md`
+
+**需修正原报告判断**: 这不支持“恢复数字前缀命名”的结论；它只说明生成文本中残留旧路径，应修生成源或渲染输入。
+
+**真实风险**:
+
+- 读者按旧路径跳转会失败。
+- 机器渲染文件会把历史命名误传给后续 Agent 或审计脚本。
+- 若生成源继续保留旧路径，重跑渲染会反复带回同一漂移。
+
+**建议**:
+
+1. 找到 `07-worktree-rules.md` 文本来源，优先修源数据或渲染输入。
+2. 重跑 `python3 scripts/render_domain_rules.py` 并验证所有引用改为 `worktree-rules.md`。
+3. 保留 `rg -n "07-worktree-rules|worktree-rules.md" .agent/rules .agent/registries/generated-artifacts.yaml` 作为回归证据。
+
+### 2.7 [P2] 手写规则文件较薄，且交叉引用不足
 
 多个手写文件只有 3-5 条规则、36-60 行，例如：
 
@@ -231,7 +266,7 @@ indexed_count = 56
 
 未在当前 README 中发现原报告所称数字前缀结构。因此原 P2“统一命名体系”建议应删除，避免引入不必要的大规模重命名风险。
 
-补充说明：机器渲染内容中仍可见少量数字前缀示例（如生成片段提到 `00-*` / `01-*` 风格），这最多说明生成文本与当前文件树命名存在低优先级叙述漂移，不构成重命名当前规则文件的依据。
+补充说明：机器渲染内容中仍可见少量数字前缀或历史路径残留，尤其是 `07-worktree-rules.md`；这只构成第 2.6 节中的 P2 叙述漂移/路径修复问题，不构成重命名当前规则文件的依据。
 
 ---
 
@@ -239,9 +274,11 @@ indexed_count = 56
 
 | 优先级 | 动作 | 影响 | 工作量 | 状态 |
 | --- | --- | --- | --- | --- |
-| P0 | 修正 `RULE-GOALCLI-EXIT-001` 退出码叙述，使其与 `iron-rules.md` 对齐 | 消除实现/CI/Agent 退出码歧义 | 低-中；需改源或渲染链路后重跑 | 真实问题 |
+| P1 | 修正 `RULE-GOALCLI-EXIT-001` 退出码叙述，使其与 `iron-rules.md` 对齐 | 消除实现/CI/Agent 退出码歧义 | 低-中；需改源或渲染链路后重跑 | 真实问题 |
+| P1 | 修正 `generated-artifacts.yaml` 的生成入口元信息，区分 `generated_by` 与 `verified_by` | 防止只验证不重建，避免 Agent/CI 误读生成链路 | 低-中；需同步 README 与脚本证据 | 真实问题 |
 | P1 | 为 `goal-rules.md` 重复章节增加“导航锚点，非独立权威”说明，或压缩为链接 | 降低 SSOT 漂移风险 | 中；只应在规则文档任务中修改 | 真实问题 |
 | P1 | 评估机器渲染文件拆分，并先改 `scripts/render_domain_rules.py` 分区逻辑 | 提升审阅性 | 中-高；涉及生成链路 | 真实问题 |
+| P2 | 修正机器渲染文本中的 `07-worktree-rules.md` 历史路径残留 | 避免导航失败和命名误导 | 低-中；需改源或渲染输入后重跑 | 真实问题 |
 | P2 | 处理 `.worktree/goal-patch.md` 源引用缺失的可复现性说明 | 提升考古/再生成可解释性 | 低-中 | 真实问题 |
 | P2 | 为手写规则文件增加跨域“相关规则”链接 | 提升可发现性 | 低 | 真实问题 |
 | 删除 | “registry.yaml 缺失” | 当前事实不成立 | — | 已纠正 |
@@ -267,6 +304,8 @@ PY
 rg -n "RULE-GOALCLI-EXIT-001|退出码|POLICY_VIOLATION|WORKTREE_INVALID|SECRET_DETECTED" .agent/rules/agent-runtime-rules.md -C 4
 rg -n "标准退出码|worktree / main|schema 校验失败|Traceability 断链|Release 不完整" .agent/rules/iron-rules.md -C 2
 rg -n "registry.yaml|419|active|00-index|01-core|权威顺序" .agent/rules/README.md -C 2
+rg -n "generated_by|goalcli rules-verify|scripts/extract_rules.py|scripts/render_domain_rules.py" .agent/rules .agent/registries/generated-artifacts.yaml -C 2
+rg -n "07-worktree-rules|worktree-rules.md" .agent/rules .agent/registries/generated-artifacts.yaml
 python3 scripts/verify_rules.py
 ```
 
@@ -274,9 +313,9 @@ python3 scripts/verify_rules.py
 
 ## 6. 结论
 
-`.agent/rules/` 当前规则体系并非缺少 `registry.yaml`，也不需要按数字前缀重命名。当前最重要的真实问题是 `agent-runtime-rules.md` 中 `RULE-GOALCLI-EXIT-001` 的退出码叙述与 `iron-rules.md` 标准退出码冲突；其余问题主要属于维护性、可读性、可复现性和导航优化。
+`.agent/rules/` 当前规则体系并非缺少 `registry.yaml`，也不需要按数字前缀重命名。当前最高优先级真实问题是两个 P1：`RULE-GOALCLI-EXIT-001` 退出码叙述与 `iron-rules.md` 冲突，以及 `generated-artifacts.yaml` 生成入口元信息与实际脚本不一致；`07-worktree-rules.md` 属于 P2 历史路径残留。其余问题主要属于维护性、可读性、可复现性和导航优化。
 
-建议优先修正退出码冲突，再处理 `goal-rules.md` 重复说明与机器渲染文件拆分策略；不要基于已证伪的“registry.yaml 缺失”或“数字前缀命名要求”发起变更。
+建议优先修正退出码冲突和 generated artifacts 清单元信息，再处理 `goal-rules.md` 重复说明、旧路径残留与机器渲染文件拆分策略；不要基于已证伪的“registry.yaml 缺失”或“数字前缀命名要求”发起变更。
 
 ---
 
