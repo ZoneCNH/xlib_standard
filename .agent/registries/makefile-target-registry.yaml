@@ -59,6 +59,7 @@ targets:
   - command-registry
   - makefile-baseline
   - audit-goal
+  - fact-audit
   - dashboard-generate
   - context-profile
   - context-profile-check
