@@ -9,6 +9,7 @@ This runbook is intentionally conservative: deletion is the last step, not the c
 - `main` is the only release branch and must remain aligned with `origin/main` before completion.
 - Local write work must not happen directly on `main`; use a worker worktree or temporary review branch until the final fast-forward/merge point.
 - Branches with unknown, unmerged, or conflicting value must be backed up before any destructive action.
+- Destructive branch actions are leader-owned: workers may audit, classify, and prepare backup evidence, but deletion, force-reset, or remote branch removal must be performed by the leader only after the backup refs and audit ledger are recorded.
 - Release verification must run with `XLIB_CONTEXT=release_verify` and `GOWORK=off` so local workspace state cannot mask release drift.
 - Completion evidence must include the branch inventory, disposition for each non-`main` branch, backup refs created, merges performed, deletions performed, and final verification commands.
 
@@ -67,13 +68,15 @@ If a merge fails, abort it and reclassify the branch as `backup-only` or `blocke
 git merge --abort
 ```
 
-After all safe integrations are complete, delete only branches that have an audit disposition and, when needed, a backup ref:
+After all safe integrations are complete, the leader may delete only branches that have an audit disposition and, when needed, a backup ref:
 
 ```bash
 git branch -d <duplicate-or-merged-branch>
 git branch -D <stale-worthless-branch>   # only with recorded audit evidence
 git push origin --delete <remote-branch>  # only after local evidence is complete
 ```
+
+Workers must stop before running these destructive commands and hand the recorded classification, backup refs, and verification evidence to the leader. If the leader cannot verify the backup ref or audit entry for a branch, leave the branch intact and classify it as `blocked`.
 
 ## Final verification
 
