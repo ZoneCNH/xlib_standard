@@ -4,10 +4,12 @@ set -euo pipefail
 usage() {
   cat <<'USAGE'
 Usage:
-  scripts/render_template.sh --module-name NAME --module-path PATH --package-name NAME --out DIR
+  scripts/render_template.sh --module-name NAME --module-path PATH --package-name NAME --out DIR [--enable-governance --layer LAYER --standard-version VERSION --standard-commit COMMIT]
 
 Renders xlib-standard into a concrete base library by copying the repository,
 moving pkg/templatex to pkg/<package>, and replacing template identifiers.
+When --enable-governance is set, the rendered repository also receives an
+xlib-standard.lock file and must retain the Repository Governance Pack.
 USAGE
 }
 
@@ -15,6 +17,10 @@ module_name=""
 module_path=""
 package_name=""
 out_dir=""
+enable_governance=0
+layer=""
+standard_version=""
+standard_commit=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -34,6 +40,22 @@ while [[ $# -gt 0 ]]; do
       out_dir="${2:-}"
       shift 2
       ;;
+    --enable-governance)
+      enable_governance=1
+      shift
+      ;;
+    --layer)
+      layer="${2:-}"
+      shift 2
+      ;;
+    --standard-version)
+      standard_version="${2:-}"
+      shift 2
+      ;;
+    --standard-commit)
+      standard_commit="${2:-}"
+      shift 2
+      ;;
     -h|--help)
       usage
       exit 0
@@ -48,6 +70,12 @@ done
 
 if [[ -z "$module_name" || -z "$module_path" || -z "$package_name" || -z "$out_dir" ]]; then
   echo "ERROR: --module-name, --module-path, --package-name and --out are required" >&2
+  usage >&2
+  exit 2
+fi
+
+if [[ "$enable_governance" == "1" && ( -z "$layer" || -z "$standard_version" || -z "$standard_commit" ) ]]; then
+  echo "ERROR: --enable-governance requires --layer, --standard-version and --standard-commit" >&2
   usage >&2
   exit 2
 fi
@@ -179,24 +207,30 @@ if [[ "$package_name" != "templatex" ]]; then
   mv "$out_dir/pkg/templatex" "$out_dir/pkg/$package_name"
 fi
 
+collect_text_files() {
+  find "$out_dir" -type f \( \
+    -name '*.go' -o \
+    -name '*.md' -o \
+    -name '*.json' -o \
+    -name '*.sh' -o \
+    -name '*.yml' -o \
+    -name '*.yaml' -o \
+    -name 'Makefile' -o \
+    -name 'go.mod' \
+  \) -print0
+}
+
+mapfile -d '' render_text_files < <(collect_text_files)
+
 replace_in_text_files() {
   local find_text="$1"
   local replace_text="$2"
 
-  while IFS= read -r -d '' file; do
-    FIND_TEXT="$find_text" REPLACE_TEXT="$replace_text" perl -0pi -e 's/\Q$ENV{FIND_TEXT}\E/$ENV{REPLACE_TEXT}/g' "$file"
-  done < <(
-    find "$out_dir" -type f \( \
-      -name '*.go' -o \
-      -name '*.md' -o \
-      -name '*.json' -o \
-      -name '*.sh' -o \
-      -name '*.yml' -o \
-      -name '*.yaml' -o \
-      -name 'Makefile' -o \
-      -name 'go.mod' \
-    \) -print0
-  )
+  if [[ "${#render_text_files[@]}" -eq 0 ]]; then
+    return 0
+  fi
+
+  FIND_TEXT="$find_text" REPLACE_TEXT="$replace_text" perl -0pi -e 's/\Q$ENV{FIND_TEXT}\E/$ENV{REPLACE_TEXT}/g' "${render_text_files[@]}"
 }
 
 replace_in_text_files '{{MODULE_NAME}}' "$module_name"
@@ -212,6 +246,45 @@ replace_in_text_files 'templatex_' "${package_name}_"
 replace_in_text_files 'Templatex' "$package_title"
 replace_in_text_files 'TEMPLATEX' "$package_upper"
 replace_in_text_files 'templatex' "$package_name"
+
+write_governance_lock() {
+  cat > "$out_dir/xlib-standard.lock" <<EOF
+schema_version: "1.0"
+standard_name: "xlib-standard"
+standard_repo: "https://github.com/ZoneCNH/xlib-standard"
+standard_version: "$standard_version"
+standard_commit: "$standard_commit"
+module_name: "$module_name"
+module_path: "$module_path"
+package_name: "$package_name"
+layer: "$layer"
+adoption_check: "GOWORK=off make adoption-check"
+EOF
+}
+
+verify_governance_pack() {
+  local required=(
+    "xlib-standard.lock"
+    ".githooks/pre-commit"
+    ".githooks/pre-push"
+    ".github/workflows/adoption-check.yml"
+    ".github/rulesets/protect-main.json"
+    "mk/governance.mk"
+    ".agent/harness/harness.yaml"
+  )
+  local path
+  for path in "${required[@]}"; do
+    if [[ ! -f "$out_dir/$path" ]]; then
+      echo "ERROR: --enable-governance render missing $path" >&2
+      exit 1
+    fi
+  done
+}
+
+if [[ "$enable_governance" == "1" ]]; then
+  write_governance_lock
+  verify_governance_pack
+fi
 
 (
   cd "$out_dir"

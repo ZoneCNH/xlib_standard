@@ -54,6 +54,7 @@ groups:
       - implementation-debt
       - downstream-debt
       - downstream-sync-plan
+      - adoption-check
       - debt-evidence
       - debt-evidence-checksum-check
       - debt-evidence-hash
