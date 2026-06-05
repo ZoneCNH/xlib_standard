@@ -24,6 +24,7 @@ baseline_targets:
   contracts: "$(GOALCLI) contracts"
   schema-check: "$(GOALCLI) schema validate --all --report reports/schema-check.json"
   docs-check: "$(GOALCLI) docs-check"
+  adoption-check: "$(GOALCLI) adoption-check --verify"
   rules-verify: "$(GOALCLI) rules-verify"
   downstream-debt: "$(GOALCLI) downstream-debt"
   downstream-sync-plan: "$(GOALCLI) downstream-sync-plan"

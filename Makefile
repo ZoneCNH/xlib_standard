@@ -135,6 +135,10 @@ standard-impact-check:
 docs-check:
 	$(GOALCLI) docs-check
 
+.PHONY: adoption-check
+adoption-check: require-gowork-off
+	$(GOALCLI) adoption-check --verify
+
 .PHONY: rules-verify
 rules-verify:
 	$(GOALCLI) rules-verify

@@ -13,6 +13,7 @@
 - [Harness gate](harness-gates.md)：required、extended、generator、docs、score 和 final gate。
 - [Evidence 协议](evidence-protocol.md)：release/manifest/template.json、release/manifest/latest.json、artifact_url、workflow_run_id、sha256 和 DONE 声明。
 - [Release 标准](release-standard.md)：release/manifest/latest.json.sha256、preflight 和 final check。
+- [无人值守分支治理](branch-governance.md)：非 `main` 分支审计、备份、合并、删除和最终 `main == origin/main` 证明。
 - [安全与密钥](security-and-secret-policy.md)：禁止泄露生产密钥和 `/home/k8s/secrets/env/*` 内容。
 - [模板生成契约](template-generation-contract.md)：module path、package name、README/docs 替换规则。
 - [下游兼容性](downstream-compatibility.md)：生成库兼容窗口和变更级别。

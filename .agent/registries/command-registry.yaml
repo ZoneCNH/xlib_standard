@@ -337,6 +337,9 @@ commands:
   - name: downstream-adoption
     phase: P2
     target: downstream-adoption
+  - name: adoption-check
+    phase: P2
+    target: adoption-check
   - name: execution-context
     phase: P2
     target: p2-runtime-check
