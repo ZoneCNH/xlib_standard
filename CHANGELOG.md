@@ -2,6 +2,17 @@
 
 ## 未发布
 
+## v0.4.14 - 2026-06-05
+
+### 治理
+
+- 引入治理宪法三层定位架构：CONSTITUTION.md（最高铁律）、AGENTS.md（通用 Agent 协议）、CLAUDE.md（Claude Code 适配器）。
+- CONSTITUTION.md 定义 8 条核心铁律、标准分层模型、Harness Gates、Evidence 协议、Release 纪律、下游采纳规则和 Self-improving 机制。
+
+### 兼容性
+
+- 本版本不改变 `pkg/templatex` 公共 API 形状；`Version` 元数据同步到 `v0.4.14`。
+
 ## v0.4.13 - 2026-06-05
 
 ### 治理
