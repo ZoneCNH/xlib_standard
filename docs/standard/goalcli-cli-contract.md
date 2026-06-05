@@ -16,6 +16,7 @@
 
 - `version`
 - `doctor`
+- `fact audit [--strict] [--root <path>] [--json]`
 - `minimal-kernel`
 - `main-guard --context local_write|local_readonly|ci_pull_request|ci_main_verify|release_verify`
 - `worktree-guard --context local_write|local_readonly|ci_pull_request|ci_main_verify|release_verify`
@@ -85,6 +86,10 @@
 - `docker-runtime-check`
 - `docker-drift-check`
 - `docker-contract`
+
+## Canonical xlib facts
+
+`goalcli fact audit --strict` reads `.xlib/facts/xlib.yaml` as the local single source of truth for the current xlib release, runtime versions, and toolchain versions. Strict mode compares those canonical facts with local release consumers (goalcli governance, release manifest defaults, harness preflight, registries, docs, and Makefile gates) without network access. `fact-audit` is release-blocking through `context-release`, `release-check`, and `release-check-extended`; `release-final-check` reaches it through `context-release`.
 
 ## 下游同步计划命令
 

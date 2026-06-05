@@ -48,9 +48,9 @@ type RuntimeFacts struct {
 }
 
 type ToolFacts struct {
-	Go            string
-	GolangCILint  string
-	Govulncheck   string
+	Go           string
+	GolangCILint string
+	Govulncheck  string
 }
 
 func Expected() Facts {

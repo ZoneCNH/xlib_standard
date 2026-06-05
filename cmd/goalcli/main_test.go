@@ -849,6 +849,7 @@ func TestGoalGovernanceCommandSurface(t *testing.T) {
 	}{
 		{command: "version"},
 		{command: "doctor"},
+		{command: "fact", args: []string{"audit", "--strict"}},
 		{command: "minimal-kernel"},
 		{command: "main-guard", args: []string{"--context", "local_readonly"}},
 		{command: "worktree-guard", args: []string{"--context", "local_readonly"}},
@@ -1506,6 +1507,23 @@ func TestRunGovernanceCommands(t *testing.T) {
 		}
 	})
 
+
+func TestFactAuditStrictPassesCanonicalFacts(t *testing.T) {
+	root := repoRoot(t)
+	var stdout, stderr bytes.Buffer
+
+	got := run([]string{"fact", "audit", "--strict", "--root", root}, strings.NewReader(""), &stdout, &stderr)
+
+	if got != 0 {
+		t.Fatalf("fact audit exit = %d, stderr %q, stdout %q; want 0", got, stderr.String(), stdout.String())
+	}
+	for _, needle := range []string{`"command": "fact audit"`, `"status": "passed"`, "v0.4.15", ".xlib/facts/xlib.yaml"} {
+		if !strings.Contains(stdout.String(), needle) {
+			t.Fatalf("stdout = %q; want %q", stdout.String(), needle)
+		}
+	}
+}
+
 	t.Run("artifact gate passes when required files exist", func(t *testing.T) {
 		root := t.TempDir()
 		commandSurface := strings.Join(goalcliCLIContractNeedles(), "\n")
@@ -2073,6 +2091,7 @@ func TestRunInternalGovernanceCommands(t *testing.T) {
 	}{
 		{name: "version", args: []string{"version"}, wantStdout: `"command": "version"`},
 		{name: "doctor", args: []string{"doctor"}, wantStdout: `"status": "passed"`},
+		{name: "fact audit strict", args: []string{"fact", "audit", "--strict"}, wantStdout: `"command": "fact audit"`},
 		{name: "main guard", args: []string{"main-guard", "--context", "local_readonly"}, wantStdout: `"command": "main-guard"`},
 		{name: "worktree guard", args: []string{"worktree-guard", "--context", "local_readonly"}, wantStdout: `"command": "worktree-guard"`},
 		{name: "worktree check", args: []string{"worktree-check", "--context", "local_readonly"}, wantStdout: `"command": "worktree-check"`},
