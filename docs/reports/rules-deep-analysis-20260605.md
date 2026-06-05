@@ -1,7 +1,7 @@
 # `.agent/rules/` 深度分析报告（事实核对修订版）
 
-> 修订日期: 2026-06-05
-> 分析范围: `.agent/rules/` 当前内容；仅修订本报告，不修改 `.agent/rules/` 规则源文件。
+> 修订日期: 2026-06-05  
+> 分析范围: `.agent/rules/` 当前内容；仅修订本报告，不修改 `.agent/rules/` 规则源文件。  
 > 核对命令: `find .agent/rules -maxdepth 1 -type f | sort`、`wc -l .agent/rules/*`、`python3 scripts/verify_rules.py`、`rg`。
 
 分析范围：`.agent/rules/` 当前版本、与规则生成/校验强相关的 `README.md`、`.agent/registries/generated-artifacts.yaml`、`scripts/verify_rules.py`。
@@ -16,6 +16,8 @@
 - **保留**: `agent-runtime-rules.md` 的 `RULE-GOALCLI-EXIT-001` 退出码叙述仍与 `iron-rules.md` 标准退出码不一致；该规则元信息为 P1，但因影响 Gate/CI/Agent 串接语义，属于本报告中的最高修复优先级问题之一。
 - **保留**: `.agent/registries/generated-artifacts.yaml` 将 `registry.yaml` 与三个机器渲染 Markdown 的 `generated_by` 都标为 `goalcli rules-verify`，但当前 README 与文件头显示实际生成入口分别是 `scripts/extract_rules.py` / `scripts/render_domain_rules.py`，属于生成物清单元信息漂移。
 - **保留**: 三个机器渲染文件体量大、`.worktree/goal-patch.md` 源引用在当前 worktree 不存在、机器渲染文本仍残留 `07-worktree-rules.md` 历史路径、部分手写规则文件较薄、手写文件间交叉引用不足，均为真实但优先级不同的问题。
+- **补充**: `registry.yaml` 不是只存在“文本重复”问题，而是已经在索引层显式记录了重复定义（`duplicate_at`）；这说明重复不是纯叙事噪音，而是可机器化证实的数据结构事实。
+- **补充**: `iron-rules.md` 的“已知 P0 Gap”应被单独视为当前体系最高风险债务，因为它明确披露了 `Traceability Gate` 与 `Self-improving Gate` 仍未落地，且 `traceability-check` 尚未实现。
 
 - “`.agent/rules/registry.yaml` 缺失 / 治理索引不存在”是错误结论。当前目录存在 `.agent/rules/registry.yaml`，且 `python3 scripts/verify_rules.py` 可读取并通过校验。
 - “需要恢复 `00-index.md`、`01-core-rules.md` 等数字前缀文件名”是错误方向。当前 README 已声明真实树为 `README.md`、`registry.yaml`、`core-rules.md`、`schema-registry-rules.md`、`agent-runtime-rules.md` 等非数字前缀文件。
@@ -232,6 +234,40 @@
 1. 不建议仅因文件短而合并；“一个域一个文件”仍有清晰边界价值。
 2. 优先增加“相关规则”链接，而不是合并文件。
 3. 示例：`pr-rules.md` 链接 `evidence-rules.md` / `harness-rules.md`，`release-rules.md` 链接 `evidence-rules.md` / `risk-decision-rules.md`。
+
+### 2.8 [P1] `registry.yaml` 的 `duplicate_at` 证明重复已进入索引层，不应只按“维护性债务”概括
+
+`registry.yaml` 的字段定义已经明确 `duplicate_at` 语义是“该 id 在源文档中被二次定义的行号 (若有)”。这意味着仓库不仅存在规则正文重复，还存在由索引层直接记录的重复定位事实。
+
+例如当前索引中至少存在如下重复标记：
+
+- `RULE-CORE-004` 的 `duplicate_at` 指向 `3176`
+- `RULE-CORE-006` 的 `duplicate_at` 指向 `3186`
+
+**影响**: 这类重复不是单纯的叙事冗余，而是会影响规则索引、生成链路和机器审计的结构性事实。若报告只把它归为一般“维护性债务”，会低估其可机器验证的严重性。
+
+**建议**:
+
+1. 在结论中单列“索引级重复”。
+2. 把 `duplicate_at` 的存在与 `goal-rules.md` 的锚点重复区分开。
+3. 若后续修复规则源，优先修复源文档或提取器，避免重复继续回流到 `registry.yaml`。
+
+### 2.9 [P1] `iron-rules.md` 的 `已知 P0 Gap` 应提升为当前体系的最高风险债务
+
+`iron-rules.md` 已明确披露两类尚未落地的 P0 gap：
+
+- `Traceability Gate`：要求 `goalcli traceability-check`，并按链路完整性返回退出码 9
+- `Self-improving Gate`：要求 Retrospective / Patch 校验命令
+
+这说明问题不是“未来可能需要补齐”，而是当前铁律文本已经承认存在未机器化落地的硬缺口。`traceability-check` 甚至在标准退出码表中被显式标为 `GAP`。
+
+**影响**: 如果不把这部分放进摘要，报告会把一个公开的 P0 债务压低成普通背景信息，削弱深度分析的优先级判断。
+
+**建议**:
+
+1. 在结论中把 `Traceability Gate` 和 `Self-improving Gate` 作为当前最高风险债务之一。
+2. 与 `RULE-GOALCLI-EXIT-001` 冲突一起看，因为两者都直接影响 Gate 语义和执行链路。
+3. 后续修订报告时，优先把“已知 P0 Gap”单列，而不是只在退出码段落里顺带提及。
 
 ---
 

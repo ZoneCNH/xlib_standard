@@ -94,6 +94,74 @@ func TestRenderTemplateIncludesGoalcliControlPlane(t *testing.T) {
 	}
 }
 
+func TestRenderTemplateIncludesGovernancePack(t *testing.T) {
+	outDir := filepath.Join(t.TempDir(), "kernel")
+	cmd := exec.Command(
+		"bash",
+		"render_template.sh",
+		"--module-name",
+		"kernel",
+		"--module-path",
+		"github.com/ZoneCNH/kernel",
+		"--package-name",
+		"kernel",
+		"--layer",
+		"L0",
+		"--enable-governance",
+		"--standard-version",
+		"v0.5.0",
+		"--standard-commit",
+		"abcdef1234567890",
+		"--out",
+		outDir,
+	)
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("render template with governance pack: %v\n%s", err, output)
+	}
+
+	for _, required := range []string{
+		"xlib-standard.lock",
+		filepath.Join(".githooks", "pre-commit"),
+		filepath.Join(".githooks", "pre-push"),
+		filepath.Join(".github", "workflows", "adoption-check.yml"),
+		filepath.Join(".github", "rulesets", "protect-main.json"),
+		filepath.Join("mk", "governance.mk"),
+		filepath.Join(".agent", "harness", "harness.yaml"),
+	} {
+		if _, err := os.Stat(filepath.Join(outDir, required)); err != nil {
+			t.Fatalf("rendered governance pack missing %s: %v", required, err)
+		}
+	}
+
+	lock, err := os.ReadFile(filepath.Join(outDir, "xlib-standard.lock"))
+	if err != nil {
+		t.Fatalf("read governance lock: %v", err)
+	}
+	for _, needle := range []string{
+		`standard_version: "v0.5.0"`,
+		`standard_commit: "abcdef1234567890"`,
+		`module_name: "kernel"`,
+		`module_path: "github.com/ZoneCNH/kernel"`,
+		`package_name: "kernel"`,
+		`layer: "L0"`,
+		`adoption_check: "GOWORK=off make adoption-check"`,
+	} {
+		if !strings.Contains(string(lock), needle) {
+			t.Fatalf("governance lock missing %q:\n%s", needle, lock)
+		}
+	}
+
+	adoption := exec.Command("make", "adoption-check")
+	adoption.Dir = outDir
+	adoption.Env = append(os.Environ(), "GOWORK=off")
+	output, err = adoption.CombinedOutput()
+	if err != nil {
+		t.Fatalf("rendered governance adoption-check: %v\n%s", err, output)
+	}
+}
+
 func TestRenderTemplateIncludesDockerContract(t *testing.T) {
 	outDir := filepath.Join(t.TempDir(), "kernel")
 	cmd := exec.Command(
