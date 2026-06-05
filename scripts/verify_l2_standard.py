@@ -2,13 +2,17 @@
 """Validate L2 standards artifacts without provider connections."""
 from __future__ import annotations
 import json
+import os
 from pathlib import Path
+import subprocess
 import sys
 import yaml
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parents[1]
 EVIDENCE = ROOT / ".agent" / "evidence" / "l2-standard"
+TEMPLATE_DIR = ROOT / "templates" / "l2"
+TEMPLATE_RELEASE_READINESS = TEMPLATE_DIR / ".agent" / "evidence" / "l2" / "release-readiness.json"
 
 REGISTRIES = {
     ".agent/registry/l2-contract-packs.yaml": ".agent/schemas/l2-contract-packs.schema.json",
@@ -100,6 +104,50 @@ def load_json(rel: str):
 def result(name, status, details):
     return {"check": name, "status": status, "details": details}
 
+def make_target_body(makefile_text: str, target: str) -> str:
+    marker = f"{target}:"
+    start = makefile_text.find(marker)
+    if start == -1:
+        raise AssertionError(f"template Makefile missing target: {target}")
+    lines = makefile_text[start:].splitlines()
+    body = []
+    for line in lines[1:]:
+        if line and not line.startswith(("\t", " ")) and ":" in line:
+            break
+        body.append(line)
+    return "\n".join(body)
+
+def run_template_make(target: str):
+    env = os.environ.copy()
+    env["GOWORK"] = "off"
+    return subprocess.run(
+        ["make", "-C", str(TEMPLATE_DIR), target],
+        cwd=ROOT,
+        env=env,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        check=False,
+    )
+
+def write_release_readiness_fixture() -> None:
+    TEMPLATE_RELEASE_READINESS.parent.mkdir(parents=True, exist_ok=True)
+    TEMPLATE_RELEASE_READINESS.write_text(json.dumps({
+        "schema_version": "1.0",
+        "adapter": "example-l2-adapter",
+        "target_level": "L2-T3",
+        "score": 100,
+        "profiles": ["unit", "contract", "integration", "chaos", "benchmark", "adoption"],
+        "evidence": [
+            {"profile": "unit", "path": ".agent/evidence/l2/unit-report.json", "status": "pass"},
+            {"profile": "contract", "path": ".agent/evidence/l2/contract-report.json", "status": "pass"},
+            {"profile": "integration", "path": ".agent/evidence/l2/integration-report.json", "status": "pass"},
+            {"profile": "chaos", "path": ".agent/evidence/l2/chaos-report.json", "status": "pass"},
+            {"profile": "benchmark", "path": ".agent/evidence/l2/benchmark-report.json", "status": "pass"},
+            {"profile": "adoption", "path": ".agent/evidence/l2/adoption-report.json", "status": "pass"},
+        ],
+    }, indent=2) + "\n")
+
 def main() -> int:
     EVIDENCE.mkdir(parents=True, exist_ok=True)
     results = []
@@ -170,6 +218,59 @@ def main() -> int:
     if missing_targets:
         raise AssertionError(f"template Makefile missing L2 targets: {missing_targets}")
     results.append(result("template-make-targets", "PASS", TEMPLATE_MAKE_TARGETS))
+
+    contract_body = make_target_body(makefile_text, "l2-contract")
+    if "go test" not in contract_body or "./test/contract" not in contract_body:
+        raise AssertionError("template l2-contract target must run the local Go contract test, not remain echo-only")
+    contract_run = run_template_make("l2-contract")
+    if contract_run.returncode != 0:
+        raise AssertionError(f"make l2-contract failed: {contract_run.stdout.strip()}")
+    if "test/contract" not in contract_run.stdout and "TestL2ContractPackDeclaration" not in contract_run.stdout:
+        raise AssertionError(f"make l2-contract did not prove contract test execution: {contract_run.stdout.strip()}")
+    results.append(result("template-l2-contract-behavior", "PASS", "make -C templates/l2 l2-contract runs the Go contract test"))
+
+    release_body = (
+        make_target_body(makefile_text, "l2-release-readiness")
+        + "\n"
+        + make_target_body(makefile_text, "l2-release-readiness-check")
+    )
+    release_readiness_var = "L2_RELEASE_READINESS ?= $(L2_EVIDENCE_DIR)/release-readiness.json"
+    if release_readiness_var not in makefile_text:
+        raise AssertionError(
+            "template Makefile must bind L2_RELEASE_READINESS to .agent/evidence/l2/release-readiness.json"
+        )
+    if "$(L2_RELEASE_READINESS)" not in release_body:
+        raise AssertionError("template release-readiness targets must enforce L2_RELEASE_READINESS")
+    if TEMPLATE_RELEASE_READINESS.exists():
+        raise AssertionError("template must not ship active .agent/evidence/l2/release-readiness.json evidence")
+    missing_evidence_run = run_template_make("l2-release-readiness-check")
+    if missing_evidence_run.returncode == 0:
+        raise AssertionError("make l2-release-readiness-check must fail closed when release-readiness.json is absent")
+    write_release_readiness_fixture()
+    try:
+        fixture = json.loads(TEMPLATE_RELEASE_READINESS.read_text())
+        Draft202012Validator(load_json(".agent/schemas/l2-release-readiness.schema.json")).validate(fixture)
+        present_evidence_run = run_template_make("l2-release-readiness-check")
+    finally:
+        TEMPLATE_RELEASE_READINESS.unlink(missing_ok=True)
+    if present_evidence_run.returncode != 0:
+        raise AssertionError(f"make l2-release-readiness-check failed with schema-valid temporary evidence: {present_evidence_run.stdout.strip()}")
+    if TEMPLATE_RELEASE_READINESS.exists():
+        raise AssertionError("temporary release-readiness fixture was not cleaned up")
+    results.append(result("template-release-readiness-behavior", "PASS", "fails closed without active evidence and passes with a cleaned-up schema-valid temporary fixture"))
+
+    workflow_text = (ROOT / "templates/l2" / ".github" / "workflows" / "l2-gates.yml").read_text()
+    workflow_required = [
+        "make l2-contract",
+        "make l2-release-readiness-check",
+        "github.event_name == 'release'",
+        "refs/tags/",
+        "refs/heads/release/",
+    ]
+    workflow_missing = [snippet for snippet in workflow_required if snippet not in workflow_text]
+    if workflow_missing:
+        raise AssertionError(f"template L2 workflow is missing required gate wiring: {workflow_missing}")
+    results.append(result("template-workflow-wiring", "PASS", "workflow runs contract and release-readiness gates on release paths"))
 
     contract_test_text = (ROOT / "templates/l2/test/contract/l2_contract_test.go").read_text()
     if "t.Skip(" in contract_test_text:

@@ -3,14 +3,26 @@ name: L2 Gates
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, "release/**"]
+    tags: ["v*"]
+  release:
+    types: [published]
 
 jobs:
   l2-standards-shape:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
       - name: Check L2 manifest shape
         run: make l2-manifest-check
       - name: Check L2 evidence directory
         run: make l2-evidence-check
+      - name: Run L2 contract test
+        run: make l2-contract
+      - name: Check L2 release readiness evidence
+        if: ${{ github.event_name == 'release' || startsWith(github.ref, 'refs/tags/') || startsWith(github.ref, 'refs/heads/release/') }}
+        run: make l2-release-readiness-check
