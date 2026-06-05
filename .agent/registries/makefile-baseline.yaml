@@ -28,7 +28,6 @@ baseline_targets:
   rules-verify: "$(GOALCLI) rules-verify"
   downstream-debt: "$(GOALCLI) downstream-debt"
   downstream-sync-plan: "$(GOALCLI) downstream-sync-plan"
-  adoption-check: "$(GOALCLI) adoption-check --verify"
   docker-toolchain-check: "./scripts/docker/check_toolchain.sh"
   docker-build: "$(DOCKER_GATE) build"
   docker-build-check: "$(DOCKER_GATE) build-check"

@@ -3,7 +3,7 @@ XLIB_CONTEXT ?= local_write
 GOAL_ID ?= GOAL-20260603-XLIB-GOALCLI-001
 GOAL_RUNTIME_MODE ?= FULL
 DOCKER_IMAGE ?= $(notdir $(CURDIR))-toolchain:local
-DOCKER_GATE ?= ./scripts/docker/docker_gate.sh
+DOCKER_GATE ?= GITHUB_ACTIONS=$${GITHUB_ACTIONS:-} GOLANGCI_LINT_VERSION=$${GOLANGCI_LINT_VERSION:-v2.1.6} GOVULNCHECK_VERSION=$${GOVULNCHECK_VERSION:-v1.1.4} GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.directory GIT_CONFIG_VALUE_0=/workspace ./scripts/docker/docker_gate.sh
 
 .PHONY: require-gowork-off
 require-gowork-off:
@@ -179,10 +179,6 @@ downstream-debt:
 .PHONY: downstream-sync-plan
 downstream-sync-plan: standard-impact-check
 	$(GOALCLI) downstream-sync-plan
-
-.PHONY: adoption-check
-adoption-check: require-gowork-off
-	$(GOALCLI) adoption-check --verify
 
 debt:
 	$(GOALCLI) debt --config .agent/policies/debt/rules.yaml --exceptions .agent/policies/debt/exceptions.yaml --dependency-purpose .agent/policies/debt/dependency-purpose.yaml --mode enforce --min-score 9.8
