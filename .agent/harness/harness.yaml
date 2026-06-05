@@ -5,6 +5,7 @@ default_env:
 proof_depth:
   taxonomy:
     - id: file_exists
+      level: D3
       meaning: "Referenced artifact or evidence path exists in the repository or is a gitignored generated output owned by a gate."
       release_evidence: false
     - id: command_registered
@@ -35,6 +36,7 @@ proof_depth:
     declared: registered
     scaffolded: planned
     dry_run_ready: dry_run_ready
+    partial_implemented: partial_implemented
     implemented: implemented
     executed: executed
     evidence_verified: checksum_verified

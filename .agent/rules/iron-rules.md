@@ -30,15 +30,15 @@
 | 6 | schema 校验失败 | RULE-SCHEMA-* | ✅ `goalcli policy-schema` |
 | 7 | secret / 凭据泄漏 | RULE-SECURITY-* / RULE-SECRET-* | ✅ `goalcli secrets` |
 | 8 | Evidence 缺失或伪造 | RULE-EVIDENCE-* / RULE-CORE-001 | ✅ `goalcli evidence-check` |
-| 9 | Traceability 断链 | RULE-TRACE-* / RULE-CORE-004 | ⚠️ **GAP**：`traceability-check` 尚未实现 |
+| 9 | Traceability 断链 | RULE-TRACE-* / RULE-CORE-004 | ✅ `goalcli traceability-check`（`partial_implemented`; `proof_depth=file_exists`/D3；`full_lifecycle_graph=gap`） |
 | 10 | Release 不完整 | RULE-RELEASE-* / RULE-REL-ARTIFACT-* | ✅ `goalcli release-evidence-check` / `release-final-check` |
 
 ## 已知 P0 Gap
 
-> 本节是诚实性披露：以下规则虽属 P0，但 `enforced_by` 尚未对应任何已实现的命令；
-> 在 [`registry.yaml`](./registry.yaml) 中标记为 `status: indexed`，等待落地。
+> 本节是诚实性披露：以下规则虽属 P0，但当前实现范围尚未覆盖完整语义；
+> 不得把 partial/path-level gate 升级为完整 lifecycle 或 release-usable 结论。
 
-- **Traceability Gate**：RULE-CORE-004, RULE-TRACE-001, RULE-TRACE-002, RULE-TRACE-ALG-001, RULE-TRACE-ALG-002（共 5 条）。需要 `goalcli traceability-check` 子命令，按 `.agent/traceability-matrix.yaml` 校验 Goal → Req → AC → Task → Issue → Commit → PR → Evidence → Release 链路完整性，断链返回退出码 9。
+- **Traceability Full Lifecycle Graph**：`goalcli traceability-check` 已按 `.agent/traceability/traceability-matrix.md` 校验 REQ 行主要产物、非空 Evidence 与 path-like Evidence 引用，断链返回退出码 9；当前状态必须披露为 `partial_implemented` / D3 `file_exists`，完整 Goal → Req → AC → Task → Issue → Commit → PR → Evidence → Release 图验证仍是 `full_lifecycle_graph=gap`。
 - **Self-improving Gate**：RULE-CORE-006, RULE-RETRO-*, RULE-SI-* 等。需要 Retrospective/Patch 校验命令。
 
 P0 gap 的状态可通过 `make rules-verify` 持续检测（任何 active 规则若引用不存在的命令将阻断 CI）。
