@@ -1955,6 +1955,44 @@ func TestCommandRegistryRequiresFullCommandSurface(t *testing.T) {
 		}
 	})
 
+	t.Run("rejects harness required gate missing proof depth metadata", func(t *testing.T) {
+		root := t.TempDir()
+		writeValidAgentIndexFixture(t, root)
+		writeTestFiles(t, root, map[string]string{
+			".agent/registries/command-registry.yaml": commandRegistryFixture(""),
+			".agent/harness/harness.yaml":             strings.Replace(validHarnessAliasFixture(), "    proof_depth: live_run\n", "", 1),
+		})
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		got := run([]string{"command-registry"}, strings.NewReader(""), &stdout, &stderr)
+		if got != 1 {
+			t.Fatalf("command-registry missing harness proof depth exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+		}
+		if !strings.Contains(stdout.String(), ".agent/harness/harness.yaml governance_check missing proof_depth") {
+			t.Fatalf("stdout = %q; want harness proof_depth gap", stdout.String())
+		}
+	})
+
+	t.Run("rejects harness required gate unknown target depth", func(t *testing.T) {
+		root := t.TempDir()
+		writeValidAgentIndexFixture(t, root)
+		writeTestFiles(t, root, map[string]string{
+			".agent/registries/command-registry.yaml": commandRegistryFixture(""),
+			".agent/harness/harness.yaml":             strings.Replace(validHarnessAliasFixture(), "    target_depth: live_run\n", "    target_depth: mythical_depth\n", 1),
+		})
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		got := run([]string{"command-registry"}, strings.NewReader(""), &stdout, &stderr)
+		if got != 1 {
+			t.Fatalf("command-registry unknown harness target depth exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+		}
+		if !strings.Contains(stdout.String(), ".agent/harness/harness.yaml governance_check unknown target_depth mythical_depth") {
+			t.Fatalf("stdout = %q; want harness target_depth gap", stdout.String())
+		}
+	})
+
 	t.Run("requires harness gate link semantics", func(t *testing.T) {
 		root := t.TempDir()
 		writeValidAgentIndexFixture(t, root)
@@ -3594,44 +3632,77 @@ artifacts:
 
 func validHarnessAliasFixture() string {
 	return `schema_version: "2.9.3"
+proof_depth:
+  taxonomy:
+    - id: live_run
+      meaning: "fixture live command execution"
+      release_evidence: true
+    - id: evidence_replay
+      meaning: "fixture evidence replay"
+      release_evidence: true
+    - id: downstream_adoption
+      meaning: "fixture downstream adoption proof"
+      release_evidence: true
+  status_reconciliation:
+    implemented: implemented
+  minimums:
+    release_gate: live_run
 required_gates:
   - id: governance_check
     command: "GOWORK=off make governance-check"
     purpose: "fixture"
+    proof_depth: live_run
+    target_depth: live_run
   - id: p1_governance_check
     command: "GOWORK=off make p1-governance-check"
     purpose: "fixture"
+    proof_depth: live_run
+    target_depth: live_run
   - id: p2_runtime_check
     command: "GOWORK=off make p2-runtime-check"
     purpose: "fixture"
+    proof_depth: live_run
+    target_depth: live_run
   - id: governance_chain
     command: "GOWORK=off make governance-check"
     purpose: "fixture"
+    proof_depth: live_run
+    target_depth: live_run
     alias_of: governance_check
     semantic_role: "fixture"
   - id: p1_governance_chain
     command: "GOWORK=off make p1-governance-check"
     purpose: "fixture"
+    proof_depth: live_run
+    target_depth: live_run
     alias_of: p1_governance_check
     semantic_role: "fixture"
   - id: p2_runtime_chain
     command: "GOWORK=off make p2-runtime-check"
     purpose: "fixture"
+    proof_depth: live_run
+    target_depth: live_run
     alias_of: p2_runtime_check
     semantic_role: "fixture"
   - id: governance_release_scope
     command: "GOWORK=off make governance-check"
     purpose: "fixture"
+    proof_depth: live_run
+    target_depth: live_run
     alias_of: governance_check
     semantic_role: "fixture"
   - id: p1_governance_release_scope
     command: "GOWORK=off make p1-governance-check"
     purpose: "fixture"
+    proof_depth: live_run
+    target_depth: live_run
     alias_of: p1_governance_check
     semantic_role: "fixture"
   - id: p2_runtime_release_scope
     command: "GOWORK=off make p2-runtime-check"
     purpose: "fixture"
+    proof_depth: live_run
+    target_depth: live_run
     alias_of: p2_runtime_check
     semantic_role: "fixture"
 gate_link_semantics:

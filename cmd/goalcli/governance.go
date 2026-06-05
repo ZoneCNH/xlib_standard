@@ -394,13 +394,14 @@ func runCommandRegistry(args []string, stdout io.Writer, stderr io.Writer) int {
 	appendGeneratedArtifactClassificationGaps(".agent/index.yaml", ".agent/registries/generated-artifacts.yaml", &gaps)
 	appendGeneratedArtifactsGaps(".agent/registries/generated-artifacts.yaml", ".agent/index.yaml", &gaps)
 	appendHarnessAliasGaps(".agent/harness/harness.yaml", &gaps)
+	appendHarnessProofDepthGaps(".agent/harness/harness.yaml", &gaps)
 	appendHarnessGateLinkSemanticsGaps(".agent/harness/harness.yaml", &gaps)
 	appendRulesEnforcedByGaps(".agent/rules/registry.yaml", &gaps)
 	if len(gaps) > 0 {
 		write(stderr, "ERROR: command-registry found %d gap(s)\n", len(gaps))
 		return emitReport(stdout, "command-registry", "failed", nil, gaps)
 	}
-	return emitReport(stdout, "command-registry", "passed", []string{"command registry entries are complete and unique", ".agent/index.yaml control-plane classification satisfied", ".agent generated-artifact and harness gate-link contracts satisfied"}, nil)
+	return emitReport(stdout, "command-registry", "passed", []string{"command registry entries are complete and unique", ".agent/index.yaml control-plane classification satisfied", ".agent generated-artifact and harness gate-link/proof-depth contracts satisfied"}, nil)
 }
 
 func runMakefileBaseline(args []string, stdout io.Writer, stderr io.Writer) int {
@@ -2017,6 +2018,73 @@ func appendGeneratedArtifactClassificationGaps(indexPath string, artifactsPath s
 			*gaps = append(*gaps, artifactsPath+" "+path+" generated artifact must not be source_of_truth")
 		}
 	}
+}
+
+func appendHarnessProofDepthGaps(path string, gaps *[]string) {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		*gaps = append(*gaps, "missing "+path)
+		return
+	}
+	text := string(content)
+	allowedDepths := parseHarnessProofDepthTaxonomyIDs(text)
+	if len(allowedDepths) == 0 {
+		*gaps = append(*gaps, path+" proof_depth taxonomy must define ids")
+	}
+	entries := parseYAMLSequenceBlocks(text, "required_gates", "id")
+	if len(entries) == 0 {
+		return
+	}
+	for _, entry := range entries {
+		for _, field := range []string{"proof_depth", "target_depth"} {
+			value, ok := blockYAMLValue(entry.block, field)
+			if !ok || value == "" || value == "[]" {
+				*gaps = append(*gaps, path+" "+entry.value+" missing "+field)
+				continue
+			}
+			if len(allowedDepths) > 0 && !allowedDepths[value] {
+				*gaps = append(*gaps, path+" "+entry.value+" unknown "+field+" "+value)
+			}
+		}
+	}
+}
+
+func parseHarnessProofDepthTaxonomyIDs(text string) map[string]bool {
+	ids := map[string]bool{}
+	inProofDepth := false
+	inTaxonomy := false
+	for _, line := range strings.Split(text, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+		if !inProofDepth {
+			if trimmed == "proof_depth:" && line == trimmed {
+				inProofDepth = true
+			}
+			continue
+		}
+		if isTopLevelYAMLKey(line) && trimmed != "proof_depth:" {
+			break
+		}
+		if !inTaxonomy {
+			if trimmed == "taxonomy:" {
+				inTaxonomy = true
+			}
+			continue
+		}
+		if strings.HasPrefix(trimmed, "- id:") {
+			value := trimYAMLScalar(strings.TrimSpace(strings.TrimPrefix(trimmed, "- id:")))
+			if value != "" {
+				ids[value] = true
+			}
+			continue
+		}
+		if !strings.HasPrefix(line, "    ") && strings.Contains(trimmed, ":") && !strings.HasPrefix(trimmed, "-") {
+			inTaxonomy = false
+		}
+	}
+	return ids
 }
 
 func appendHarnessGateLinkSemanticsGaps(path string, gaps *[]string) {
