@@ -91,6 +91,8 @@ make evidence
 
 Release gate 还必须执行 `GOWORK=off go run ./cmd/goalcli score --min 9.8`。GitHub Actions workflow 引用的第三方 Action 必须固定为 40 位 commit SHA 并保留来源 tag 注释；CI、Release Check、Auto Patch 和 Docker Contract workflow 默认设置 `XLIB_ENABLE_VULNCHECK=0`，Security workflow 每周一 03:17 UTC 定时强制执行漏洞扫描；启用或定时扫描时必须使用固定基线 `golang.org/x/vuln/cmd/govulncheck@v1.1.4`，不得用 `@latest` 作为发布门禁配置。
 
+无人值守分支治理前必须阅读 `docs/standard/branch-governance.md`：先分类所有非 `main` 分支，备份无法安全合并但可能有价值的分支，合并可验证的有效提交，删除重复/过期/无价值分支，最后证明 `main == origin/main`、工作区干净且只剩 `main`。
+
 生成 `kernel` 示例：
 
 ```bash

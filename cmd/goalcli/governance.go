@@ -63,6 +63,8 @@ func runDoctor(args []string, stdout io.Writer, stderr io.Writer) int {
 		".agent/registries/command-registry.yaml",
 		".agent/registries/makefile-target-registry.yaml",
 		".agent/registries/makefile-baseline.yaml",
+		".github/workflows/adoption-check.yml",
+		"mk/governance.mk",
 		"docs/standard/goalcli-cli-contract.md",
 		"contracts/goalcli-report.schema.json",
 		"Makefile",
@@ -416,7 +418,7 @@ func runMakefileBaseline(args []string, stdout io.Writer, stderr io.Writer) int 
 }
 
 func requiredMakefileTargets() []string {
-	requiredTargets := append([]string{"fmt", "vet", "lint", "test", "race", "boundary", "security", "contracts", "schema-check", "docs-check", "rules-verify", "downstream-sync-plan", "evidence", "score-check", "main-guard", "worktree-guard", "worktree-check", "context-check", "spec-check", "design-check", "task-check", "pr-check", "evidence-check", "cli-contract", "issue-registry", "command-registry", "makefile-baseline", "audit-goal", "dashboard-generate", "governance-check", "p1-governance-check", "execution-context", "p2-runtime-check", "release-check", "release-final-check"}, contextRuntimeTargets()...)
+	requiredTargets := append([]string{"fmt", "vet", "lint", "test", "race", "boundary", "security", "contracts", "schema-check", "docs-check", "rules-verify", "downstream-sync-plan", "adoption-check", "evidence", "score-check", "main-guard", "worktree-guard", "worktree-check", "context-check", "spec-check", "design-check", "task-check", "pr-check", "evidence-check", "cli-contract", "issue-registry", "command-registry", "makefile-baseline", "audit-goal", "dashboard-generate", "governance-check", "p1-governance-check", "execution-context", "p2-runtime-check", "release-check", "release-final-check"}, contextRuntimeTargets()...)
 	requiredTargets = append(requiredTargets, dockerMakefileTargets()...)
 	return append(requiredTargets, goalcliMakefileTargets()...)
 }
@@ -1500,6 +1502,7 @@ var commandRegistryCommands = []string{
 	"implementation-debt",
 	"downstream-debt",
 	"downstream-sync-plan",
+	"adoption-check",
 	"docker-toolchain-check",
 	"docker-build",
 	"docker-build-check",
