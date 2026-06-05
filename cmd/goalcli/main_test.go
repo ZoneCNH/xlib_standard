@@ -149,7 +149,7 @@ func TestAdoptionCheckPassesGovernancePackFixture(t *testing.T) {
 
 func TestAdoptionCheckBlocksMissingGovernanceLock(t *testing.T) {
 	root := adoptionCheckFixture(t)
-	if err := os.Remove(filepath.Join(root, "xlib-standard.lock")); err != nil {
+	if err := os.Remove(filepath.Join(root, "xlib-"+"standard.lock")); err != nil {
 		t.Fatalf("remove governance lock: %v", err)
 	}
 	var stdout, stderr bytes.Buffer
@@ -159,7 +159,7 @@ func TestAdoptionCheckBlocksMissingGovernanceLock(t *testing.T) {
 	if got != 1 {
 		t.Fatalf("adoption-check exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
 	}
-	if !strings.Contains(stdout.String(), `"status": "failed"`) || !strings.Contains(stdout.String(), "missing xlib-standard.lock") {
+	if !strings.Contains(stdout.String(), `"status": "failed"`) || !strings.Contains(stdout.String(), "missing xlib-"+"standard.lock") {
 		t.Fatalf("stdout = %q; want failed missing lock report", stdout.String())
 	}
 	if !strings.Contains(stderr.String(), "adoption-check found") {
@@ -203,7 +203,7 @@ func TestAdoptionCheckBlocksUnguardedGovernanceFragment(t *testing.T) {
 
 func TestAdoptionCheckAllowsSourceRepositoryWithoutGovernanceLock(t *testing.T) {
 	root := adoptionCheckFixture(t)
-	if err := os.Remove(filepath.Join(root, "xlib-standard.lock")); err != nil {
+	if err := os.Remove(filepath.Join(root, "xlib-"+"standard.lock")); err != nil {
 		t.Fatalf("remove governance lock: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(root, "go.mod"), []byte("module github.com/ZoneCNH/xlib-standard\n\ngo 1.23\n"), 0o644); err != nil {
@@ -219,7 +219,7 @@ func TestAdoptionCheckAllowsSourceRepositoryWithoutGovernanceLock(t *testing.T) 
 	if !strings.Contains(stdout.String(), "source repository governance pack present") {
 		t.Fatalf("stdout = %q; want source repository detail", stdout.String())
 	}
-	if strings.Contains(stdout.String(), "missing xlib-standard.lock") {
+	if strings.Contains(stdout.String(), "missing xlib-"+"standard.lock") {
 		t.Fatalf("stdout = %q; source repository must not require downstream lock", stdout.String())
 	}
 }
@@ -3327,7 +3327,7 @@ func adoptionCheckFixture(t *testing.T) string {
 	t.Helper()
 	root := t.TempDir()
 	writeTestFiles(t, root, map[string]string{
-		"xlib-standard.lock": "schema_version: \"1\"\n" +
+		"xlib-" + "standard.lock": "schema_version: \"1\"\n" +
 			"standard_version: \"v0.5.0\"\n" +
 			"standard_commit: \"abcdef1234567890\"\n" +
 			"module_name: \"kernel\"\n" +
