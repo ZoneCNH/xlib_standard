@@ -183,4 +183,33 @@ A	.agent/runs/GOAL-20260606-L2-STANDARD-USAGE-FIX/evidence.md
 
 ## Stop Decision
 
-All team tasks are complete, leader verification passed, no pending worker task remains, and this durable evidence record was created. The next lifecycle action is `omx team shutdown execute-home-xlib-sta-131e4dc5`.
+All team tasks were complete, leader verification passed, no pending worker task remained, and this durable evidence record was created. The team was then shut down.
+
+Shutdown command:
+
+```bash
+omx team shutdown execute-home-xlib-sta-131e4dc5
+```
+
+Shutdown result:
+
+- Worker-1 merge outcome: merged from `c2b7a5e0ccb33949013e15c08e5d70088af71f5b`.
+- Worker-2 merge outcome: noop, source already reachable from leader HEAD.
+- Worker-3 merge outcome: noop, source already reachable from leader HEAD.
+- Shutdown report: `Team shutdown complete: execute-home-xlib-sta-131e4dc5`.
+- Commit hygiene report JSON: `.omx/reports/team-commit-hygiene/execute-home-xlib-standard-wor.context.json`.
+- Commit hygiene report Markdown: `.omx/reports/team-commit-hygiene/execute-home-xlib-standard-wor.md`.
+
+Post-shutdown verification before this evidence-update commit, 2026-06-05T22:40:59Z:
+
+```bash
+git status --short --branch
+git rev-parse HEAD
+omx team status execute-home-xlib-sta-131e4dc5
+```
+
+Post-shutdown result:
+
+- `git status --short --branch` reported a clean branch.
+- HEAD immediately after shutdown merge: `630405aa9596a2d7c385c3eacc6ff0349d0d1d47`.
+- `omx team status execute-home-xlib-sta-131e4dc5` reported `No team state found for execute-home-xlib-sta-131e4dc5`, confirming runtime cleanup.
