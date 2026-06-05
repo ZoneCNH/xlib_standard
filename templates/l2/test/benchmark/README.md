@@ -1,3 +1,3 @@
 # L2 Benchmark Tests
 
-Use this directory for throughput, latency, and resource benchmarks. xlib-standard does not provide provider connections or Contract Runner execution; downstream L2 repositories wire these tests with testkitx and xlibgate.
+Use this directory for throughput, latency, and resource benchmarks. The L2 template keeps provider connections and Contract Runner execution downstream; adopting repositories wire these tests with testkitx and xlibgate.
