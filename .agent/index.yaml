@@ -976,3 +976,88 @@ files:
     owner: governance
     validator: governance-check
     purpose: Issue 59 Phase 3/4 .agent 物理分类迁移清单、路径引用扫描与兼容例外。
+
+  - path: .agent/registry/l2-contract-packs.yaml
+    layer: registry
+    authority: source_of_truth
+    mutability: hand_written
+    owner: governance
+    validator: governance-check
+    purpose: L2 contract pack registry.
+  - path: .agent/registry/l2-capability-families.yaml
+    layer: registry
+    authority: source_of_truth
+    mutability: hand_written
+    owner: governance
+    validator: governance-check
+    purpose: L2 capability family registry.
+  - path: .agent/registry/l2-golden-samples.yaml
+    layer: registry
+    authority: source_of_truth
+    mutability: hand_written
+    owner: governance
+    validator: governance-check
+    purpose: L2 golden sample registry.
+  - path: .agent/registry/l2-release-levels.yaml
+    layer: registry
+    authority: source_of_truth
+    mutability: hand_written
+    owner: release
+    validator: governance-check
+    purpose: L2 release readiness levels.
+  - path: .agent/schemas/l2-capabilities.schema.json
+    layer: machine_contract
+    authority: source_of_truth
+    mutability: hand_written
+    owner: governance
+    validator: governance-check
+    purpose: L2 capability manifest schema.
+  - path: .agent/schemas/l2-contract-packs.schema.json
+    layer: machine_contract
+    authority: source_of_truth
+    mutability: hand_written
+    owner: governance
+    validator: governance-check
+    purpose: L2 contract pack registry schema.
+  - path: .agent/schemas/l2-release-readiness.schema.json
+    layer: machine_contract
+    authority: source_of_truth
+    mutability: hand_written
+    owner: release
+    validator: governance-check
+    purpose: L2 release readiness report schema.
+  - path: .agent/schemas/l2-compliance-matrix.schema.json
+    layer: machine_contract
+    authority: source_of_truth
+    mutability: hand_written
+    owner: governance
+    validator: governance-check
+    purpose: L2 compliance matrix schema.
+  - path: .agent/evidence/l2-standard/schema-validate.json
+    layer: evidence
+    authority: validated_mirror
+    mutability: generated
+    owner: release
+    validator: evidence-check
+    purpose: L2 schema validation evidence.
+  - path: .agent/evidence/l2-standard/registry-check.json
+    layer: evidence
+    authority: validated_mirror
+    mutability: generated
+    owner: release
+    validator: evidence-check
+    purpose: L2 registry validation evidence.
+  - path: .agent/evidence/l2-standard/template-check.json
+    layer: evidence
+    authority: validated_mirror
+    mutability: generated
+    owner: release
+    validator: evidence-check
+    purpose: L2 template validation evidence.
+  - path: .agent/evidence/l2-standard/verification-summary.json
+    layer: evidence
+    authority: validated_mirror
+    mutability: generated
+    owner: release
+    validator: evidence-check
+    purpose: L2 standards verification summary.
