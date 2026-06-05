@@ -22,6 +22,7 @@ groups:
     commands:
       - version
       - doctor
+      - fact
       - minimal-kernel
       - main-guard
       - worktree-guard
