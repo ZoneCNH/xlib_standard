@@ -212,6 +212,7 @@ collect_text_files() {
     -name '*.go' -o \
     -name '*.md' -o \
     -name '*.json' -o \
+    -name '*.py' -o \
     -name '*.sh' -o \
     -name '*.yml' -o \
     -name '*.yaml' -o \

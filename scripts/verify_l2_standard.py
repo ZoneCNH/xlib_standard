@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate xlib-standard L2 standards artifacts without provider connections."""
+"""Validate L2 standards artifacts without provider connections."""
 from __future__ import annotations
 import json
 from pathlib import Path
