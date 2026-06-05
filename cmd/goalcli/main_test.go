@@ -842,14 +842,15 @@ func TestDownstreamDebtAliasUsesSupportedDebtSurface(t *testing.T) {
 func TestGoalGovernanceCommandSurface(t *testing.T) {
 	chdir(t, repoRoot(t))
 	required := []struct {
-		command    string
-		args       []string
-		wantCode   int
-		wantStatus string
+		command           string
+		args              []string
+		wantCode          int
+		wantStatus        string
+		wantReportCommand string
 	}{
 		{command: "version"},
 		{command: "doctor"},
-		{command: "fact", args: []string{"audit", "--strict"}},
+		{command: "fact", args: []string{"audit", "--strict"}, wantReportCommand: "fact audit"},
 		{command: "minimal-kernel"},
 		{command: "main-guard", args: []string{"--context", "local_readonly"}},
 		{command: "worktree-guard", args: []string{"--context", "local_readonly"}},
@@ -929,8 +930,12 @@ func TestGoalGovernanceCommandSurface(t *testing.T) {
 			if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
 				t.Fatalf("stdout is not gateReport JSON: %v; stdout %q", err, stdout.String())
 			}
-			if report.Command != command {
-				t.Fatalf("report command = %q; want %q", report.Command, command)
+			wantCommand := tt.wantReportCommand
+			if wantCommand == "" {
+				wantCommand = command
+			}
+			if report.Command != wantCommand {
+				t.Fatalf("report command = %q; want %q", report.Command, wantCommand)
 			}
 			wantStatus := tt.wantStatus
 			if wantStatus == "" {
