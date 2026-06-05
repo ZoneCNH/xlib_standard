@@ -87,7 +87,7 @@ func runTraceabilityCheck(args []string, stdout io.Writer, stderr io.Writer) int
 	var details []string
 	var gaps []string
 	for _, row := range rows {
-		details = append(details, fmt.Sprintf("%s: traceability_status=implemented proof_depth=file_exists artifact(s)=%d evidence_ref(s)=%d", row.ReqID, len(row.Artifacts), len(row.EvidenceRefs)))
+		details = append(details, fmt.Sprintf("%s: traceability_status=partial_implemented proof_depth=file_exists proof_depth_level=D3 full_lifecycle_graph=gap artifact(s)=%d evidence_ref(s)=%d", row.ReqID, len(row.Artifacts), len(row.EvidenceRefs)))
 		if len(row.Artifacts) == 0 {
 			gaps = append(gaps, row.ReqID+": 主要产物 column is empty")
 			continue

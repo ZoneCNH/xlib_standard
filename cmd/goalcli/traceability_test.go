@@ -47,7 +47,7 @@ func TestTraceabilityCheckPasses(t *testing.T) {
 	}
 }
 
-func TestTraceabilityCheckReportsProofDepth(t *testing.T) {
+func TestTraceabilityCheckReportsPartialProofDepthAndLifecycleGap(t *testing.T) {
 	dir := t.TempDir()
 	chdir(t, dir)
 	writeTraceFile(t, dir, ".agent/traceability/traceability-matrix.md", traceabilityValidMatrix)
@@ -63,8 +63,18 @@ func TestTraceabilityCheckReportsProofDepth(t *testing.T) {
 		t.Fatalf("exit=%d want 0; stdout=%s stderr=%s", code, stdout.String(), stderr.String())
 	}
 	out := stdout.String()
-	if !strings.Contains(out, "traceability_status=implemented") || !strings.Contains(out, "proof_depth=file_exists") {
-		t.Fatalf("expected traceability status and proof depth detail, got: %s", out)
+	for _, needle := range []string{
+		"traceability_status=partial_implemented",
+		"proof_depth=file_exists",
+		"proof_depth_level=D3",
+		"full_lifecycle_graph=gap",
+	} {
+		if !strings.Contains(out, needle) {
+			t.Fatalf("expected traceability detail %q, got: %s", needle, out)
+		}
+	}
+	if strings.Contains(out, "traceability_status=implemented") {
+		t.Fatalf("traceability report must not overstate full implementation, got: %s", out)
 	}
 }
 

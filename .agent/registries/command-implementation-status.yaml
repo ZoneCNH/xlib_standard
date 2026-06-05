@@ -2,16 +2,31 @@ schema_version: "1.0"
 module: xlib-standard
 source_registry: .agent/registries/command-registry.yaml
 truth_state: .agent/evidence/truth-state.yaml
-purpose: "区分 command registered、planned、dry-run verify、implemented 与 executed。"
+purpose: "区分 command registered、planned、dry-run verify、partial implemented、implemented 与 executed。"
 
 status_values:
   - registered
   - planned
   - dry_run_ready
+  - partial_implemented
   - implemented
   - executed
 
 groups:
+  - id: p0_traceability_partial_lifecycle_graph
+    phase: P0
+    implementation_status: partial_implemented
+    execution_status: passed
+    release_usable: false
+    evidence_state: requires_current_command_output
+    evidence_strength: file_exists_only
+    proof_depth: file_exists
+    proof_depth_level: D3
+    lifecycle_graph_status: gap
+    note: "traceability-check 已实现矩阵行、产物路径与 path-like Evidence 引用校验；完整 Goal → Req → AC → Task → Issue → Commit → PR → Evidence → Release lifecycle graph 仍是 gap，不得声明 release usable。"
+    commands:
+      - traceability-check
+
   - id: p0_implemented_or_scripted
     phase: P0
     implementation_status: implemented
@@ -39,7 +54,6 @@ groups:
       - command-registry
       - makefile-baseline
       - audit-goal
-      - traceability-check
       - boundary
       - contracts
       - schema-check
@@ -178,6 +192,8 @@ forbidden_gate_interpretations:
     rule: "planned command != implemented behavior"
   - state: dry_run_ready
     rule: "dry-run verify only proves the dry-run gate"
+  - state: partial_implemented
+    rule: "partial implemented command must disclose its remaining semantic gap and cannot imply release usable"
   - state: implemented
     rule: "implemented command still requires current command output before passed"
   - state: executed
