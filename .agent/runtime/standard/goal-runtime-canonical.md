@@ -18,16 +18,16 @@
 
 ## 1. 八条铁律（不可违反，违反必阻断）
 
-> **机器消费层**：见 [`.agent/rules/iron-rules.md`](../rules/iron-rules.md) + [`.agent/rules/registry.yaml`](../rules/registry.yaml)（PR #34 引入）。本节为叙事/解释层，两者交叉互证：iron-rules 把 RULE-EVIDENCE-001 并入第 1 条，本节单独列为第 8 条，编号映射在每行的"机器化实现"列保持稳定。
+> **机器消费层**：见 [`.agent/rules/iron-rules.md`](../../rules/iron-rules.md) + [`.agent/rules/registry.yaml`](../../rules/registry.yaml)（PR #34 引入）。本节为叙事/解释层，两者交叉互证：iron-rules 把 RULE-EVIDENCE-001 并入第 1 条，本节单独列为第 8 条，编号映射在每行的"机器化实现"列保持稳定。
 
 | ID | 铁律 | 机器化实现 |
 |---|---|---|
 | RULE-CORE-001 | 没有 Evidence 不允许 DONE | `goalcli evidence-check` / `make evidence-check` |
 | RULE-CORE-002 | 必须从真实上下文开始 | `goalcli context-profile-check` |
 | RULE-CORE-003 | 需求必须可验证（Req→AC→Test→Evidence） | `.agent/contracts/acceptance-matrix.yaml` + `goalcli acceptance-matrix` |
-| RULE-CORE-004 | 所有变更必须可追踪 | `.agent/traceability-matrix.yaml` + `goalcli trace-check`（待实现） |
+| RULE-CORE-004 | 所有变更必须可追踪 | `.agent/traceability/traceability-matrix.md` + `goalcli traceability-check` / `make traceability-check` |
 | RULE-CORE-005 | Harness 是机器裁判 | `cmd/goalcli/` + `make ci` |
-| RULE-CORE-006 | Self-improving 强制 | `goalcli retro-check`（每 Goal 必须有 Retro+Patch 候选） |
+| RULE-CORE-006 | Self-improving 强制 | `goalcli retro-check` / `goalcli self-improving-check`（默认允许 0 个 Patch entry；需要强制 Patch entry 时使用 `--strict`） |
 | RULE-WORKTREE-001 | 禁止 main 开发 | `.githooks/pre-commit` + `pre-push` + GHA `worktree-guard` + GitHub branch protection（四道防线） |
 | RULE-SECRET-001 | 禁止 secret 进入代码/文档/Evidence/Release | `scripts/check_secrets.sh` + `.githooks/pre-commit` + GHA `security.yml` |
 
@@ -48,7 +48,7 @@
 | L6 Goal Packs | `.agent/goals/<GOAL-ID>/` | 暂未启用（按需） |
 | L7 Automation | goalcli / GHA | `goalcli` + `.github/workflows/` |
 | L8 Evidence & Audit | `.agent/evidence/` + `release/evidence/` | ✅ 已对齐 |
-| L9 Self-improving | Patch Registry | `.agent/retrospective-*.yaml` |
+| L9 Self-improving | Patch Registry | `.agent/archive/retrospective.md` + `.agent/{harness,policies}/*patches.yaml` |
 
 **裁决**：物理重构成本远大于收益，沿用现有平铺结构 + 命名后缀代替目录层级。
 
