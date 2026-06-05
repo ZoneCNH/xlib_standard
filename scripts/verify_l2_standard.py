@@ -48,6 +48,46 @@ DOC_REQUIRED = [
     "docs/testing/l2-compatibility-matrix.md",
 ]
 FORBIDDEN_TERMS = ["provider_endpoint:", "provider_credentials:", "password:", "secret:", "token:"]
+REQUIRED_PACKS = {
+    "common",
+    "kv",
+    "ttl",
+    "sql",
+    "transaction",
+    "pool",
+    "pubsub",
+    "request_reply",
+    "eventlog",
+    "producer",
+    "consumer",
+    "offset_commit",
+    "objectstore",
+    "columnstore",
+    "timeseries",
+}
+REQUIRED_PROFILES = {"unit", "contract", "integration", "chaos", "benchmark", "adoption"}
+REQUIRED_LEVELS = ["L2-T0", "L2-T1", "L2-T2", "L2-T3", "L2-T4"]
+TEMPLATE_MAKE_TARGETS = [
+    "l2-capability-check",
+    "l2-contract",
+    "l2-integration",
+    "l2-chaos",
+    "l2-benchmark",
+    "l2-adoption",
+    "l2-evidence",
+    "l2-release-readiness",
+    "l2-manifest-check",
+    "l2-contract-placeholder",
+    "l2-evidence-check",
+    "l2-release-readiness-check",
+]
+DOC_REQUIRED_TERMS = [
+    "xlib-standard",
+    "testkitx",
+    "xlibgate",
+    ".agent/evidence/l2",
+    "provider-neutral",
+]
 
 def load_yaml(rel: str):
     with (ROOT / rel).open() as f:
@@ -98,6 +138,68 @@ def main() -> int:
 
     packs = parsed_registries[".agent/registry/l2-contract-packs.yaml"]["packs"]
     levels = parsed_registries[".agent/registry/l2-release-levels.yaml"]["levels"]
+    pack_names = set(packs)
+    missing_packs = sorted(REQUIRED_PACKS - pack_names)
+    if missing_packs:
+        raise AssertionError(f"missing required L2 contract packs: {missing_packs}")
+    for name, pack in packs.items():
+        profiles = set(pack.get("profiles", []))
+        if not profiles:
+            raise AssertionError(f"contract pack {name} has no profiles")
+        if not profiles <= (REQUIRED_PROFILES | {"skeleton", "retrospective"}):
+            raise AssertionError(f"contract pack {name} has unknown profiles: {sorted(profiles)}")
+        for field in ["family", "title", "required_evidence", "capabilities"]:
+            if not pack.get(field):
+                raise AssertionError(f"contract pack {name} missing {field}")
+    backlog = parsed_registries[".agent/registry/l2-contract-packs.yaml"].get("extension_backlog", [])
+    if "ttl" not in backlog:
+        raise AssertionError("extension_backlog must explicitly track ttl")
+    results.append(result("contract-pack-invariants", "PASS", {"packs": sorted(pack_names), "extension_backlog_contains": "ttl"}))
+
+    if list(levels) != REQUIRED_LEVELS:
+        raise AssertionError(f"release levels must be ordered {REQUIRED_LEVELS}, got {list(levels)}")
+    if levels["L2-T3"].get("release_allowed") is not True or levels["L2-T4"].get("factory_grade_allowed") is not True:
+        raise AssertionError("release level flags must preserve L2-T3 release and L2-T4 factory-grade semantics")
+    for level_name, level in levels.items():
+        if not set(level.get("required_profiles", [])):
+            raise AssertionError(f"release level {level_name} has no required profiles")
+    results.append(result("release-level-invariants", "PASS", {"levels": list(levels)}))
+
+    makefile_text = (ROOT / "templates/l2/Makefile").read_text()
+    missing_targets = [target for target in TEMPLATE_MAKE_TARGETS if f"{target}:" not in makefile_text]
+    if missing_targets:
+        raise AssertionError(f"template Makefile missing L2 targets: {missing_targets}")
+    results.append(result("template-make-targets", "PASS", TEMPLATE_MAKE_TARGETS))
+
+    contract_test_text = (ROOT / "templates/l2/test/contract/l2_contract_test.go").read_text()
+    if "t.Skip(" in contract_test_text:
+        raise AssertionError("template contract test must not unconditionally skip")
+    for snippet in ["os.ReadFile", "../../.agent/l2-capabilities.yaml", "schema_version", "contract_packs"]:
+        if snippet not in contract_test_text:
+            raise AssertionError(f"template contract test missing manifest shape check snippet: {snippet}")
+    results.append(result("template-contract-test", "PASS", "local manifest shape check without skip"))
+
+    compose_text = (ROOT / "templates/l2/docker-compose.test.yml").read_text()
+    for snippet in ["provider-neutral", "profiles:", "placeholder", 'network_mode: "none"', "l2-standards-placeholder"]:
+        if snippet not in compose_text:
+            raise AssertionError(f"docker-compose.test.yml missing provider-neutral placeholder snippet: {snippet}")
+    results.append(result("template-compose", "PASS", "provider-neutral placeholder with no default network access"))
+
+    thin_docs = []
+    missing_doc_terms = []
+    for rel in DOC_REQUIRED:
+        text = (ROOT / rel).read_text()
+        if len(text) < 900:
+            thin_docs.append(rel)
+        missing_terms = [term for term in DOC_REQUIRED_TERMS if term not in text]
+        if missing_terms:
+            missing_doc_terms.append({"path": rel, "missing": missing_terms})
+    if thin_docs:
+        raise AssertionError(f"L2 guidance docs need expanded guidance: {thin_docs}")
+    if missing_doc_terms:
+        raise AssertionError(f"L2 guidance docs missing boundary terms: {missing_doc_terms}")
+    results.append(result("docs-guidance-depth", "PASS", f"{len(DOC_REQUIRED)} L2 docs contain expanded provider-neutral guidance"))
+
     results.append(result("registry-summary", "PASS", {"contract_packs": sorted(packs), "release_levels": list(levels)}))
 
     (EVIDENCE / "schema-validate.json").write_text(json.dumps({"status": "PASS", "checks": [r for r in results if "schema" in r["details"] or "schema" in r["check"]]}, indent=2) + "\n")
