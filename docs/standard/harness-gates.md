@@ -41,6 +41,14 @@ Full Goal Runtime v3.1 以 `cmd/goalcli` 作为 Go gate runtime。Makefile targe
 
 `.agent/harness/harness.yaml` 中的 `_check`、`_chain` 和 `_release_scope` 是不同 evidence node：`*_check` 对应 Makefile target，`*_chain` 对应 harness chain 集成，`*_release_scope` 对应 release 场景覆盖。三者命名相近但不得互相替代，也不得把任一节点的通过结果升级成另一个节点的 evidence。
 
+## Proof Depth 与状态调和
+
+`.agent/harness/harness.yaml` 的 `proof_depth` 是 gate 证据强度分类，不是额外通过条件。它按 `file_exists`、`command_registered`、`dry_run`、`positive_fixture`、`negative_fixture`、`mutation_fixture`、`live_run`、`evidence_replay`、`downstream_adoption` 递进记录证明深度。弱证明不得升级为强结论：`file_exists` 只证明引用路径可解析，不能替代 fresh gate output、release manifest replay 或 downstream adoption proof。
+
+状态调和以 `docs/standard/truth-state.md` 为上位语义：`declared -> registered`、`scaffolded -> planned`、`dry_run_ready -> dry_run_ready`、`implemented -> implemented`、`executed -> executed`、`evidence_verified -> checksum_verified`、`release_usable -> usable`。当报告同时出现状态和 proof depth 时，较弱的一侧限制结论；例如 `traceability-check` 可报告 `traceability_status=implemented proof_depth=file_exists`，但这只表示矩阵 gate 已实现并校验路径级证据，不表示 release evidence 已可 replay。
+
+`traceability-check` 的机器化范围是：要求每个 REQ 行的主要产物列非空、验证/Evidence 单元格非空，并校验主要产物与 path-like Evidence 引用存在。Evidence 中的命令名或人工审查说明可保留为文本，不强制当作文件路径解析；凡是看起来像仓库路径的 Evidence token 都必须存在或由受控 gitignore 生成产物规则覆盖。
+
 ## Context Runtime v4.0 Profile Baseline（REQ-014 当前可执行态）
 
 本节是 `GOAL-20260602-XLIB-RUNTIME-CONSOLIDATION-V4` / `REQ-014` 的冻结守则。当前可执行事实由 `Makefile`、`cmd/goalcli` 和四个 SSOT registry（`.agent/registries/command-registry.yaml`、`.agent/registries/issue-registry.yaml`、`.agent/registries/makefile-baseline.yaml`、`.agent/registries/makefile-target-registry.yaml`）共同证明；profile wrapper 与 registry bridge 已落地为 release gate 的一部分。物理 `.agent/context/*` packs/templates 仍不得被描述为已交付，除非对应文件实际进入仓库并被 registry/evidence 覆盖。

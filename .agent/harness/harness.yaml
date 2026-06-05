@@ -2,6 +2,48 @@ schema_version: "3.1"
 module: "xlib-standard"
 default_env:
   GOWORK: "off"
+proof_depth:
+  taxonomy:
+    - id: file_exists
+      meaning: "Referenced artifact or evidence path exists in the repository or is a gitignored generated output owned by a gate."
+      release_evidence: false
+    - id: command_registered
+      meaning: "A gate command is declared in the harness or command registry."
+      release_evidence: false
+    - id: dry_run
+      meaning: "The gate can execute without external production side effects and reports semantic markers."
+      release_evidence: false
+    - id: positive_fixture
+      meaning: "A passing fixture covers the expected valid path."
+      release_evidence: false
+    - id: negative_fixture
+      meaning: "A failing fixture proves the gate rejects missing or invalid evidence."
+      release_evidence: false
+    - id: mutation_fixture
+      meaning: "A fixture mutates a contract and proves the gate detects drift."
+      release_evidence: false
+    - id: live_run
+      meaning: "A fresh local gate run produced current output for this repository state."
+      release_evidence: true
+    - id: evidence_replay
+      meaning: "A stored evidence artifact can be replayed or checksum-verified against the current contract."
+      release_evidence: true
+    - id: downstream_adoption
+      meaning: "A downstream repository has verified adoption evidence, not merely registration or dry-run output."
+      release_evidence: true
+  status_reconciliation:
+    declared: registered
+    scaffolded: planned
+    dry_run_ready: dry_run_ready
+    implemented: implemented
+    executed: executed
+    evidence_verified: checksum_verified
+    release_usable: usable
+  minimums:
+    traceability_check: file_exists
+    release_gate: live_run
+    release_evidence: evidence_replay
+    downstream_adoption: downstream_adoption
 required_gates:
   - id: fmt
     command: "make fmt"

@@ -34,6 +34,7 @@
 - `audit-goal`
 - `dashboard-generate`
 - `traceability-check [--matrix .agent/traceability/traceability-matrix.md] [--json]`
+  - 校验每个 REQ 的主要产物路径、非空 Evidence 单元格，以及 path-like Evidence 引用；报告 `traceability_status=implemented` 与当前 `proof_depth=file_exists`，不得将其升级为 `evidence_replay` 或 `release_usable`。
 - `context-profile`
 - `context-profile-check`
 - `context-schema-check`
