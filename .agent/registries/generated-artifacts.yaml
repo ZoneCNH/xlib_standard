@@ -40,3 +40,23 @@ artifacts:
     source_control: generated-only
     generated_by: "goalcli rules-verify"
     validated_by: command-registry
+  - path: .agent/evidence/l2-standard/schema-validate.json
+    classification: generated_artifact
+    source_control: generated-only
+    generated_by: "python3 scripts/verify_l2_standard.py"
+    validated_by: evidence-check
+  - path: .agent/evidence/l2-standard/registry-check.json
+    classification: generated_artifact
+    source_control: generated-only
+    generated_by: "python3 scripts/verify_l2_standard.py"
+    validated_by: evidence-check
+  - path: .agent/evidence/l2-standard/template-check.json
+    classification: generated_artifact
+    source_control: generated-only
+    generated_by: "python3 scripts/verify_l2_standard.py"
+    validated_by: evidence-check
+  - path: .agent/evidence/l2-standard/verification-summary.json
+    classification: generated_artifact
+    source_control: generated-only
+    generated_by: "python3 scripts/verify_l2_standard.py"
+    validated_by: evidence-check

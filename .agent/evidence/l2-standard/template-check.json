@@ -1,0 +1,20 @@
+{
+  "status": "PASS",
+  "checks": [
+    {
+      "check": "templates/l2/.agent/l2-capabilities.yaml",
+      "status": "PASS",
+      "details": "template manifest validates against capability schema"
+    },
+    {
+      "check": "required-artifacts",
+      "status": "PASS",
+      "details": "12 template files and 9 docs present"
+    },
+    {
+      "check": "provider-boundary",
+      "status": "PASS",
+      "details": "no provider credentials/endpoints or secret fields in standards artifacts"
+    }
+  ]
+}
