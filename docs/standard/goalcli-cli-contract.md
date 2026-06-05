@@ -133,7 +133,13 @@
 - `runtime-file-ownership`
 - `downstream-baseline --repo kernel/configx --mode patch-only`
 - `downstream-adoption --repo kernel/configx --mode patch-only`
+- `adoption-check [--verify] [--json] [--root <path>]`
 - `execution-context`
+
+
+## Adoption check command
+
+`goalcli adoption-check [--verify] [--json] [--root <path>]` 是本地只读采纳验证器。它在渲染 downstream 仓库内检查 `xlib-standard.lock`、`.githooks/pre-commit`、`.githooks/pre-push`、`.github/workflows/adoption-check.yml`、`.github/rulesets/protect-main.json`、`mk/governance.mk`、`.agent/harness/harness.yaml`、command/makefile registries 和 `Makefile` 的 `adoption-check` target；在 `github.com/ZoneCNH/xlib-standard` 标准源仓库内运行时不要求 downstream lock，但仍验证 Repository Governance Pack 和 main ruleset。`--root` 用于指向待检查仓库；`--verify` 是与其他 blocking gate 对齐的兼容旗标；`--json` 是统一输出旗标，当前命令始终输出 JSON report。main ruleset 必须处于 active enforcement、保护默认分支、禁止 bypass actors，并要求 `adoption-check`、`governance-check` 和 `release-check`。标准源仓库没有 downstream lock，因此 source-template workflow 会跳过本命令；只有启用 governance pack 的渲染 downstream 仓库必须执行 `GOWORK=off make adoption-check`。发现缺口时输出 `status=failed` 并返回非 0。该命令不访问外部系统、不创建 downstream 仓库，也不写 Evidence。
 
 ## Goalcli MVA commands
 
@@ -197,7 +203,7 @@ goalcli MVA commands 是由 `.agent/harness/harness.yaml` 背书的本地 `cmd/g
 - `--verify` 或 `--strict` 不能把 `planned`/`gap` 当作成功证据。
 - `--context` 仅允许 `local_write`、`local_readonly`、`ci_pull_request`、`ci_main_verify` 和 `release_verify`。
 - `--repo` 指向的 downstream 仓库不存在时，命令必须返回 `gap`，且不得自动创建目录。
-- 新增命令时必须同步 `run` dispatch、`plannedCommandFiles`、Makefile gate、CLI contract 和测试表。
+- 新增 planned dry-run 命令时必须同步 `plannedCommandFiles`；新增非 planned 命令必须同步 `run` dispatch、usage、Makefile gate、registry、CLI contract 和测试表。
 
 ## 语义校验
 

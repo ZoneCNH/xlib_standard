@@ -30,6 +30,9 @@ required_gates:
   - id: governance_check
     command: "XLIB_CONTEXT=local_write GOWORK=off make governance-check"
     purpose: "Goal v2.9.3 P0 main/worktree/evidence/boundary/security/CLI/registry/Makefile baseline"
+  - id: adoption_check
+    command: "GOWORK=off make adoption-check"
+    purpose: "验证渲染 downstream repo 已保留 Repository Governance Pack、xlib-standard.lock 与本地 adoption gate。"
   - id: p1_governance_check
     command: "GOWORK=off make p1-governance-check"
     purpose: "Goal v2.9.3 P1 local dry-run governance contracts"

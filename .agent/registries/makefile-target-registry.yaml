@@ -27,6 +27,7 @@ targets:
   - rules-verify
   - downstream-debt
   - downstream-sync-plan
+  - adoption-check
   - docker-toolchain-check
   - docker-build
   - docker-build-check
