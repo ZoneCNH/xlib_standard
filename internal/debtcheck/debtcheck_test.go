@@ -190,6 +190,55 @@ func TestRunFailsOnLegacyProductionImport(t *testing.T) {
 	}
 }
 
+func TestRunAnnotatesFindingsWithOptionalRegistryMetadata(t *testing.T) {
+	root := t.TempDir()
+	writePolicyFiles(t, root)
+	writeFile(t, root, DefaultRegistryPath, `schema_version: debt-rule-registry/v1
+rules:
+  - id: debt.docs.marker
+    section: docs
+    severity: P1
+    invariant_id: INV-DEBT-DOCS-001
+    release_blocking: false
+    proof_depth: evidence_replay
+    owner: standard
+    expiry: 2026-07-01
+    remediation: remove docs drift marker
+    detector: debtcheck.scanTextMarker
+`)
+	writeFile(t, root, "docs/bad.md", "xlib-docs-drift\n")
+
+	report, err := Run(Options{Root: root, Section: "docs", Mode: "warn", MinScore: DefaultMinScore})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(report.Sections) != 1 || len(report.Sections[0].Findings) != 1 {
+		t.Fatalf("findings = %+v; want one docs finding", report.Sections)
+	}
+	finding := report.Sections[0].Findings[0]
+	if finding.InvariantID != "INV-DEBT-DOCS-001" || finding.ProofDepth != "evidence_replay" || finding.Owner != "standard" ||
+		finding.Expiry != "2026-07-01" || finding.Remediation != "remove docs drift marker" || finding.Detector != "debtcheck.scanTextMarker" {
+		t.Fatalf("finding = %+v; want optional metadata from registry", finding)
+	}
+	if finding.ReleaseBlocking == nil || *finding.ReleaseBlocking != false {
+		t.Fatalf("release_blocking = %v; want explicit false from registry", finding.ReleaseBlocking)
+	}
+	markdown := ToMarkdown(report)
+	for _, want := range []string{
+		"invariant_id=INV-DEBT-DOCS-001",
+		"release_blocking=false",
+		"proof_depth=evidence_replay",
+		"owner=standard",
+		"expiry=2026-07-01",
+		"remediation=remove docs drift marker",
+		"detector=debtcheck.scanTextMarker",
+	} {
+		if !strings.Contains(markdown, want) {
+			t.Fatalf("markdown = %s; want optional metadata %q", markdown, want)
+		}
+	}
+}
+
 func TestFindingOptionalMetadataRoundTripAndMarkdown(t *testing.T) {
 	releaseBlocking := false
 	report := Report{

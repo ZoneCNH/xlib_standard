@@ -108,9 +108,11 @@ func Run(opts Options) (Report, error) {
 	}
 
 	missing := missingPolicyFindings(opts)
+	metadata := readRuleMetadata(opts.Root, opts.RegistryPath)
 	for _, section := range selectedSections(opts.Section) {
 		findings := append([]Finding{}, missing...)
 		findings = append(findings, scanSection(opts.Root, section)...)
+		findings = annotateFindings(findings, metadata)
 		report.Sections = append(report.Sections, buildSection(section, findings))
 	}
 	for _, section := range report.Sections {
@@ -189,6 +191,128 @@ func findingMetadataMarkdown(finding Finding) string {
 		return ""
 	}
 	return " (" + strings.Join(fields, "; ") + ")"
+}
+
+func readRuleMetadata(root, path string) map[string]Finding {
+	data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(path)))
+	if err != nil {
+		return nil
+	}
+
+	metadata := map[string]Finding{}
+	var current Finding
+	inRule := false
+	flush := func() {
+		if inRule && current.ID != "" {
+			metadata[current.ID] = current
+		}
+		current = Finding{}
+		inRule = false
+	}
+
+	for _, raw := range strings.Split(string(data), "\n") {
+		trimmed := strings.TrimSpace(raw)
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+		if strings.HasPrefix(trimmed, "- ") {
+			flush()
+			inRule = true
+			trimmed = strings.TrimSpace(strings.TrimPrefix(trimmed, "- "))
+			if trimmed == "" {
+				continue
+			}
+		}
+		if !inRule {
+			continue
+		}
+		key, value, ok := strings.Cut(trimmed, ":")
+		if !ok {
+			continue
+		}
+		value = unquoteYAMLScalar(strings.TrimSpace(value))
+		switch strings.TrimSpace(key) {
+		case "id":
+			current.ID = value
+		case "invariant_id":
+			current.InvariantID = value
+		case "release_blocking":
+			if parsed, ok := parseOptionalBool(value); ok {
+				current.ReleaseBlocking = &parsed
+			}
+		case "proof_depth":
+			current.ProofDepth = value
+		case "owner":
+			current.Owner = value
+		case "expiry":
+			current.Expiry = value
+		case "remediation":
+			current.Remediation = value
+		case "detector":
+			current.Detector = value
+		}
+	}
+	flush()
+	return metadata
+}
+
+func annotateFindings(findings []Finding, metadata map[string]Finding) []Finding {
+	if len(metadata) == 0 {
+		return findings
+	}
+	annotated := append([]Finding(nil), findings...)
+	for i, finding := range annotated {
+		item, ok := metadata[finding.ID]
+		if !ok {
+			continue
+		}
+		if annotated[i].InvariantID == "" {
+			annotated[i].InvariantID = item.InvariantID
+		}
+		if annotated[i].ReleaseBlocking == nil && item.ReleaseBlocking != nil {
+			releaseBlocking := *item.ReleaseBlocking
+			annotated[i].ReleaseBlocking = &releaseBlocking
+		}
+		if annotated[i].ProofDepth == "" {
+			annotated[i].ProofDepth = item.ProofDepth
+		}
+		if annotated[i].Owner == "" {
+			annotated[i].Owner = item.Owner
+		}
+		if annotated[i].Expiry == "" {
+			annotated[i].Expiry = item.Expiry
+		}
+		if annotated[i].Remediation == "" {
+			annotated[i].Remediation = item.Remediation
+		}
+		if annotated[i].Detector == "" {
+			annotated[i].Detector = item.Detector
+		}
+	}
+	return annotated
+}
+
+func parseOptionalBool(value string) (bool, bool) {
+	switch value {
+	case "true":
+		return true, true
+	case "false":
+		return false, true
+	default:
+		return false, false
+	}
+}
+
+func unquoteYAMLScalar(value string) string {
+	if len(value) < 2 {
+		return value
+	}
+	first := value[0]
+	last := value[len(value)-1]
+	if (first == '"' && last == '"') || (first == '\'' && last == '\'') {
+		return value[1 : len(value)-1]
+	}
+	return value
 }
 
 func ReportDigest(report Report) string {
