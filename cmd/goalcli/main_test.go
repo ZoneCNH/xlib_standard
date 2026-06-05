@@ -1507,23 +1507,6 @@ func TestRunGovernanceCommands(t *testing.T) {
 		}
 	})
 
-
-func TestFactAuditStrictPassesCanonicalFacts(t *testing.T) {
-	root := repoRoot(t)
-	var stdout, stderr bytes.Buffer
-
-	got := run([]string{"fact", "audit", "--strict", "--root", root}, strings.NewReader(""), &stdout, &stderr)
-
-	if got != 0 {
-		t.Fatalf("fact audit exit = %d, stderr %q, stdout %q; want 0", got, stderr.String(), stdout.String())
-	}
-	for _, needle := range []string{`"command": "fact audit"`, `"status": "passed"`, "v0.4.15", ".xlib/facts/xlib.yaml"} {
-		if !strings.Contains(stdout.String(), needle) {
-			t.Fatalf("stdout = %q; want %q", stdout.String(), needle)
-		}
-	}
-}
-
 	t.Run("artifact gate passes when required files exist", func(t *testing.T) {
 		root := t.TempDir()
 		commandSurface := strings.Join(goalcliCLIContractNeedles(), "\n")
@@ -1623,6 +1606,22 @@ func TestRunExternalErrorPaths(t *testing.T) {
 			t.Fatalf("stderr = %q; want ERROR", stderr.String())
 		}
 	})
+}
+
+func TestFactAuditStrictPassesCanonicalFacts(t *testing.T) {
+	root := repoRoot(t)
+	var stdout, stderr bytes.Buffer
+
+	got := run([]string{"fact", "audit", "--strict", "--root", root}, strings.NewReader(""), &stdout, &stderr)
+
+	if got != 0 {
+		t.Fatalf("fact audit exit = %d, stderr %q, stdout %q; want 0", got, stderr.String(), stdout.String())
+	}
+	for _, needle := range []string{`"command": "fact audit"`, `"status": "passed"`, "v0.4.15", ".xlib/facts/xlib.yaml"} {
+		if !strings.Contains(stdout.String(), needle) {
+			t.Fatalf("stdout = %q; want %q", stdout.String(), needle)
+		}
+	}
 }
 
 func TestRunDoctorAllowsRenderedDownstreamWithoutSourceGoal(t *testing.T) {
