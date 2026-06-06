@@ -14,6 +14,9 @@ REQUIRED_FILES=(
   "contracts/execution-context.schema.json"
   "contracts/conformance-attestation.schema.json"
   "contracts/policy.schema.json"
+  "contracts/docker-toolchain.schema.json"
+  "contracts/execution-evidence.schema.json"
+  "contracts/downstream-adoption-proof.schema.json"
 )
 
 for file in "${REQUIRED_FILES[@]}"; do

@@ -7,30 +7,31 @@ import (
 
 // Manifest 是发布清单的顶层结构。
 type Manifest struct {
-	Module                 string                 `json:"module"`
-	Version                string                 `json:"version"`
-	Commit                 string                 `json:"commit"`
-	TreeSHA                string                 `json:"tree_sha"`
-	SourceDigest           string                 `json:"source_digest"`
-	TrackedFileCount       int                    `json:"tracked_file_count"`
-	GoVersion              string                 `json:"go_version"`
-	GeneratedAt            string                 `json:"generated_at"`
-	GeneratedBy            string                 `json:"generated_by"`
-	TreeState              string                 `json:"tree_state"`
-	Checks                 map[string]string      `json:"checks"`
-	Workflow               WorkflowEvidence       `json:"workflow"`
-	Docker                 DockerEvidence         `json:"docker"`
-	Score                  releasequality.Report  `json:"score"`
-	Contracts              []FileDigest           `json:"contracts"`
-	Dependencies           []ModuleDigest         `json:"dependencies"`
-	StandardImpact         StandardImpactEvidence `json:"standard_impact"`
-	Debt                   DebtEvidence           `json:"debt"`
-	GovernanceRuntime      GovernanceRuntime      `json:"governance_runtime"`
-	DownstreamSyncRequired bool                   `json:"downstream_sync_required"`
-	GeneratorEvidence      GeneratorEvidence      `json:"generator_evidence"`
-	Tools                  map[string]string      `json:"tools"`
-	Artifacts              []string               `json:"artifacts"`
-	Notes                  Notes                  `json:"notes"`
+	Module                 string                     `json:"module"`
+	Version                string                     `json:"version"`
+	Commit                 string                     `json:"commit"`
+	TreeSHA                string                     `json:"tree_sha"`
+	SourceDigest           string                     `json:"source_digest"`
+	TrackedFileCount       int                        `json:"tracked_file_count"`
+	GoVersion              string                     `json:"go_version"`
+	GeneratedAt            string                     `json:"generated_at"`
+	GeneratedBy            string                     `json:"generated_by"`
+	TreeState              string                     `json:"tree_state"`
+	Checks                 map[string]string          `json:"checks"`
+	Workflow               WorkflowEvidence           `json:"workflow"`
+	Docker                 DockerEvidence             `json:"docker"`
+	Score                  releasequality.Report      `json:"score"`
+	Contracts              []FileDigest               `json:"contracts"`
+	Dependencies           []ModuleDigest             `json:"dependencies"`
+	StandardImpact         StandardImpactEvidence     `json:"standard_impact"`
+	Debt                   DebtEvidence               `json:"debt"`
+	GovernanceRuntime      GovernanceRuntime          `json:"governance_runtime"`
+	DownstreamSyncRequired bool                       `json:"downstream_sync_required"`
+	DownstreamAdoption     DownstreamAdoptionEvidence `json:"downstream_adoption"`
+	GeneratorEvidence      GeneratorEvidence          `json:"generator_evidence"`
+	Tools                  map[string]string          `json:"tools"`
+	Artifacts              []string                   `json:"artifacts"`
+	Notes                  Notes                      `json:"notes"`
 }
 
 type WorkflowEvidence struct {
@@ -113,6 +114,16 @@ type GovernanceRuntime struct {
 }
 
 type GovernanceRuntimeEvidence = GovernanceRuntime
+
+type DownstreamAdoptionEvidence struct {
+	AdoptionClaim              string `json:"adoption_claim"`
+	DownstreamAdoptionScope    string `json:"downstream_adoption_scope"`
+	ProofBasedAdoption         bool   `json:"proof_based_adoption"`
+	DownstreamRepoWrite        bool   `json:"downstream_repo_write"`
+	ProofArtifactPath          string `json:"proof_artifact_path"`
+	AcceptedLedgerEvidencePath string `json:"accepted_ledger_evidence_path"`
+	Source                     string `json:"source"`
+}
 
 type GeneratorEvidence struct {
 	Command  string            `json:"command"`

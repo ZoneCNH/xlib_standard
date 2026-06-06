@@ -29,3 +29,7 @@ Full Goal Runtime v3.1 release candidate。
 ## 发布规则
 
 没有 Evidence 不得发布。`release/manifest/latest.json` 和 `.sha256` 是生成产物与 CI artifact，不提交到源码历史。不得在源码、README、测试日志、release manifest、PR 描述或 Evidence 中包含 `/home/k8s/secrets/env/*` 的真实内容。
+
+## Downstream adoption Evidence
+
+Release manifest adoption evidence is local-contract-only by default: `adoption_claim=not_claimed`, `downstream_adoption_scope=local_contract_only`, `proof_based_adoption=false`, and `downstream_repo_write=false`. Do not claim downstream adoption from registry presence, baseline scans, patch-only plans, standard-impact reports, or downstream sync plans. Any future adoption claim must cite downstream-generated proof and accepted ledger evidence; this release has no external downstream proof/ledger claim.

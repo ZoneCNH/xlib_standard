@@ -411,6 +411,20 @@ files:
     owner: release
     validator: evidence-check
     purpose: Team rule structure fix worker-3 verification evidence.
+  - path: .agent/evidence/downstream-governance-worker-3-task-3.md
+    layer: evidence
+    authority: source_of_truth
+    mutability: hand_written
+    owner: governance
+    validator: evidence-check
+    purpose: Worker 3 downstream governance verification and evidence lane summary.
+  - path: .agent/evidence/downstream-governance-worker-3-task-4.md
+    layer: evidence
+    authority: source_of_truth
+    mutability: hand_written
+    owner: governance
+    validator: evidence-check
+    purpose: Worker 3 downstream governance release manifest integration summary.
   - path: .agent/metrics/docker-toolchain.json
     layer: evidence
     authority: validated_mirror
@@ -1006,6 +1020,13 @@ files:
     owner: governance
     validator: evidence-check
     purpose: 真相状态契约。
+  - path: .agent/evidence/downstream-governance-worker-1-task-1.md
+    layer: evidence
+    authority: historical_snapshot
+    mutability: hand_written
+    owner: governance
+    validator: evidence-check
+    purpose: Worker 1 downstream governance PR/checklist inventory evidence.
   - path: .agent/contracts/upgrade-runtime.md
     layer: machine_contract
     authority: source_of_truth

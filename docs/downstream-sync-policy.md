@@ -40,7 +40,7 @@
 
 当 `downstream_sync_required=true` 且 `downstream_release_decision=required` 时，计划按 `kernel`、L1、L2 的顺序列出 render、tidy、test、contracts、boundary、evidence 和 release-evidence-check 命令；`x.go` 只进入 consumer review，不写入标准源同步命令。当 impact 报告判定 `not_required` 时，计划只记录无需下游写入的结论。
 
-该计划不得更新 `.agent/registries/downstream-adoption-status.yaml` 或 `.agent/evidence/truth-state.yaml`，也不得作为 proof-based adoption；只有实际下游仓库中的当前命令输出才能把 blocked/not_run 升级为 passed/adopted。
+该计划不得更新 `.agent/registries/downstream-adoption-status.yaml` 或 `.agent/evidence/truth-state.yaml`，也不得作为 proof-based adoption；只有实际下游仓库中的当前命令输出才能把 blocked/not_run 升级为 passed/adopted。Release manifest 可以指纹记录 downstream adoption proof contract 并写入 `downstream_adoption` 默认值，但这只是 contract coverage；只有下游生成证明被 Evidence ledger 接受后，才能形成 proof-based adoption。
 
 ## 变更到同步动作映射
 
@@ -102,7 +102,7 @@ L3 私有业务系统的接入、私有 CI、脱敏 Evidence 和升级步骤见 
 
 ## PR 与发布要求
 
-- 触达标准、模板、generator、Harness、Evidence、contracts、命名或下游矩阵的 PR，必须说明是否触发 `downstream_release_decision: required`，并记录 release manifest 的 `downstream_sync_required` / `downstream_release_decision` 结论。
+- 触达标准、模板、generator、Harness、Evidence、contracts、命名或下游矩阵的 PR，必须说明是否触发 `downstream_release_decision: required`，并记录 release manifest 的 `downstream_sync_required` / `downstream_release_decision` 结论；未附下游生成证明和已接受 ledger Evidence 时，`downstream_adoption` 必须保持 `not_claimed` / `proof_based_adoption=false` / `downstream_repo_write=false`。
 - 触发同步时，PR 或 release Evidence 必须列出 `kernel`、L1、L2 和 `x.go` 的影响结论。
 - 未完成同步时，不得在完成声明中写 “无需下游动作”；必须写明 blocked 原因和后续 owner。
 - `GOWORK=off make docs-check` 必须校验本文件存在、关键角色命名和旧名限制。

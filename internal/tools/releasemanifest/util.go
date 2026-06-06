@@ -329,6 +329,7 @@ func buildManifest() (Manifest, error) {
 		Debt:                   debtEvidence,
 		GovernanceRuntime:      buildGovernanceRuntime(),
 		DownstreamSyncRequired: standardImpact.DownstreamSyncRequired,
+		DownstreamAdoption:     buildDownstreamAdoptionEvidence(),
 		GeneratorEvidence:      buildGeneratorEvidence(),
 		Tools: map[string]string{
 			"go":            firstLine(runTrimmedDefault(runtime.Version(), "go", "version")),

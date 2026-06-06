@@ -410,11 +410,16 @@ func runMakefileBaseline(args []string, stdout io.Writer, stderr io.Writer) int 
 		return invalidInternalArgsExit("makefile-baseline", err, stderr)
 	}
 	requiredTargets := requiredMakefileTargets()
-	required := map[string][]string{"Makefile": {}, ".agent/registries/makefile-target-registry.yaml": requiredTargets, ".agent/registries/makefile-baseline.yaml": requiredTargets}
-	for _, target := range requiredTargets {
-		required["Makefile"] = append(required["Makefile"], ".PHONY: "+target, target+":")
+	gaps := registryContractGaps(map[string][]string{
+		".agent/registries/makefile-target-registry.yaml": requiredTargets,
+		".agent/registries/makefile-baseline.yaml":        requiredTargets,
+	})
+	makefileContent, err := os.ReadFile("Makefile")
+	if err != nil {
+		gaps = append(gaps, "missing Makefile")
+	} else {
+		appendMakefileTargetCoverageGaps(string(makefileContent), requiredTargets, &gaps)
 	}
-	gaps := registryContractGaps(required)
 	appendYAMLSequenceDuplicateGaps(".agent/registries/makefile-target-registry.yaml", "targets", "target", &gaps)
 	appendYAMLMapSectionDuplicateGaps(".agent/registries/makefile-baseline.yaml", "baseline_targets", "target", &gaps)
 	return emitRegistryCheckResult("makefile-baseline", gaps, stdout, stderr)
@@ -422,8 +427,50 @@ func runMakefileBaseline(args []string, stdout io.Writer, stderr io.Writer) int 
 
 func requiredMakefileTargets() []string {
 	requiredTargets := append([]string{"fmt", "vet", "lint", "test", "race", "boundary", "security", "contracts", "schema-check", "docs-check", "rules-verify", "downstream-sync-plan", "adoption-check", "evidence", "score-check", "main-guard", "worktree-guard", "worktree-check", "context-check", "spec-check", "design-check", "task-check", "pr-check", "evidence-check", "cli-contract", "issue-registry", "command-registry", "makefile-baseline", "audit-goal", "fact-audit", "dashboard-generate", "governance-check", "p1-governance-check", "execution-context", "p2-runtime-check", "release-check", "release-final-check"}, contextRuntimeTargets()...)
+	requiredTargets = append(requiredTargets, plannedDownstreamMakefileTargets()...)
 	requiredTargets = append(requiredTargets, dockerMakefileTargets()...)
-	return append(requiredTargets, goalcliMakefileTargets()...)
+	requiredTargets = append(requiredTargets, goalcliMakefileTargets()...)
+	return append(requiredTargets, plannedCommandMakefileTargets()...)
+}
+
+func plannedCommandMakefileTargets() []string {
+	return []string{
+		"agent-team-contract",
+		"scope-lock",
+		"pr-template",
+		"acceptance-matrix",
+		"runtime-health",
+		"goal-runtime",
+		"naming",
+		"upgrade-standard",
+		"conformance-profile",
+		"downstream-registry",
+		"self-healing-skeleton",
+		"policy-schema",
+		"github-settings",
+		"github-governance",
+		"governance-fixture-test",
+		"toolchain",
+		"evidence-artifacts",
+		"install-runtime",
+		"upgrade-runtime",
+		"release-ready",
+		"evidence-replay",
+		"attest-conformance",
+		"pack-standard",
+		"pack-gate",
+		"pack-evidence",
+		"runtime-file-ownership",
+		"downstream-baseline",
+		"downstream-adoption",
+		"autoresearch",
+		"changelog",
+		"supply-chain",
+	}
+}
+
+func plannedDownstreamMakefileTargets() []string {
+	return []string{"upgrade-standard", "downstream-registry", "downstream-baseline", "downstream-adoption"}
 }
 
 func dockerMakefileTargets() []string {
@@ -663,6 +710,33 @@ func makefileTargetNames(content string) map[string]bool {
 			if target != ".PHONY" {
 				targets[target] = true
 			}
+		}
+	}
+	return targets
+}
+
+func appendMakefileTargetCoverageGaps(content string, targets []string, gaps *[]string) {
+	phonyTargets := makefilePhonyTargetNames(content)
+	declaredTargets := makefileTargetNames(content)
+	for _, target := range targets {
+		if !phonyTargets[target] {
+			*gaps = append(*gaps, "Makefile missing phony target "+target)
+		}
+		if !declaredTargets[target] {
+			*gaps = append(*gaps, "Makefile missing target block "+target)
+		}
+	}
+}
+
+func makefilePhonyTargetNames(content string) map[string]bool {
+	targets := map[string]bool{}
+	for _, line := range strings.Split(content, "\n") {
+		trimmed := strings.TrimSpace(stripInlineComment(line))
+		if !strings.HasPrefix(trimmed, ".PHONY:") {
+			continue
+		}
+		for _, target := range strings.Fields(strings.TrimSpace(strings.TrimPrefix(trimmed, ".PHONY:"))) {
+			targets[target] = true
 		}
 	}
 	return targets
@@ -1006,8 +1080,19 @@ var plannedCommandSemanticMarkers = map[string]map[string][]string{
 	"evidence-replay": {
 		".agent/evidence/evidence-replay.yaml": {"schema_version:", "fixtures:", "ledger:", "expected_status:", "hash_chain"},
 	},
+	"upgrade-standard": {
+		".agent/registries/downstream-registry.yaml": {"schema_version:", "downstreams:", "adoption_claim: not_claimed", "proof_based_adoption: false", "downstream_repo_write: false", "patch-only"},
+	},
+	"downstream-registry": {
+		".agent/registries/downstream-registry.yaml": {"schema_version:", "downstreams:", "adoption_claim: not_claimed", "proof_based_adoption: false", "downstream_repo_write: false"},
+	},
+	"downstream-baseline": {
+		".agent/registries/downstream-baseline-scan.yaml": {"schema_version:", "repo:", "mode: patch-only", "status: gap_explicit_when_repo_missing"},
+		".agent/registries/downstream-registry.yaml":      {"downstreams:", "kernel/configx", "unavailable_in_worker_workspace_gap_explicit"},
+	},
 	"downstream-adoption": {
 		".agent/registries/downstream-adoption-modes.yaml":  {"schema_version:", "modes:", "patch-only"},
+		".agent/registries/downstream-registry.yaml":        {"downstreams:", "adoption_claim: not_claimed", "downstream_repo_write: false"},
 		".agent/registries/downstream-adoption-status.yaml": {"proof_contract:", "source_repo", "gate_outputs", "rollback"},
 		"contracts/downstream-adoption-proof.schema.json":   {"source_repo", "source_commit", "gate_outputs", "rollback"},
 		"docs/standard/downstream-registry.md":              {"Proof contract", "source_repo", "gate_outputs", "rollback"},
@@ -1047,7 +1132,7 @@ func runPlannedCommand(command string, args []string, stdout io.Writer, stderr i
 	if command == "release-ready" {
 		details = append(details, releaseReadyDecisionDetails(args, fileContents, &gaps)...)
 	}
-	if command == "downstream-baseline" || command == "downstream-adoption" || command == "upgrade-standard" {
+	if command == "downstream-registry" || command == "downstream-baseline" || command == "downstream-adoption" || command == "upgrade-standard" {
 		mode := fallback(flagValue(args, "mode", ""), "patch-only")
 		if flagProvided(args, "repo") {
 			repo := flagValue(args, "repo", "")

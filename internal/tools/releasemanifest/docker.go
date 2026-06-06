@@ -155,6 +155,17 @@ func copyStatusMap(statuses map[string]string) map[string]string {
 	return copied
 }
 
+// buildDownstreamAdoptionEvidence records the local release-manifest adoption boundary.
+func buildDownstreamAdoptionEvidence() DownstreamAdoptionEvidence {
+	return DownstreamAdoptionEvidence{
+		AdoptionClaim:           "not_claimed",
+		DownstreamAdoptionScope: "local_contract_only",
+		ProofBasedAdoption:      false,
+		DownstreamRepoWrite:     false,
+		Source:                  "release-manifest-local-evidence",
+	}
+}
+
 // buildGeneratorEvidence 构建生成器证据。
 func buildGeneratorEvidence() GeneratorEvidence {
 	return GeneratorEvidence{

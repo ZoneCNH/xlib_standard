@@ -34,6 +34,9 @@ GOWORK=off make release-preflight VERSION=v1.0.0
 - 不提交到源码历史。
 - `release/manifest/latest.json.sha256` 是对应 checksum 产物，随 CI artifact 上传，并保持在 `.gitignore` 中。
 - manifest 必须记录 `score` 和 `workflow`；`workflow_run_id`、`artifact_name`、`artifact_url` 用于对齐 CI 上传的 release manifest artifact，本地运行时可使用 `local:*` Evidence URL。
+- manifest 的 contract fingerprints 必须覆盖 `contracts/execution-evidence.schema.json` 和 `contracts/downstream-adoption-proof.schema.json`，且 `contract`、`docs_check` 状态必须继续作为显式 release gate 记录。
+- manifest 的 `downstream_adoption.adoption_claim` 默认只能是 `not_claimed`，`proof_based_adoption=false`，`downstream_repo_write=false`；没有下游仓库生成的证明和已接受 ledger Evidence 时，本地 release manifest 不得声明 adopted 或 truth。
+- `generator_evidence` 只代表本地模板/集成覆盖的代表目标，不能替代完整下游采用证明；`x.go` 始终保持 consumer-review-only。
 
 Release manifest 相关测试必须在临时 fixture 仓库构造所需 `.omc` state，不得依赖当前工作区的 Agent 运行态文件。
 

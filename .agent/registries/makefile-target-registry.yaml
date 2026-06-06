@@ -73,6 +73,37 @@ targets:
   - context-full-check
   - governance-check
   - p1-governance-check
+  - agent-team-contract
+  - scope-lock
+  - pr-template
+  - acceptance-matrix
+  - runtime-health
+  - goal-runtime
+  - naming
+  - upgrade-standard
+  - conformance-profile
+  - downstream-registry
+  - self-healing-skeleton
+  - policy-schema
+  - github-settings
+  - github-governance
+  - governance-fixture-test
+  - toolchain
+  - evidence-artifacts
+  - install-runtime
+  - upgrade-runtime
+  - release-ready
+  - evidence-replay
+  - attest-conformance
+  - pack-standard
+  - pack-gate
+  - pack-evidence
+  - runtime-file-ownership
+  - downstream-baseline
+  - downstream-adoption
+  - autoresearch
+  - changelog
+  - supply-chain
   - execution-context
   - p2-runtime-check
   - release-check
