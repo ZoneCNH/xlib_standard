@@ -112,6 +112,10 @@ func verifyManifest(path string, requirePassed bool, requireClean bool, expectVe
 	if got.DownstreamSyncRequired != got.StandardImpact.DownstreamSyncRequired {
 		failures = append(failures, "downstream_sync_required must match standard_impact.downstream_sync_required")
 	}
+	if !reflect.DeepEqual(got.DownstreamAdoption, current.DownstreamAdoption) {
+		failures = append(failures, "downstream_adoption does not match current downstream adoption evidence")
+	}
+	failures = append(failures, validateDownstreamAdoptionEvidence(got.DownstreamAdoption)...)
 	requireNonEmpty(&failures, "standard_impact.report_path", got.StandardImpact.ReportPath)
 	requireNonEmpty(&failures, "standard_impact.status", got.StandardImpact.Status)
 	requireEnumValue(&failures, "standard_impact.downstream_release_decision", got.StandardImpact.DownstreamReleaseDecision, downstreamReleaseDecisionValues)
@@ -229,6 +233,33 @@ func validateDockerEvidence(evidence DockerEvidence, requireDigests bool) []stri
 		}
 		if field.value != "" && !strings.HasPrefix(field.value, "sha256:") {
 			failures = append(failures, fmt.Sprintf("%s must start with sha256:", field.name))
+		}
+	}
+	return failures
+}
+
+// validateDownstreamAdoptionEvidence ensures local release evidence cannot imply downstream adoption.
+func validateDownstreamAdoptionEvidence(evidence DownstreamAdoptionEvidence) []string {
+	var failures []string
+	requireNonEmpty(&failures, "downstream_adoption.adoption_claim", evidence.AdoptionClaim)
+	requireNonEmpty(&failures, "downstream_adoption.downstream_adoption_scope", evidence.DownstreamAdoptionScope)
+	requireNonEmpty(&failures, "downstream_adoption.source", evidence.Source)
+	if evidence.DownstreamRepoWrite {
+		failures = append(failures, "downstream_adoption.downstream_repo_write must be false")
+	}
+	if evidence.AdoptionClaim == "not_claimed" {
+		if evidence.DownstreamAdoptionScope != "" && evidence.DownstreamAdoptionScope != "local_contract_only" {
+			failures = append(failures, fmt.Sprintf("downstream_adoption.downstream_adoption_scope must be local_contract_only when adoption_claim is not_claimed, got %q", evidence.DownstreamAdoptionScope))
+		}
+		if evidence.ProofBasedAdoption {
+			failures = append(failures, "downstream_adoption.proof_based_adoption must be false when adoption_claim is not_claimed")
+		}
+	}
+	claimsAdoption := strings.TrimSpace(evidence.AdoptionClaim) != "" && evidence.AdoptionClaim != "not_claimed"
+	proofScope := strings.TrimSpace(evidence.DownstreamAdoptionScope) != "" && evidence.DownstreamAdoptionScope != "local_contract_only"
+	if claimsAdoption || proofScope || evidence.ProofBasedAdoption {
+		if strings.TrimSpace(evidence.ProofArtifactPath) == "" || strings.TrimSpace(evidence.AcceptedLedgerEvidencePath) == "" {
+			failures = append(failures, "downstream adoption claims require downstream-generated proof and accepted ledger evidence")
 		}
 	}
 	return failures
