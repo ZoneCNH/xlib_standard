@@ -934,6 +934,8 @@ func TestVerifyManifestAcceptsFreshManifestAndRejectsDrift(t *testing.T) {
 		"downstream adoption claims require downstream-generated proof and accepted ledger evidence",
 		"governance_runtime does not match current governance runtime evidence",
 		`governance_runtime.gate_statuses.governance must be passed, got "failed"`,
+		"downstream_adoption does not match current downstream adoption evidence",
+		"downstream adoption claims require downstream-generated proof and accepted ledger evidence",
 		"generator_evidence does not match current integration evidence",
 	} {
 		if !strings.Contains(message, want) {
