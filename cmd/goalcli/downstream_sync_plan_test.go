@@ -131,8 +131,42 @@ func TestRunDownstreamSyncPlanRendersJSONToStdout(t *testing.T) {
 	if len(plan.Targets) != 11 {
 		t.Fatalf("len(Targets)=%d, want 11", len(plan.Targets))
 	}
-	if plan.ConsumerReview.Name != "x.go" {
-		t.Fatalf("ConsumerReview.Name=%q, want x.go", plan.ConsumerReview.Name)
+	if plan.AdoptionClaim != "not_claimed" {
+		t.Fatalf("AdoptionClaim=%q, want not_claimed", plan.AdoptionClaim)
+	}
+	wantReview := downstreamSyncConsumerReview{
+		Name:   "x.go",
+		Role:   "consumer_only",
+		Action: "consumer_only_review_required",
+		Status: "review_pending_no_standard_write",
+	}
+	if plan.ConsumerReview != wantReview {
+		t.Fatalf("ConsumerReview=%+v, want %+v", plan.ConsumerReview, wantReview)
+	}
+	for _, source := range []string{".agent/registries/downstream-adoption-status.yaml", ".agent/evidence/truth-state.yaml"} {
+		if !containsString(plan.TruthSources, source) {
+			t.Fatalf("TruthSources=%v, want %q", plan.TruthSources, source)
+		}
+	}
+	for _, interpretation := range []string{"registered != adopted", "baseline_scanned != adopted", "patch_only != proof_based_adoption", "not_run != passed"} {
+		if !containsString(plan.ForbiddenInterpretations, interpretation) {
+			t.Fatalf("ForbiddenInterpretations=%v, want %q", plan.ForbiddenInterpretations, interpretation)
+		}
+	}
+	for _, target := range plan.Targets {
+		combined := strings.ToLower(strings.Join([]string{target.Name, target.ModulePath, target.PackageName}, " "))
+		if strings.Contains(combined, "x.go") {
+			t.Fatalf("target %+v includes x.go; want x.go consumer review only", target)
+		}
+		for _, command := range target.Commands {
+			lowered := strings.ToLower(command)
+			if strings.Contains(lowered, "x.go") {
+				t.Fatalf("command %q includes x.go; want x.go consumer review only", command)
+			}
+			if strings.Contains(command, ".agent/registries/downstream-adoption-status.yaml") || strings.Contains(command, ".agent/evidence/truth-state.yaml") {
+				t.Fatalf("command %q writes adoption truth source", command)
+			}
+		}
 	}
 }
 

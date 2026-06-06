@@ -193,6 +193,7 @@ func TestRunCLIGeneratesManifestToOut(t *testing.T) {
 		t.Fatalf("debt evidence is incomplete: %+v", manifest.Debt)
 	}
 	assertGovernanceRuntimeEvidence(t, manifest.GovernanceRuntime)
+	assertDownstreamAdoptionNotClaimed(t, manifest.DownstreamAdoption)
 	if manifest.DownstreamSyncRequired != manifest.StandardImpact.DownstreamSyncRequired {
 		t.Fatalf("downstream_sync_required = %t, want standard impact value %t", manifest.DownstreamSyncRequired, manifest.StandardImpact.DownstreamSyncRequired)
 	}
@@ -481,6 +482,9 @@ func TestRunCLIVerifyReportsDrift(t *testing.T) {
 	manifest.DownstreamSyncRequired = !manifest.StandardImpact.DownstreamSyncRequired
 	manifest.GovernanceRuntime.RuntimeVersion = "v2.9.2"
 	manifest.GovernanceRuntime.ProfileStatuses["p2_runtime"] = "failed"
+	manifest.DownstreamAdoption.AdoptionClaim = "adopted"
+	manifest.DownstreamAdoption.DownstreamAdoptionScope = "downstream_generated"
+	manifest.DownstreamAdoption.ProofBasedAdoption = true
 	manifest.GeneratorEvidence.Targets = nil
 	if err := writeManifest(outPath, manifest); err != nil {
 		t.Fatal(err)
@@ -503,6 +507,8 @@ func TestRunCLIVerifyReportsDrift(t *testing.T) {
 		"debt does not match current debt evidence",
 		`debt.status must be passed, got "stale"`,
 		"governance_runtime does not match current context runtime evidence",
+		"downstream_adoption does not match current downstream adoption evidence",
+		"downstream adoption claims require downstream-generated proof and accepted ledger evidence",
 		"generator_evidence does not match current integration evidence",
 		`checks.lint must be passed, got "failed"`,
 	} {
@@ -851,6 +857,9 @@ func TestVerifyManifestAcceptsFreshManifestAndRejectsDrift(t *testing.T) {
 	manifest.GovernanceRuntime.Status = "stale"
 	manifest.DownstreamSyncRequired = !manifest.StandardImpact.DownstreamSyncRequired
 	manifest.GovernanceRuntime.GateStatuses["governance"] = "failed"
+	manifest.DownstreamAdoption.AdoptionClaim = "adopted"
+	manifest.DownstreamAdoption.DownstreamAdoptionScope = "downstream_generated"
+	manifest.DownstreamAdoption.ProofBasedAdoption = true
 	manifest.GeneratorEvidence.Command = "make old-integration"
 	badPath := filepath.Join(t.TempDir(), "stale.json")
 	if err := writeManifest(badPath, manifest); err != nil {
@@ -872,6 +881,8 @@ func TestVerifyManifestAcceptsFreshManifestAndRejectsDrift(t *testing.T) {
 		"downstream_sync_required must match standard_impact.downstream_sync_required",
 		"governance_runtime does not match current governance runtime evidence",
 		`governance_runtime.gate_statuses.governance must be passed, got "failed"`,
+		"downstream_adoption does not match current downstream adoption evidence",
+		"downstream adoption claims require downstream-generated proof and accepted ledger evidence",
 		"generator_evidence does not match current integration evidence",
 	} {
 		if !strings.Contains(message, want) {
@@ -990,6 +1001,7 @@ func TestVerifyManifestRejectsCorruptedManifestFields(t *testing.T) {
 	manifest.Contracts = nil
 	manifest.Dependencies = nil
 	manifest.GovernanceRuntime = GovernanceRuntime{}
+	manifest.DownstreamAdoption = DownstreamAdoptionEvidence{}
 	manifest.Debt = DebtEvidence{}
 	manifest.GeneratorEvidence.Required = false
 	manifest.Tools = map[string]string{}
@@ -1021,6 +1033,9 @@ func TestVerifyManifestRejectsCorruptedManifestFields(t *testing.T) {
 		"debt.status is required",
 		"governance_runtime.profiles is required",
 		"governance_runtime.legacy_aliases is required",
+		"downstream_adoption.adoption_claim is required",
+		"downstream_adoption.downstream_adoption_scope is required",
+		"downstream_adoption.source is required",
 		"generator_evidence.required must be true",
 		"tools.go must be recorded",
 	} {
@@ -1231,6 +1246,24 @@ func TestBuildGeneratorEvidenceRecordsRepresentativeDownstreams(t *testing.T) {
 	}
 	if !hasGeneratorTarget(got.Targets, "redisx", "github.com/ZoneCNH/redisx", "redisx") {
 		t.Fatalf("targets = %+v, want redisx target", got.Targets)
+	}
+}
+
+func TestBuildDownstreamAdoptionEvidenceDefaultsToNotClaimed(t *testing.T) {
+	got := buildDownstreamAdoptionEvidence()
+
+	assertDownstreamAdoptionNotClaimed(t, got)
+}
+
+func TestValidateDownstreamAdoptionEvidenceRequiresProofAndLedgerForClaims(t *testing.T) {
+	got := buildDownstreamAdoptionEvidence()
+	got.AdoptionClaim = "adopted"
+	got.DownstreamAdoptionScope = "downstream_generated"
+	got.ProofBasedAdoption = true
+
+	failures := validateDownstreamAdoptionEvidence(got)
+	if !contains(failures, "downstream adoption claims require downstream-generated proof and accepted ledger evidence") {
+		t.Fatalf("failures = %v, want proof and accepted ledger requirement", failures)
 	}
 }
 
@@ -1791,6 +1824,32 @@ func assertGovernanceRuntimeEvidence(t *testing.T, got GovernanceRuntimeEvidence
 	assertMapHas(t, got.GateStatuses, "governance", "passed")
 	assertMapHas(t, got.ProfileStatuses, "p1_governance", "passed")
 	assertMapHas(t, got.ProfileStatuses, "p2_runtime", "passed")
+}
+
+func assertDownstreamAdoptionNotClaimed(t *testing.T, got DownstreamAdoptionEvidence) {
+	t.Helper()
+
+	if got.AdoptionClaim != "not_claimed" {
+		t.Fatalf("downstream_adoption.adoption_claim = %q, want not_claimed", got.AdoptionClaim)
+	}
+	if got.DownstreamAdoptionScope != "local_contract_only" {
+		t.Fatalf("downstream_adoption.downstream_adoption_scope = %q, want local_contract_only", got.DownstreamAdoptionScope)
+	}
+	if got.ProofBasedAdoption {
+		t.Fatal("downstream_adoption.proof_based_adoption = true, want false")
+	}
+	if got.DownstreamRepoWrite {
+		t.Fatal("downstream_adoption.downstream_repo_write = true, want false")
+	}
+	if got.ProofArtifactPath != "" {
+		t.Fatalf("downstream_adoption.proof_artifact_path = %q, want empty", got.ProofArtifactPath)
+	}
+	if got.AcceptedLedgerEvidencePath != "" {
+		t.Fatalf("downstream_adoption.accepted_ledger_evidence_path = %q, want empty", got.AcceptedLedgerEvidencePath)
+	}
+	if got.Source != "release-manifest-local-evidence" {
+		t.Fatalf("downstream_adoption.source = %q, want release-manifest-local-evidence", got.Source)
+	}
 }
 
 func assertMapHas(t *testing.T, got map[string]string, key string, want string) {
