@@ -1020,6 +1020,13 @@ files:
     owner: governance
     validator: evidence-check
     purpose: 真相状态契约。
+  - path: .agent/evidence/downstream-governance-worker-1-task-1.md
+    layer: evidence
+    authority: historical_snapshot
+    mutability: hand_written
+    owner: governance
+    validator: evidence-check
+    purpose: Worker 1 downstream governance PR/checklist inventory evidence.
   - path: .agent/contracts/upgrade-runtime.md
     layer: machine_contract
     authority: source_of_truth
