@@ -704,6 +704,7 @@ func TestBuildManifestRecordsFixtureRepositoryFacts(t *testing.T) {
 		t.Fatalf("downstream_sync_required = %t, want standard impact value %t", manifest.DownstreamSyncRequired, manifest.StandardImpact.DownstreamSyncRequired)
 	}
 	assertGovernanceRuntimeEvidence(t, manifest.GovernanceRuntime)
+	assertDownstreamAdoptionNotClaimed(t, manifest.DownstreamAdoption)
 	if manifest.GeneratorEvidence.Command != "GOWORK=off make integration" || !manifest.GeneratorEvidence.Required {
 		t.Fatalf("generator_evidence = %+v, want integration command and required=true", manifest.GeneratorEvidence)
 	}
