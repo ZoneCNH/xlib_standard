@@ -764,7 +764,7 @@ func TestReleaseManifestTemplateListsEvidenceContractsAndAdoptionDefaults(t *tes
 		`"adoption_claim": "not_claimed"`,
 		`"proof_based_adoption": false`,
 		`"downstream_repo_write": false`,
-		`"accepted_ledger": ""`,
+		`"accepted_ledger_evidence_path": ""`,
 	} {
 		if !strings.Contains(template, want) {
 			t.Fatalf("release manifest template missing %s", want)
@@ -926,15 +926,12 @@ func TestVerifyManifestAcceptsFreshManifestAndRejectsDrift(t *testing.T) {
 		"debt does not match current debt evidence",
 		"governance_runtime does not match current context runtime evidence",
 		"downstream_sync_required must match standard_impact.downstream_sync_required",
-		"downstream_adoption does not match unsupported-claim guard defaults",
-		`downstream_adoption.adoption_claim must be one of not_claimed, got "adopted"`,
-		"downstream_adoption.proof_based_adoption must be false unless downstream-generated proof and accepted ledger evidence are present",
-		"downstream_adoption.downstream_repo_write must be false for local release manifest evidence",
-		"downstream_adoption.accepted_ledger must be empty when adoption_claim is not_claimed",
+		"downstream_adoption does not match current downstream adoption evidence",
+		"downstream_adoption.source is required",
+		"downstream_adoption.downstream_repo_write must be false",
+		"downstream adoption claims require downstream-generated proof and accepted ledger evidence",
 		"governance_runtime does not match current governance runtime evidence",
 		`governance_runtime.gate_statuses.governance must be passed, got "failed"`,
-		"downstream_adoption does not match current downstream adoption evidence",
-		"downstream adoption claims require downstream-generated proof and accepted ledger evidence",
 		"generator_evidence does not match current integration evidence",
 	} {
 		if !strings.Contains(message, want) {
