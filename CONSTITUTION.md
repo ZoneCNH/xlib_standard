@@ -9,8 +9,8 @@ scope:
 * L2 adapter libraries
 * downstream adoption repositories
   owner: ZoneCNH
-  effective_date: YYYY-MM-DD
-  last_updated: YYYY-MM-DD
+  effective_date: 2026-06-02
+  last_updated: 2026-06-06
   enforcement:
   primary_gate: xlibgate
   runtime_control_plane: .agent

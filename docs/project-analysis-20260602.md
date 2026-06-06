@@ -3,7 +3,7 @@
 > 生成日期：2026-06-02
 > 分析范围：全仓库代码、测试、CI、治理体系、治理文件结构
 > 当前版本：v0.3.7 | 质量评分：10/10（阈值 9.8）
-> 口径说明：本文的 `v0.3.7` 是项目发布/分析快照版本；当前治理主基线以 [docs/goal.md](goal/goal.md) v2.9.3 Complete 和 [.agent/traceability/traceability-matrix.md](../.agent/traceability/traceability-matrix.md) 为准。
+> 口径说明：本文的 `v0.3.7` 是项目发布/分析快照版本；当前治理主基线以 [docs/goal/goal.md](goal/goal.md) v2.9.3 Complete 和 [.agent/traceability/traceability-matrix.md](../.agent/traceability/traceability-matrix.md) 为准。
 
 ---
 
@@ -82,7 +82,7 @@ xlib-standard/
 ### 4.2 权威顺序（CONSTITUTION.md）
 
 ```
-docs/goal.md + docs/standard/  →  .agent/*.yaml + cmd/goalcli  →  release/manifest/
+docs/goal/goal.md + docs/standard/  →  .agent/*.yaml + cmd/goalcli  →  release/manifest/ + release/evidence/
 ```
 
 标准文档 > 机器可执行门禁 > 发布证据，形成三层验证链。

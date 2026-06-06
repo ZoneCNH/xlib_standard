@@ -3,7 +3,7 @@
 ## Full Goal Runtime v3.1 Gate
 
 - Context Gate：确认当前目标、scope、worker ownership 和旧名迁移约束。
-- Goal Gate：`GOAL-20260602-001` 与 `docs/goal.md` v2.9.3 Complete 的 REQ-001..REQ-010 对齐，并核对 `docs/project-analysis-20260602.md` 的 P0/P1/P2 与 52 项问题基线。
+- Goal Gate：`GOAL-20260602-001` 与 `docs/goal/goal.md` v2.9.3 Complete 的 REQ-001..REQ-010 对齐，并核对 `docs/project-analysis-20260602.md` 的 P0/P1/P2 与 52 项问题基线。
 - Spec Gate：标准、模板、generator、Harness、Evidence 五类职责明确。
 - Design Gate：模块边界、下游矩阵、x.go 集成边界和 secret policy 明确。
 - Plan Gate：任务切片不越权；module/name、gate CLI、manifest/score 等由对应 worker 负责。

@@ -2,10 +2,10 @@
 
 | Object | Required fields | Evidence link |
 | --- | --- | --- |
-| Goal | id, target outcome, non-goals, final gates | docs/goal.md, .agent/runtime/goal.md |
+| Goal | id, target outcome, non-goals, final gates | docs/goal/goal.md, .agent/runtime/goal.md |
 | Spec | behavior, constraints, compatibility | docs/spec.md, .agent/docs/spec.md |
 | Requirement | REQ id, owner, status, AC ids | .agent/traceability/traceability-matrix.md |
-| AC | observable condition, proof command/artifact | docs/goal.md |
+| AC | observable condition, proof command/artifact | docs/goal/goal.md |
 | Design | boundary, interface, dependency direction | docs/design.md, .agent/docs/design.md |
 | ADR | decision, context, consequences | docs/adr/*.md |
 | Plan | phases, sequencing, risk gates | .agent/docs/plan.md |
