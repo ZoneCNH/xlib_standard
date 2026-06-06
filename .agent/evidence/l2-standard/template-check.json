@@ -35,6 +35,21 @@
       ]
     },
     {
+      "check": "template-l2-contract-behavior",
+      "status": "PASS",
+      "details": "make -C templates/l2 l2-contract runs the Go contract test"
+    },
+    {
+      "check": "template-release-readiness-behavior",
+      "status": "PASS",
+      "details": "fails closed without active evidence and passes with a cleaned-up schema-valid temporary fixture"
+    },
+    {
+      "check": "template-workflow-wiring",
+      "status": "PASS",
+      "details": "workflow runs contract and release-readiness gates on release paths"
+    },
+    {
       "check": "template-contract-test",
       "status": "PASS",
       "details": "local manifest shape check without skip"

@@ -31,6 +31,32 @@ func TestStandardImpactRequiresDownstreamSyncForHarnessGeneratorEvidence(t *test
 	)
 }
 
+func TestStandardImpactDoesNotRequireDownstreamSyncForHarnessTestOnlyChanges(t *testing.T) {
+	report := runStandardImpact(t, []string{
+		"scripts/check_dependency_diff_test.go",
+		"scripts/check_standard_impact_test.go",
+		"scripts/run_integration_test.go",
+	})
+
+	assertReportContains(t, report,
+		"- downstream_sync_required: `false`",
+		"- downstream_release_decision: `not_required`",
+		"- repository_rules_release_decision: `not_required`",
+		"- changed_file_count: `3`",
+		"## harness",
+		"- 无变化",
+		"## other",
+		"- `scripts/check_dependency_diff_test.go`",
+		"- `scripts/check_standard_impact_test.go`",
+		"- `scripts/run_integration_test.go`",
+		"- `not_required`",
+	)
+
+	if strings.Contains(report, "## harness\n\n- `scripts/") {
+		t.Fatalf("test-only script files unexpectedly classified as harness:\n%s", report)
+	}
+}
+
 func TestStandardImpactRequiresDownstreamSyncForContextRuntimeV4Categories(t *testing.T) {
 	report := runStandardImpact(t, []string{
 		"cmd/goalcli/main.go",

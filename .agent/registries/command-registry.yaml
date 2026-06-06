@@ -7,6 +7,9 @@ commands:
   - name: doctor
     phase: P0
     target: doctor
+  - name: fact
+    phase: P0
+    target: fact-audit
   - name: minimal-kernel
     phase: P0
     target: minimal-kernel

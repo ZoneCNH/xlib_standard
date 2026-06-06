@@ -120,6 +120,11 @@ require_goalcli_sync_contract() {
   require_text ".agent/harness/harness.yaml" "makefile_baseline"
   require_text ".agent/harness/harness.yaml" "goalcli_v0_1_0"
   require_text ".agent/harness/harness.yaml" "goalcli_mva_gates"
+  require_text ".agent/harness/harness.yaml" "proof_depth: live_run"
+  require_text ".agent/harness/harness.yaml" "target_depth: evidence_replay"
+  require_text ".agent/harness/harness.yaml" "target_depth: downstream_adoption"
+  require_text "docs/standard/harness-gates.md" "required_gates[].proof_depth"
+  require_text "docs/standard/harness-gates.md" "required_gates[].target_depth"
 
   require_text "docs/standard/goalcli-cli-contract.md" "GoalCLI 同步契约"
   require_text ".agent/docs/standard/goalcli-mapping.md" "GoalCLI 同步契约"

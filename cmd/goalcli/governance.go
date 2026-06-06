@@ -17,11 +17,12 @@ import (
 	"time"
 
 	"github.com/ZoneCNH/xlib-standard/internal/validation"
+	"github.com/ZoneCNH/xlib-standard/internal/xlibfacts"
 )
 
 const (
-	projectReleaseVersion    = "v0.4.14"
-	governanceRuntimeVersion = "v2.9.3"
+	projectReleaseVersion    = xlibfacts.CurrentReleaseVersion
+	governanceRuntimeVersion = xlibfacts.GovernanceRuntimeVersion
 )
 
 type gateReport struct {
@@ -393,13 +394,14 @@ func runCommandRegistry(args []string, stdout io.Writer, stderr io.Writer) int {
 	appendGeneratedArtifactClassificationGaps(".agent/index.yaml", ".agent/registries/generated-artifacts.yaml", &gaps)
 	appendGeneratedArtifactsGaps(".agent/registries/generated-artifacts.yaml", ".agent/index.yaml", &gaps)
 	appendHarnessAliasGaps(".agent/harness/harness.yaml", &gaps)
+	appendHarnessProofDepthGaps(".agent/harness/harness.yaml", &gaps)
 	appendHarnessGateLinkSemanticsGaps(".agent/harness/harness.yaml", &gaps)
 	appendRulesEnforcedByGaps(".agent/rules/registry.yaml", &gaps)
 	if len(gaps) > 0 {
 		write(stderr, "ERROR: command-registry found %d gap(s)\n", len(gaps))
 		return emitReport(stdout, "command-registry", "failed", nil, gaps)
 	}
-	return emitReport(stdout, "command-registry", "passed", []string{"command registry entries are complete and unique", ".agent/index.yaml control-plane classification satisfied", ".agent generated-artifact and harness gate-link contracts satisfied"}, nil)
+	return emitReport(stdout, "command-registry", "passed", []string{"command registry entries are complete and unique", ".agent/index.yaml control-plane classification satisfied", ".agent generated-artifact and harness gate-link/proof-depth contracts satisfied"}, nil)
 }
 
 func runMakefileBaseline(args []string, stdout io.Writer, stderr io.Writer) int {
@@ -418,7 +420,7 @@ func runMakefileBaseline(args []string, stdout io.Writer, stderr io.Writer) int 
 }
 
 func requiredMakefileTargets() []string {
-	requiredTargets := append([]string{"fmt", "vet", "lint", "test", "race", "boundary", "security", "contracts", "schema-check", "docs-check", "rules-verify", "downstream-sync-plan", "adoption-check", "evidence", "score-check", "main-guard", "worktree-guard", "worktree-check", "context-check", "spec-check", "design-check", "task-check", "pr-check", "evidence-check", "cli-contract", "issue-registry", "command-registry", "makefile-baseline", "audit-goal", "dashboard-generate", "governance-check", "p1-governance-check", "execution-context", "p2-runtime-check", "release-check", "release-final-check"}, contextRuntimeTargets()...)
+	requiredTargets := append([]string{"fmt", "vet", "lint", "test", "race", "boundary", "security", "contracts", "schema-check", "docs-check", "rules-verify", "downstream-sync-plan", "adoption-check", "evidence", "score-check", "main-guard", "worktree-guard", "worktree-check", "context-check", "spec-check", "design-check", "task-check", "pr-check", "evidence-check", "cli-contract", "issue-registry", "command-registry", "makefile-baseline", "audit-goal", "fact-audit", "dashboard-generate", "governance-check", "p1-governance-check", "execution-context", "p2-runtime-check", "release-check", "release-final-check"}, contextRuntimeTargets()...)
 	requiredTargets = append(requiredTargets, dockerMakefileTargets()...)
 	return append(requiredTargets, goalcliMakefileTargets()...)
 }
@@ -456,7 +458,7 @@ var contextProfileGates = map[string][]string{
 	"lite":     {"governance-check"},
 	"standard": {"governance-check", "p1-governance-check", "docs-check"},
 	"full":     {"governance-check", "p1-governance-check", "p2-runtime-check"},
-	"release":  {"context-full", "integration", "dependency-check", "standard-impact-check", "score-check", "debt-evidence", "evidence", "release-evidence-hash", "release-evidence-check", "release-evidence-checksum-check"},
+	"release":  {"context-full", "integration", "dependency-check", "standard-impact-check", "score-check", "debt-evidence", "fact-audit", "evidence", "release-evidence-hash", "release-evidence-check", "release-evidence-checksum-check"},
 }
 
 func runContextProfile(args []string, stdout io.Writer, stderr io.Writer) int {
@@ -537,7 +539,7 @@ func runContextProfileCheck(command string, args []string, stdout io.Writer, std
 		appendMakefileTargetDependencyGaps(makefileText, "context-lite", []string{"require-gowork-off", "governance-check"}, []string{"context-profile-check", "main-guard", "worktree-guard", "release-check", "release-final-check"}, &gaps)
 		appendMakefileTargetDependencyGaps(makefileText, "context-standard", []string{"require-gowork-off", "governance-check", "p1-governance-check", "docs-check"}, []string{"context-lite", "context-profile-check", "release-check", "release-final-check"}, &gaps)
 		appendMakefileTargetDependencyGaps(makefileText, "context-full", []string{"require-gowork-off", "governance-check", "p1-governance-check", "p2-runtime-check"}, []string{"context-standard", "docs-check", "context-profile-check", "release-check", "release-final-check"}, &gaps)
-		appendMakefileTargetDependencyGaps(makefileText, "context-release", []string{"require-gowork-off", "context-full", "integration", "dependency-check", "standard-impact-check", "score-check", "debt-evidence"}, []string{"context-standard", "release-check", "release-final-check"}, &gaps)
+		appendMakefileTargetDependencyGaps(makefileText, "context-release", []string{"require-gowork-off", "context-full", "integration", "dependency-check", "standard-impact-check", "score-check", "debt-evidence", "fact-audit"}, []string{"context-standard", "release-check", "release-final-check"}, &gaps)
 		appendMakefileTargetForbiddenReferenceGaps(makefileText, "context-release", []string{"release-check", "release-final-check"}, &gaps)
 		appendContextProfileDAGGaps(makefileText, &gaps)
 		appendReleaseFinalDelegationGaps(makefileText, &gaps)
@@ -738,6 +740,7 @@ func appendContextProfileDAGGaps(content string, gaps *[]string) {
 		"standard-impact-check":           true,
 		"score-check":                     true,
 		"debt-evidence":                   true,
+		"fact-audit":                      true,
 		"evidence":                        true,
 		"release-evidence-hash":           true,
 		"release-evidence-check":          true,
@@ -1469,6 +1472,7 @@ var validExecutionContexts = []string{"local_write", "local_readonly", "ci_pull_
 var commandRegistryCommands = []string{
 	"version",
 	"doctor",
+	"fact",
 	"minimal-kernel",
 	"main-guard",
 	"worktree-guard",
@@ -2014,6 +2018,73 @@ func appendGeneratedArtifactClassificationGaps(indexPath string, artifactsPath s
 			*gaps = append(*gaps, artifactsPath+" "+path+" generated artifact must not be source_of_truth")
 		}
 	}
+}
+
+func appendHarnessProofDepthGaps(path string, gaps *[]string) {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		*gaps = append(*gaps, "missing "+path)
+		return
+	}
+	text := string(content)
+	allowedDepths := parseHarnessProofDepthTaxonomyIDs(text)
+	if len(allowedDepths) == 0 {
+		*gaps = append(*gaps, path+" proof_depth taxonomy must define ids")
+	}
+	entries := parseYAMLSequenceBlocks(text, "required_gates", "id")
+	if len(entries) == 0 {
+		return
+	}
+	for _, entry := range entries {
+		for _, field := range []string{"proof_depth", "target_depth"} {
+			value, ok := blockYAMLValue(entry.block, field)
+			if !ok || value == "" || value == "[]" {
+				*gaps = append(*gaps, path+" "+entry.value+" missing "+field)
+				continue
+			}
+			if len(allowedDepths) > 0 && !allowedDepths[value] {
+				*gaps = append(*gaps, path+" "+entry.value+" unknown "+field+" "+value)
+			}
+		}
+	}
+}
+
+func parseHarnessProofDepthTaxonomyIDs(text string) map[string]bool {
+	ids := map[string]bool{}
+	inProofDepth := false
+	inTaxonomy := false
+	for _, line := range strings.Split(text, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+		if !inProofDepth {
+			if trimmed == "proof_depth:" && line == trimmed {
+				inProofDepth = true
+			}
+			continue
+		}
+		if isTopLevelYAMLKey(line) && trimmed != "proof_depth:" {
+			break
+		}
+		if !inTaxonomy {
+			if trimmed == "taxonomy:" {
+				inTaxonomy = true
+			}
+			continue
+		}
+		if strings.HasPrefix(trimmed, "- id:") {
+			value := trimYAMLScalar(strings.TrimSpace(strings.TrimPrefix(trimmed, "- id:")))
+			if value != "" {
+				ids[value] = true
+			}
+			continue
+		}
+		if !strings.HasPrefix(line, "    ") && strings.Contains(trimmed, ":") && !strings.HasPrefix(trimmed, "-") {
+			inTaxonomy = false
+		}
+	}
+	return ids
 }
 
 func appendHarnessGateLinkSemanticsGaps(path string, gaps *[]string) {

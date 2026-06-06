@@ -25,7 +25,7 @@
 | RULE-CORE-001 | 没有 Evidence 不允许 DONE | `goalcli evidence-check` / `make evidence-check` |
 | RULE-CORE-002 | 必须从真实上下文开始 | `goalcli context-profile-check` |
 | RULE-CORE-003 | 需求必须可验证（Req→AC→Test→Evidence） | `.agent/contracts/acceptance-matrix.yaml` + `goalcli acceptance-matrix` |
-| RULE-CORE-004 | 所有变更必须可追踪 | `.agent/traceability-matrix.yaml` + `goalcli trace-check`（待实现） |
+| RULE-CORE-004 | 所有变更必须可追踪 | `.agent/traceability/traceability-matrix.md` + `goalcli traceability-check`（`partial_implemented`; D3 `file_exists`; `full_lifecycle_graph=gap`） |
 | RULE-CORE-005 | Harness 是机器裁判 | `cmd/goalcli/` + `make ci` |
 | RULE-CORE-006 | Self-improving 强制 | `goalcli retro-check`（每 Goal 必须有 Retro+Patch 候选） |
 | RULE-WORKTREE-001 | 禁止 main 开发 | `.githooks/pre-commit` + `pre-push` + GHA `worktree-guard` + GitHub branch protection（四道防线） |

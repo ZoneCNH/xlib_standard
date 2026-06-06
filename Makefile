@@ -306,6 +306,10 @@ makefile-baseline:
 audit-goal:
 	$(GOALCLI) audit-goal
 
+.PHONY: fact-audit
+fact-audit:
+	$(GOALCLI) fact audit --strict
+
 .PHONY: dashboard-generate
 dashboard-generate:
 	$(GOALCLI) dashboard-generate
@@ -390,7 +394,7 @@ context-standard: require-gowork-off governance-check p1-governance-check docs-c
 context-full: require-gowork-off governance-check p1-governance-check p2-runtime-check
 
 .PHONY: context-release
-context-release: require-gowork-off context-full integration dependency-check standard-impact-check score-check debt-evidence
+context-release: require-gowork-off context-full integration dependency-check standard-impact-check score-check debt-evidence fact-audit
 	CHECK_STATUS=passed $(MAKE) evidence
 	$(MAKE) release-evidence-hash
 	$(MAKE) release-evidence-check
@@ -412,14 +416,14 @@ ci: doctor-hooks-local fmt vet lint test race boundary architecture domain secre
 ci-extended: ci property golden fuzz-smoke docs-drift
 
 .PHONY: release-check
-release-check: require-gowork-off ci integration dependency-check standard-impact-check docs-check docs-drift score-check governance-check p1-governance-check p2-runtime-check debt-evidence
+release-check: require-gowork-off ci integration dependency-check standard-impact-check docs-check docs-drift score-check governance-check p1-governance-check p2-runtime-check debt-evidence fact-audit
 	CHECK_STATUS=passed $(MAKE) evidence
 	$(MAKE) release-evidence-hash
 	$(MAKE) release-evidence-check
 	$(MAKE) release-evidence-checksum-check
 
 .PHONY: release-check-extended
-release-check-extended: require-gowork-off ci-extended integration dependency-check standard-impact-check docs-check score-check governance-check p1-governance-check p2-runtime-check debt-evidence
+release-check-extended: require-gowork-off ci-extended integration dependency-check standard-impact-check docs-check score-check governance-check p1-governance-check p2-runtime-check debt-evidence fact-audit
 	CHECK_STATUS=passed $(MAKE) evidence
 	$(MAKE) release-evidence-hash
 	$(MAKE) release-evidence-check

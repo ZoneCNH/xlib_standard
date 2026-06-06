@@ -40,6 +40,8 @@ func run(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) int
 		return runVersion(args[1:], stdout, stderr)
 	case "doctor":
 		return runDoctor(args[1:], stdout, stderr)
+	case "fact":
+		return runFact(args[1:], stdout, stderr)
 	case "main-guard":
 		return runMainGuard(args[1:], stdout, stderr)
 	case "worktree-guard":
@@ -385,6 +387,7 @@ commands:
   docs-drift [debt args]
   domain [debt args]
   doctor [--json]
+  fact audit [--strict] [--root <path>] [--json]
   docs-check
   docker-build
   docker-build-check

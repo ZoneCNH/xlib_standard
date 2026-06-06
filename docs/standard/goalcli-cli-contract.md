@@ -16,6 +16,7 @@
 
 - `version`
 - `doctor`
+- `fact audit [--strict] [--root <path>] [--json]`
 - `minimal-kernel`
 - `main-guard --context local_write|local_readonly|ci_pull_request|ci_main_verify|release_verify`
 - `worktree-guard --context local_write|local_readonly|ci_pull_request|ci_main_verify|release_verify`
@@ -34,6 +35,7 @@
 - `audit-goal`
 - `dashboard-generate`
 - `traceability-check [--matrix .agent/traceability/traceability-matrix.md] [--json]`
+  - 校验每个 REQ 的主要产物路径、非空 Evidence 单元格，以及 path-like Evidence 引用；报告 `traceability_status=partial_implemented proof_depth=file_exists proof_depth_level=D3 full_lifecycle_graph=gap`。该命令只证明矩阵路径级引用可解析，不得将其升级为 `evidence_replay`、`release_usable` 或完整 Goal → Req → AC → Task → Issue → Commit → PR → Evidence → Release lifecycle graph 闭环。
 - `context-profile`
 - `context-profile-check`
 - `context-schema-check`
@@ -84,6 +86,10 @@
 - `docker-runtime-check`
 - `docker-drift-check`
 - `docker-contract`
+
+## Canonical xlib facts
+
+`goalcli fact audit --strict` reads `.xlib/facts/xlib.yaml` as the local single source of truth for the current xlib release, runtime versions, and toolchain versions. Strict mode compares those canonical facts with local release consumers (goalcli governance, release manifest defaults, harness preflight, registries, docs, and Makefile gates) without network access. `fact-audit` is release-blocking through `context-release`, `release-check`, and `release-check-extended`; `release-final-check` reaches it through `context-release`.
 
 ## 下游同步计划命令
 
