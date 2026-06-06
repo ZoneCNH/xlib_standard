@@ -83,6 +83,7 @@ var contractFiles = []string{
 	"contracts/health.schema.json",
 	"contracts/metrics.md",
 	"contracts/docker-toolchain.schema.json",
+	"contracts/execution-evidence.schema.json",
 	"contracts/downstream-adoption-proof.schema.json",
 }
 

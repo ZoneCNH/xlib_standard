@@ -120,6 +120,10 @@
       "sha256": "{{DOCKER_TOOLCHAIN_SCHEMA_SHA256}}"
     },
     {
+      "path": "contracts/execution-evidence.schema.json",
+      "sha256": "{{EXECUTION_EVIDENCE_SCHEMA_SHA256}}"
+    },
+    {
       "path": "contracts/downstream-adoption-proof.schema.json",
       "sha256": "{{DOWNSTREAM_ADOPTION_PROOF_SCHEMA_SHA256}}"
     }
