@@ -76,6 +76,7 @@ manifest 必须记录：
 - `tools`：tool versions。
 - `standard_impact`：标准影响报告摘要。
 - `downstream_sync_required`：是否需要同步到 `kernel`、L1/L2 基础库或记录 `x.go` 消费方影响。
+- `downstream_adoption`：本地 release manifest 的下游采用边界，默认必须是 `adoption_claim=not_claimed`、`downstream_adoption_scope=local_contract_only`、`proof_based_adoption=false`、`downstream_repo_write=false`。
 - `generator_evidence`：`kernel`、`configx` 和 `redisx` 的生成验证摘要。
 - `workflow`：CI 或本地 Evidence artifact 元数据，至少包含 `workflow_run_id`、`artifact_name`、`artifact_url`。
 - `score`：release governance 评分结果、阈值、状态和维度明细。
@@ -85,6 +86,12 @@ manifest 必须记录：
 `standard_impact.downstream_release_decision` 的 allowed values 只能是 `required` 或 `not_required`。`required` 表示本次标准影响必须同步到默认下游或在 release Evidence 中记录 blocked/owner；`not_required` 表示本次无需触发下游 release action。
 
 `standard_impact.repository_rules_release_decision` 的 allowed values 只能是 `audit_required` 或 `not_required`。`audit_required` 表示仓库规则、治理注册表或 profile 影响需要审计；`not_required` 表示本次无需额外仓库规则审计。
+
+### Downstream adoption 边界
+
+Release manifest 只能记录当前标准仓库本地 Evidence。没有 downstream-generated proof artifact 和 accepted ledger evidence 时，`downstream_adoption` 必须保持 `not_claimed` / `local_contract_only` / `proof_based_adoption=false` / `downstream_repo_write=false`。
+
+`registered`、`baseline_scanned`、`patch_only`、`not_run`、standard-impact report、downstream sync plan 或本地 generator Evidence 都不能被解释为真实 downstream 仓库已采用。任何非 `not_claimed` 的采用声明，或任何 `proof_based_adoption=true`，都必须同时指向 downstream 仓库生成的 proof artifact 和已接受 ledger Evidence。
 
 外部发布记录或 CI job summary 必须补充 manifest 外部字段：
 

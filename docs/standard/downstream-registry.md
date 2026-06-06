@@ -22,3 +22,5 @@ Minimum proof fields:
 - `rollback`: rollback `strategy`, accountable `owner`, and executable `commands` for reverting the adoption.
 
 Absent proof, missing gate outputs, stale artifacts, or a missing downstream workspace must be reported as a `gap`; the source repository must not modify downstream repos while proving this contract.
+
+Release manifest must fingerprint this proof contract and expose downstream adoption as local-only Evidence until accepted downstream proof exists. `registered`, `baseline_scanned`, `patch-only`, and downstream sync plan output are not adoption truth; they must not change `downstream_adoption` away from `not_claimed` / `local_contract_only` / `proof_based_adoption=false`. `x.go` remains a consumer-only review surface: standard release tooling may report review impact, but must not generate patch, render, or write commands for that repository.
