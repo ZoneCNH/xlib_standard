@@ -1,7 +1,7 @@
 schema_version: "2.9.3"
-status: deprecated
+status: reconciled_stub
 source_doc: .agent/docs/prompt-patches.md
 entries: []
 notes:
   - "提示词补丁入口已存在；未评审前不视为生效。"
-  - "当前为空壳，无实际补丁条目。已标记为 deprecated，待有实际补丁需求时激活。"
+  - "当前为空壳，无实际补丁条目。已标记为 reconciled_stub，待有实际补丁需求时升级为标准补丁状态。"

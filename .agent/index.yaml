@@ -57,6 +57,27 @@ files:
     owner: governance
     validator: schema-check
     purpose: 分层治理、依赖方向与公开/私有边界清单。
+  - path: .agent/policies/evidence.yaml
+    layer: policy
+    authority: source_of_truth
+    mutability: hand_written
+    owner: release
+    validator: evidence-check
+    purpose: 证据策略。
+  - path: .agent/policies/release.yaml
+    layer: policy
+    authority: source_of_truth
+    mutability: hand_written
+    owner: release
+    validator: release-check
+    purpose: 发布策略。
+  - path: .agent/policies/testing.yaml
+    layer: policy
+    authority: source_of_truth
+    mutability: hand_written
+    owner: ci
+    validator: governance-check
+    purpose: 测试策略。
   - path: .agent/registries/command-implementation-status.yaml
     layer: registry
     authority: validated_mirror

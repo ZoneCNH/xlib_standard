@@ -1,7 +1,7 @@
 schema_version: "2.9.3"
-status: deprecated
+status: reconciled_stub
 source_doc: .agent/docs/rule-patches.md
 entries: []
 notes:
   - "规则补丁入口已存在；实际补丁必须在评审后追加，并关联 REQ 或 ADR。"
-  - "当前为空壳，无实际补丁条目。已标记为 deprecated，待有实际补丁需求时激活。"
+  - "当前为空壳，无实际补丁条目。已标记为 reconciled_stub，待有实际补丁需求时升级为标准补丁状态。"
