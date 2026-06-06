@@ -87,10 +87,6 @@ var contractFiles = []string{
 	"contracts/downstream-adoption-proof.schema.json",
 }
 
-var downstreamAdoptionClaimValues = []string{
-	"not_claimed",
-}
-
 var dockerEvidenceValidators = []string{
 	"docker-toolchain-check",
 	"docker-build-check",
