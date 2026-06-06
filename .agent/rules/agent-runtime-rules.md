@@ -341,7 +341,7 @@ Gate false positive > 10% → 需要调参
 
 ### **[P1]** `RULE-GOALCLI-001`：goalcli 必须是 Goal Runtime 的唯一机器执行入口
 
-<sub>level: P1 · status: active · enforced_by: `goalcli` · exit: 1 · source: §83 L3644</sub>
+<sub>level: P1 · status: active · enforced_by: `make governance-check` · exit: 1 · source: §83 L3644</sub>
 
 所有自动化动作必须优先通过：
 
@@ -364,7 +364,7 @@ goalcli <domain> <action>
 
 ### **[P1]** `RULE-GOALCLI-002`：goalcli 命令必须幂等
 
-<sub>level: P1 · status: active · enforced_by: `goalcli` · exit: 1 · source: §83 L3667</sub>
+<sub>level: P1 · status: active · enforced_by: `make governance-check` · exit: 1 · source: §83 L3667</sub>
 
 重复执行不应破坏状态。
 
@@ -392,7 +392,7 @@ goalcli issues create --goal GOAL-20260603-001
 
 ### **[P1]** `RULE-GOALCLI-003`：goalcli 命令必须统一输出机器结果
 
-<sub>level: P1 · status: active · enforced_by: `goalcli` · exit: 1 · source: §83 L3695</sub>
+<sub>level: P1 · status: active · enforced_by: `make governance-check` · exit: 1 · source: §83 L3695</sub>
 
 所有命令输出至少包含：
 
@@ -420,7 +420,7 @@ reports/<command>.json
 
 ### **[P1]** `RULE-GOALCLI-EXIT-001`：退出码必须标准化
 
-<sub>level: P1 · status: active · enforced_by: `goalcli` · exit: 1 · source: §84 L3721</sub>
+<sub>level: P1 · status: active · enforced_by: `make governance-check` · exit: 1 · source: §84 L3721</sub>
 
 > **SSOT**: 退出码定义以 [`iron-rules.md`](./iron-rules.md) 为准。以下为引用，避免重复定义导致漂移。
 
@@ -642,7 +642,7 @@ PR 内容漂移
 
 ### **[P1]** `RULE-GOALCLI-CONFIG-001`：goalcli 必须有统一配置文件
 
-<sub>level: P1 · status: active · enforced_by: `goalcli` · exit: 1 · source: §115 L4877</sub>
+<sub>level: P1 · status: active · enforced_by: `make governance-check` · exit: 1 · source: §115 L4877</sub>
 
 ```yaml
 version: goalcli-v0.1.0
@@ -703,7 +703,7 @@ security:
 
 ### **[P1]** `RULE-GOALCLI-ARCH-001`：goalcli v0.1.0 先做裁判，不做复杂 Agent
 
-<sub>level: P1 · status: active · enforced_by: `goalcli` · exit: 1 · source: §120 L5149</sub>
+<sub>level: P1 · status: active · enforced_by: `make governance-check` · exit: 1 · source: §120 L5149</sub>
 
 内核模块建议：
 
@@ -726,7 +726,7 @@ internal/
 
 ### **[P1]** `RULE-GOALCLI-ARCH-002`：每个 Checker 必须实现统一接口
 
-<sub>level: P1 · status: active · enforced_by: `goalcli` · exit: 1 · source: §120 L5172</sub>
+<sub>level: P1 · status: active · enforced_by: `make governance-check` · exit: 1 · source: §120 L5172</sub>
 
 伪接口：
 
@@ -753,7 +753,7 @@ type Checker interface {
 
 ### **[P1]** `RULE-CHECKER-001`：Checker 输出必须同时支持人读和机器读
 
-<sub>level: P1 · status: active · enforced_by: `goalcli` · exit: 1 · source: §121 L5197</sub>
+<sub>level: P1 · status: active · enforced_by: `make governance-check` · exit: 1 · source: §121 L5197</sub>
 
 每个检查器必须输出：
 
@@ -771,7 +771,7 @@ reports/worktree-check.txt
 
 ### **[P1]** `RULE-CHECKER-002`：JSON 报告必须统一结构
 
-<sub>level: P1 · status: active · enforced_by: `goalcli` · exit: 1 · source: §121 L5215</sub>
+<sub>level: P1 · status: active · enforced_by: `make governance-check` · exit: 1 · source: §121 L5215</sub>
 
 ```json
 {
