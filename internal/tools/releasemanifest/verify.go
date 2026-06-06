@@ -113,7 +113,7 @@ func verifyManifest(path string, requirePassed bool, requireClean bool, expectVe
 		failures = append(failures, "downstream_sync_required must match standard_impact.downstream_sync_required")
 	}
 	if !reflect.DeepEqual(got.DownstreamAdoption, current.DownstreamAdoption) {
-		failures = append(failures, "downstream_adoption does not match unsupported-claim guard defaults")
+		failures = append(failures, "downstream_adoption does not match current downstream adoption evidence")
 	}
 	failures = append(failures, validateDownstreamAdoptionEvidence(got.DownstreamAdoption)...)
 	requireNonEmpty(&failures, "standard_impact.report_path", got.StandardImpact.ReportPath)

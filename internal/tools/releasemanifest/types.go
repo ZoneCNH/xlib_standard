@@ -116,10 +116,13 @@ type GovernanceRuntime struct {
 type GovernanceRuntimeEvidence = GovernanceRuntime
 
 type DownstreamAdoptionEvidence struct {
-	AdoptionClaim       string `json:"adoption_claim"`
-	ProofBasedAdoption  bool   `json:"proof_based_adoption"`
-	DownstreamRepoWrite bool   `json:"downstream_repo_write"`
-	AcceptedLedger      string `json:"accepted_ledger"`
+	AdoptionClaim              string `json:"adoption_claim"`
+	DownstreamAdoptionScope    string `json:"downstream_adoption_scope"`
+	ProofBasedAdoption         bool   `json:"proof_based_adoption"`
+	DownstreamRepoWrite        bool   `json:"downstream_repo_write"`
+	ProofArtifactPath          string `json:"proof_artifact_path,omitempty"`
+	AcceptedLedgerEvidencePath string `json:"accepted_ledger_evidence_path,omitempty"`
+	Source                     string `json:"source"`
 }
 
 type GeneratorEvidence struct {

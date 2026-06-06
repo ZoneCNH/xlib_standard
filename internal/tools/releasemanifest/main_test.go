@@ -1087,6 +1087,8 @@ func TestVerifyManifestRejectsCorruptedManifestFields(t *testing.T) {
 		"governance_runtime.profiles is required",
 		"governance_runtime.legacy_aliases is required",
 		"downstream_adoption.adoption_claim is required",
+		"downstream_adoption.downstream_adoption_scope is required",
+		"downstream_adoption.source is required",
 		"generator_evidence.required must be true",
 		"tools.go must be recorded",
 	} {

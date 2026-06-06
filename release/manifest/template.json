@@ -120,10 +120,6 @@
       "sha256": "{{DOCKER_TOOLCHAIN_SCHEMA_SHA256}}"
     },
     {
-      "path": "contracts/execution-evidence.schema.json",
-      "sha256": "{{EXECUTION_EVIDENCE_SCHEMA_SHA256}}"
-    },
-    {
       "path": "contracts/downstream-adoption-proof.schema.json",
       "sha256": "{{DOWNSTREAM_ADOPTION_PROOF_SCHEMA_SHA256}}"
     }
@@ -184,9 +180,10 @@
   "downstream_sync_required": false,
   "downstream_adoption": {
     "adoption_claim": "not_claimed",
+    "downstream_adoption_scope": "local_contract_only",
     "proof_based_adoption": false,
     "downstream_repo_write": false,
-    "accepted_ledger": ""
+    "source": "release-manifest-local-evidence"
   },
   "generator_evidence": {
     "command": "GOWORK=off make integration",
