@@ -1506,7 +1506,7 @@ func TestRunGovernanceCommands(t *testing.T) {
 		}
 		if report.Command != "version" ||
 			report.Status != "passed" ||
-			!slicesContain(report.Details, "xlib-standard release v0.4.15") ||
+			!slicesContain(report.Details, "xlib-standard release v0.5.0") ||
 			!slicesContain(report.Details, "goalcli governance runtime v2.9.3") {
 			t.Fatalf("report = %#v; want version gate report", report)
 		}
@@ -1622,7 +1622,7 @@ func TestFactAuditStrictPassesCanonicalFacts(t *testing.T) {
 	if got != 0 {
 		t.Fatalf("fact audit exit = %d, stderr %q, stdout %q; want 0", got, stderr.String(), stdout.String())
 	}
-	for _, needle := range []string{`"command": "fact audit"`, `"status": "passed"`, "v0.4.15", ".xlib/facts/xlib.yaml"} {
+	for _, needle := range []string{`"command": "fact audit"`, `"status": "passed"`, "v0.5.0", ".xlib/facts/xlib.yaml"} {
 		if !strings.Contains(stdout.String(), needle) {
 			t.Fatalf("stdout = %q; want %q", stdout.String(), needle)
 		}
