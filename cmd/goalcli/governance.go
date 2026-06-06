@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	pathpkg "path"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -1637,18 +1638,22 @@ func appendAgentIndexGaps(path string, gaps *[]string) {
 			*gaps = append(*gaps, path+" contains file entry without path")
 			continue
 		}
-		if seen[entry.path] {
-			*gaps = append(*gaps, path+" duplicate file entry "+entry.path)
+		canonicalPath, ok := canonicalRepoPath(entry.path)
+		if !ok {
+			*gaps = append(*gaps, path+" "+entry.path+" must use canonical repo-relative slash path")
 		}
-		seen[entry.path] = true
-		present[entry.path] = true
-		if !strings.HasPrefix(entry.path, ".agent/") {
+		if seen[canonicalPath] {
+			*gaps = append(*gaps, path+" duplicate file entry "+canonicalPath)
+		}
+		seen[canonicalPath] = true
+		present[canonicalPath] = true
+		if !strings.HasPrefix(canonicalPath, ".agent/") {
 			*gaps = append(*gaps, path+" "+entry.path+" must stay under .agent/")
 		}
-		if info, statErr := os.Stat(entry.path); statErr != nil {
-			*gaps = append(*gaps, path+" references missing "+entry.path)
+		if info, statErr := os.Stat(canonicalPath); statErr != nil {
+			*gaps = append(*gaps, path+" references missing "+canonicalPath)
 		} else if info.IsDir() {
-			*gaps = append(*gaps, path+" "+entry.path+" must be a file")
+			*gaps = append(*gaps, path+" "+canonicalPath+" must be a file")
 		}
 
 		appendRequiredAgentIndexField(path, entry, "layer", gaps)
@@ -1695,14 +1700,15 @@ func appendAgentIndexClassificationGaps(indexPath string, entries []agentIndexEn
 		},
 	}
 	for _, entry := range entries {
-		fields, ok := required[entry.path]
+		canonicalPath, _ := canonicalRepoPath(entry.path)
+		fields, ok := required[canonicalPath]
 		if !ok {
 			continue
 		}
 		for field, want := range fields {
 			got, ok := blockYAMLValue(entry.block, field)
 			if !ok || got != want {
-				*gaps = append(*gaps, fmt.Sprintf("%s %s must classify %s as %s", indexPath, entry.path, field, want))
+				*gaps = append(*gaps, fmt.Sprintf("%s %s must classify %s as %s", indexPath, canonicalPath, field, want))
 			}
 		}
 	}
@@ -1735,17 +1741,22 @@ func appendGeneratedArtifactsGaps(path string, indexPath string, gaps *[]string)
 	for _, artifact := range artifacts {
 		if artifact.value == "" {
 			*gaps = append(*gaps, path+" contains artifact without path")
+			continue
 		}
-		requireYAMLBlockValue(path, artifact.value, artifact.block, "classification", expectedGeneratedArtifactClassification(artifact.value), gaps)
-		requireYAMLBlockValue(path, artifact.value, artifact.block, "source_control", "generated-only", gaps)
+		canonicalPath, ok := canonicalRepoPath(artifact.value)
+		if !ok {
+			*gaps = append(*gaps, path+" "+artifact.value+" must use canonical repo-relative slash path")
+		}
+		requireYAMLBlockValue(path, canonicalPath, artifact.block, "classification", expectedGeneratedArtifactClassification(canonicalPath), gaps)
+		requireYAMLBlockValue(path, canonicalPath, artifact.block, "source_control", "generated-only", gaps)
 		if !blockHasNonEmptyYAMLValue(artifact.block, "generated_by") {
-			*gaps = append(*gaps, path+" "+artifact.value+" missing generated_by")
+			*gaps = append(*gaps, path+" "+canonicalPath+" missing generated_by")
 		}
 		validator, ok := blockYAMLValue(artifact.block, "validated_by")
 		if !ok || validator == "" {
-			*gaps = append(*gaps, path+" "+artifact.value+" missing validated_by")
+			*gaps = append(*gaps, path+" "+canonicalPath+" missing validated_by")
 		} else if !validators[validator] {
-			*gaps = append(*gaps, path+" "+artifact.value+" validated_by "+validator+" is not a known goalcli or Makefile gate")
+			*gaps = append(*gaps, path+" "+canonicalPath+" validated_by "+validator+" is not a known goalcli or Makefile gate")
 		}
 	}
 
@@ -1755,7 +1766,8 @@ func appendGeneratedArtifactsGaps(path string, indexPath string, gaps *[]string)
 		return
 	}
 	for _, entry := range parseAgentIndexEntries(string(indexContent)) {
-		if entry.path == path {
+		canonicalPath, _ := canonicalRepoPath(entry.path)
+		if canonicalPath == path {
 			requireYAMLBlockValue(indexPath, path, entry.block, "layer", "registry", gaps)
 			requireYAMLBlockValue(indexPath, path, entry.block, "authority", "source_of_truth", gaps)
 			requireYAMLBlockValue(indexPath, path, entry.block, "mutability", "hand_written", gaps)
@@ -1854,6 +1866,20 @@ func appendRulesEnforcedByGaps(path string, gaps *[]string) {
 	}
 }
 
+func canonicalRepoPath(raw string) (string, bool) {
+	if raw == "" {
+		return raw, false
+	}
+	if strings.Contains(raw, "\\") || strings.HasPrefix(raw, "/") {
+		return pathpkg.Clean(strings.ReplaceAll(raw, "\\", "/")), false
+	}
+	cleaned := pathpkg.Clean(raw)
+	if cleaned == "." || strings.HasPrefix(cleaned, "../") || cleaned == ".." {
+		return cleaned, false
+	}
+	return cleaned, cleaned == raw
+}
+
 func parseAgentIndexEntries(text string) []agentIndexEntry {
 	var entries []agentIndexEntry
 	lines := strings.Split(text, "\n")
@@ -1904,7 +1930,9 @@ func appendAgentIndexEnumGap(indexPath string, entry agentIndexEntry, field stri
 
 func requiredAgentIndexPaths() []string {
 	return []string{
+		".agent/INDEX.md",
 		".agent/index.yaml",
+		".agent/context/README.md",
 		".agent/runtime/goal-runtime.md",
 		".agent/runtime/object-model.md",
 		".agent/runtime/state-machine.md",
@@ -1964,11 +1992,12 @@ func appendGeneratedArtifactClassificationGaps(indexPath string, artifactsPath s
 	byPath := make(map[string]agentIndexEntry, len(entries))
 	var generatedAgentPaths []string
 	for _, entry := range entries {
-		byPath[entry.path] = entry
-		if strings.HasPrefix(entry.path, ".agent/") {
+		canonicalPath, _ := canonicalRepoPath(entry.path)
+		byPath[canonicalPath] = entry
+		if strings.HasPrefix(canonicalPath, ".agent/") {
 			mutability, _ := blockYAMLValue(entry.block, "mutability")
 			if mutability == "generated" {
-				generatedAgentPaths = append(generatedAgentPaths, entry.path)
+				generatedAgentPaths = append(generatedAgentPaths, canonicalPath)
 			}
 		}
 	}
@@ -1991,7 +2020,11 @@ func appendGeneratedArtifactClassificationGaps(indexPath string, artifactsPath s
 		}
 		return
 	}
-	registered := scalarSet(artifactPaths...)
+	registered := map[string]bool{}
+	for _, artifactPath := range artifactPaths {
+		canonicalPath, _ := canonicalRepoPath(artifactPath)
+		registered[canonicalPath] = true
+	}
 	for _, path := range generatedAgentPaths {
 		if path == artifactsPath {
 			continue
@@ -2001,21 +2034,22 @@ func appendGeneratedArtifactClassificationGaps(indexPath string, artifactsPath s
 		}
 	}
 	for _, path := range artifactPaths {
-		if !strings.HasPrefix(path, ".agent/") {
+		canonicalPath, _ := canonicalRepoPath(path)
+		if !strings.HasPrefix(canonicalPath, ".agent/") {
 			continue
 		}
-		entry, ok := byPath[path]
+		entry, ok := byPath[canonicalPath]
 		if !ok {
-			*gaps = append(*gaps, artifactsPath+" references unindexed agent artifact "+path)
+			*gaps = append(*gaps, artifactsPath+" references unindexed agent artifact "+canonicalPath)
 			continue
 		}
 		mutability, _ := blockYAMLValue(entry.block, "mutability")
 		if mutability != "generated" {
-			*gaps = append(*gaps, artifactsPath+" "+path+" must be indexed with mutability generated")
+			*gaps = append(*gaps, artifactsPath+" "+canonicalPath+" must be indexed with mutability generated")
 		}
 		authority, _ := blockYAMLValue(entry.block, "authority")
 		if authority == "source_of_truth" {
-			*gaps = append(*gaps, artifactsPath+" "+path+" generated artifact must not be source_of_truth")
+			*gaps = append(*gaps, artifactsPath+" "+canonicalPath+" generated artifact must not be source_of_truth")
 		}
 	}
 }

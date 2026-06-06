@@ -91,6 +91,7 @@ Claude 必须按顺序读取：
 CONSTITUTION.md
 AGENTS.md
 .agent/INDEX.md
+.agent/index.yaml
 .agent/context/
 .agent/rules/
 .agent/harness/
