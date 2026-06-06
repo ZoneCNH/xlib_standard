@@ -717,7 +717,7 @@ func TestBuildManifestRecordsFixtureRepositoryFacts(t *testing.T) {
 	if manifest.DownstreamSyncRequired != manifest.StandardImpact.DownstreamSyncRequired {
 		t.Fatalf("downstream_sync_required = %t, want standard impact value %t", manifest.DownstreamSyncRequired, manifest.StandardImpact.DownstreamSyncRequired)
 	}
-	if manifest.DownstreamAdoption.AdoptionClaim != "not_claimed" || manifest.DownstreamAdoption.ProofBasedAdoption || manifest.DownstreamAdoption.DownstreamRepoWrite || manifest.DownstreamAdoption.AcceptedLedger != "" {
+	if manifest.DownstreamAdoption.AdoptionClaim != "not_claimed" || manifest.DownstreamAdoption.ProofBasedAdoption || manifest.DownstreamAdoption.DownstreamRepoWrite || manifest.DownstreamAdoption.AcceptedLedgerEvidencePath != "" {
 		t.Fatalf("downstream_adoption = %+v, want local no-adoption-claim defaults", manifest.DownstreamAdoption)
 	}
 	assertGovernanceRuntimeEvidence(t, manifest.GovernanceRuntime)
@@ -898,10 +898,10 @@ func TestVerifyManifestAcceptsFreshManifestAndRejectsDrift(t *testing.T) {
 	manifest.GovernanceRuntime.Status = "stale"
 	manifest.DownstreamSyncRequired = !manifest.StandardImpact.DownstreamSyncRequired
 	manifest.DownstreamAdoption = DownstreamAdoptionEvidence{
-		AdoptionClaim:       "adopted",
-		ProofBasedAdoption:  true,
-		DownstreamRepoWrite: true,
-		AcceptedLedger:      ".agent/evidence/ledger.jsonl",
+		AdoptionClaim:              "adopted",
+		ProofBasedAdoption:         true,
+		DownstreamRepoWrite:        true,
+		AcceptedLedgerEvidencePath: ".agent/evidence/ledger.jsonl",
 	}
 	manifest.GovernanceRuntime.GateStatuses["governance"] = "failed"
 	manifest.DownstreamAdoption.AdoptionClaim = "adopted"
