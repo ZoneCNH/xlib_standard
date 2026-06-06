@@ -1930,7 +1930,9 @@ func appendAgentIndexEnumGap(indexPath string, entry agentIndexEntry, field stri
 
 func requiredAgentIndexPaths() []string {
 	return []string{
+		".agent/INDEX.md",
 		".agent/index.yaml",
+		".agent/context/README.md",
 		".agent/runtime/goal-runtime.md",
 		".agent/runtime/object-model.md",
 		".agent/runtime/state-machine.md",

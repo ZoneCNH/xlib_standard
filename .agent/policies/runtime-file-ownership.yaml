@@ -79,6 +79,11 @@ owners:
     review_required: true
     review_rule: CONTRACT-CHANGE
     rationale: schema 契约；破坏 downstream adoption
+  "docs/architecture/":
+    owner: standard
+    review_required: true
+    review_rule: ARCHITECTURE-CHANGE
+    rationale: 架构文档位于 contracts 之后、AGENTS.md 之前，漂移会破坏分层边界与下游采纳
   "release/":
     owner: release
     review_required: true

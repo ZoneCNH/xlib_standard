@@ -3615,7 +3615,10 @@ func testAgentIndexLayer(path string) string {
 		return "traceability"
 	case path == ".agent/archive/retrospective.md":
 		return "archive"
-	case path == ".agent/release/release-template.md" || path == ".agent/docs/agent-teams.md":
+	case path == ".agent/release/release-template.md" ||
+		path == ".agent/docs/agent-teams.md" ||
+		path == ".agent/INDEX.md" ||
+		path == ".agent/context/README.md":
 		return "documentation"
 	default:
 		return "runtime_contract"
