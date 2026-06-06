@@ -755,11 +755,15 @@ func TestReleaseManifestTemplateListsEvidenceContractsAndAdoptionDefaults(t *tes
 		t.Fatal(err)
 	}
 	template := string(data)
+	placeholderOpen := strings.Repeat("{", 2)
+	placeholderClose := strings.Repeat("}", 2)
+	executionEvidenceSchemaSHA := placeholderOpen + "EXECUTION_EVIDENCE_SCHEMA_SHA256" + placeholderClose
+	downstreamAdoptionProofSchemaSHA := placeholderOpen + "DOWNSTREAM_ADOPTION_PROOF_SCHEMA_SHA256" + placeholderClose
 	for _, want := range []string{
 		`"path": "contracts/execution-evidence.schema.json"`,
-		`"sha256": "{{EXECUTION_EVIDENCE_SCHEMA_SHA256}}"`,
+		`"sha256": "` + executionEvidenceSchemaSHA + `"`,
 		`"path": "contracts/downstream-adoption-proof.schema.json"`,
-		`"sha256": "{{DOWNSTREAM_ADOPTION_PROOF_SCHEMA_SHA256}}"`,
+		`"sha256": "` + downstreamAdoptionProofSchemaSHA + `"`,
 		`"downstream_adoption"`,
 		`"adoption_claim": "not_claimed"`,
 		`"downstream_adoption_scope": "local_contract_only"`,
