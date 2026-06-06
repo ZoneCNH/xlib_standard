@@ -97,7 +97,7 @@
 3. 有违反样例 fixture
 4. PR 描述说明"为什么之前不需要、现在为什么需要"
 
-否则只能进 `.agent/inbox/` 作为思想储备。
+否则只能进 `.agent/archive/inbox/` 或后续明确恢复的 intake 路径作为思想储备；当前机器规则权威以 `.agent/rules/iron-rules.md` 与 `.agent/rules/registry.yaml` 为准。
 
 ---
 

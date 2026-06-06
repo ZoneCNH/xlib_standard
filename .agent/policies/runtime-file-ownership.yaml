@@ -93,7 +93,7 @@ owners:
     review_required: true
     review_rule: STANDARD-DOC-CHANGE
     rationale: 标准文档，权威源
-  "docs/goal.md":
+  "docs/goal/goal.md":
     owner: leader
     review_required: true
     review_rule: GOAL-CHANGE

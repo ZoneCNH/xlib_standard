@@ -3,7 +3,7 @@ module: xlib-standard
 control_plane:
   purpose: ".agent 逻辑分类索引，用于约束 Goal Runtime v3.1 控制面边界。"
   authority_order:
-    - docs/goal.md and docs/standard/
+    - docs/goal/goal.md and docs/standard/
     - .agent/*.yaml and cmd/goalcli
     - release/manifest/ and release/evidence/
   physical_migration: true
