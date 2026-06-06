@@ -473,6 +473,10 @@ func plannedDownstreamMakefileTargets() []string {
 	return []string{"upgrade-standard", "downstream-registry", "downstream-baseline", "downstream-adoption"}
 }
 
+func plannedDownstreamMakefileTargets() []string {
+	return []string{"upgrade-standard", "downstream-registry", "downstream-baseline", "downstream-adoption"}
+}
+
 func dockerMakefileTargets() []string {
 	return []string{
 		"docker-toolchain-check",
@@ -1080,15 +1084,19 @@ var plannedCommandSemanticMarkers = map[string]map[string][]string{
 	"evidence-replay": {
 		".agent/evidence/evidence-replay.yaml": {"schema_version:", "fixtures:", "ledger:", "expected_status:", "hash_chain"},
 	},
+	"upgrade-standard": {
+		".agent/registries/downstream-registry.yaml": {"schema_version:", "downstreams:", "adoption_claim: not_claimed", "proof_based_adoption: false", "downstream_repo_write: false", "patch-only"},
+	},
 	"downstream-registry": {
-		".agent/registries/downstream-registry.yaml": {"schema_version:", "downstream_adoption_scope:", "proof_based_adoption: false", "downstream_repo_write: false", "downstreams:", "kernel/configx"},
+		".agent/registries/downstream-registry.yaml": {"schema_version:", "downstreams:", "adoption_claim: not_claimed", "proof_based_adoption: false", "downstream_repo_write: false"},
 	},
 	"downstream-baseline": {
-		".agent/registries/downstream-baseline-scan.yaml": {"schema_version:", "repo:", "mode:", "status:", "gap_explicit_when_repo_missing"},
-		".agent/registries/downstream-registry.yaml":      {"schema_version:", "downstreams:", "unavailable_in_worker_workspace_gap_explicit"},
+		".agent/registries/downstream-baseline-scan.yaml": {"schema_version:", "repo:", "mode: patch-only", "status: gap_explicit_when_repo_missing"},
+		".agent/registries/downstream-registry.yaml":      {"downstreams:", "kernel/configx", "unavailable_in_worker_workspace_gap_explicit"},
 	},
 	"downstream-adoption": {
-		".agent/registries/downstream-adoption-modes.yaml":  {"schema_version:", "modes:", "patch-only", "dry-run", "pr-plan"},
+		".agent/registries/downstream-adoption-modes.yaml":  {"schema_version:", "modes:", "patch-only"},
+		".agent/registries/downstream-registry.yaml":        {"downstreams:", "adoption_claim: not_claimed", "downstream_repo_write: false"},
 		".agent/registries/downstream-adoption-status.yaml": {"proof_contract:", "source_repo", "gate_outputs", "rollback"},
 		"contracts/downstream-adoption-proof.schema.json":   {"source_repo", "source_commit", "gate_outputs", "rollback"},
 		"docs/standard/downstream-registry.md":              {"Proof contract", "source_repo", "gate_outputs", "rollback"},
