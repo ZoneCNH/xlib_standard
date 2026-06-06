@@ -164,6 +164,30 @@ func TestEvaluateGoalRuntimeFinalRequiresPrerequisiteLedger(t *testing.T) {
 	}
 }
 
+func TestEvaluateGoalRuntimeFinalIgnoresGeneratedPackWithoutSourceLedger(t *testing.T) {
+	root := t.TempDir()
+	writeAuthorityFixture(t, root)
+
+	packPath := filepath.Join(root, filepath.FromSlash(EvidenceLedgerPath+DefaultGoalID+".json"))
+	if err := os.MkdirAll(filepath.Dir(packPath), 0o755); err != nil {
+		t.Fatalf("mkdir generated evidence pack path: %v", err)
+	}
+	if err := os.WriteFile(packPath, []byte(`{"status":"passed","mva_status":"complete"}`), 0o644); err != nil {
+		t.Fatalf("write generated evidence pack fixture: %v", err)
+	}
+
+	report, err := Evaluate("goal-runtime-final", Options{Root: root})
+	if err != nil {
+		t.Fatalf("Evaluate returned error: %v", err)
+	}
+	if report.Status != "failed" || report.MVAStatus != "not-complete" {
+		t.Fatalf("report = %#v; want generated pack ignored without source ledger prerequisites", report)
+	}
+	if !containsSubstring(report.Gaps, SourceLedgerPath) {
+		t.Fatalf("gaps = %#v; want source ledger prerequisite gap despite generated pack", report.Gaps)
+	}
+}
+
 func TestWriteEvidenceWritesPackAndLedgerIdempotently(t *testing.T) {
 	root := t.TempDir()
 	writeAuthorityFixture(t, root)
