@@ -309,22 +309,6 @@ func appendRequiredPassedStatuses(failures *[]string, field string, got map[stri
 	}
 }
 
-// validateDownstreamAdoptionEvidence 验证本地 release manifest 只记录未声明采用的保护性默认值。
-func validateDownstreamAdoptionEvidence(e DownstreamAdoptionEvidence) []string {
-	var failures []string
-	requireEnumValue(&failures, "downstream_adoption.adoption_claim", e.AdoptionClaim, downstreamAdoptionClaimValues)
-	if e.ProofBasedAdoption {
-		failures = append(failures, "downstream_adoption.proof_based_adoption must be false unless downstream-generated proof and accepted ledger evidence are present")
-	}
-	if e.DownstreamRepoWrite {
-		failures = append(failures, "downstream_adoption.downstream_repo_write must be false for local release manifest evidence")
-	}
-	if strings.TrimSpace(e.AcceptedLedger) != "" {
-		failures = append(failures, "downstream_adoption.accepted_ledger must be empty when adoption_claim is not_claimed")
-	}
-	return failures
-}
-
 // requireNonEmpty 验证值非空。
 func requireNonEmpty(failures *[]string, field string, value string) {
 	if strings.TrimSpace(value) == "" {
