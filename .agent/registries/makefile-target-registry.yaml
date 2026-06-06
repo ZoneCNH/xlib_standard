@@ -27,6 +27,10 @@ targets:
   - rules-verify
   - downstream-debt
   - downstream-sync-plan
+  - upgrade-standard
+  - downstream-registry
+  - downstream-baseline
+  - downstream-adoption
   - adoption-check
   - docker-toolchain-check
   - docker-build
