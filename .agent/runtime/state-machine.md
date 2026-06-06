@@ -51,6 +51,21 @@ intake -> scope_lock -> plan -> implement -> verify -> review -> release -> retr
 - `blocked`: owner/action 已记录；不得静默部分完成。
 - `rollback`: 按 rollback protocol 执行 revert 或 mitigation path。
 
+## 异常状态扩展
+
+> 以下异常状态源自 CONSTITUTION.md §9，执行面统一映射为 `blocked` 或 `rollback`，但 Agent 必须记录具体原因以便分类处理。
+
+| 异常状态 | 执行映射 | Agent 行为 |
+|---------|---------|-----------|
+| BLOCKED | blocked | 记录 owner + blocker 原因 |
+| FAILED | blocked | 记录失败命令 + 错误输出 |
+| NEEDS_RESEARCH | blocked | 触发 AutoResearch 协议 |
+| NEEDS_DECISION | blocked | 进入 Decision Log（DEC-xxx） |
+| NEEDS_REPLAN | blocked | 重新进入 plan 状态 |
+| NEEDS_ROLLBACK | rollback | 执行 rollback protocol |
+| NEEDS_HUMAN_APPROVAL | blocked | 暂停执行，等待人工审批 |
+| INCONSISTENT_STATE | blocked | 记录不一致细节，进入修复流程 |
+
 ## 转换规则
 
 - `implement` 不能在 scope lock 之前开始。
