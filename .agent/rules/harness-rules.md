@@ -4,16 +4,22 @@
 
 ## RULE-HARNESS-001：Harness Gate 是阶段裁判
 
-每个阶段必须有 Gate：
+> **SSOT**: Gate 矩阵的权威定义在 [`core-rules.md` §131](./core-rules.md#131-lite--standard--full-gate-矩阵)（Lite/Standard/Full 三级）。执行顺序见 [`core-rules.md` §137](./core-rules.md#137-执行顺序规则)。本文件仅引用，避免重复定义导致漂移。
 
-```text
-Context Gate     Goal Gate       Spec Gate
-Design Gate      Plan Gate       Task Gate
-Issue Gate       Worktree Gate   Commit Gate
-PR Gate          CI Gate         Evidence Gate
-Review Gate      Release Gate    Retrospective Gate
-Self-improving Gate
-```
+Gate 矩阵概要（详细定义见 core-rules.md §131）：
+
+| Gate | Lite | Standard | Full |
+|------|------|----------|------|
+| schema-check | 必须 | 必须 | 必须 |
+| worktree-check | 必须 | 必须 | 必须 |
+| evidence-check | 必须 | 必须 | 必须 |
+| traceability-check | 可选 | 必须 | 必须 |
+| design-check | 可选 | 推荐 | 必须 |
+| risk-check | 可选 | 必须 | 必须 |
+| pr-check | 推荐 | 必须 | 必须 |
+| release-check | 可选 | 推荐 | 必须 |
+| retro-check | 推荐 | 必须 | 必须 |
+| adoption-check | 不需要 | 可选 | 必须 |
 
 ## RULE-HARNESS-002：Gate 必须有标准结构
 

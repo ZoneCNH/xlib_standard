@@ -280,6 +280,8 @@ goalcli retro generate    goalcli patch propose
 
 ## Makefile Gate 最小集合
 
+> **SSOT**: Gate 矩阵的权威定义在 [`core-rules.md` §131](./core-rules.md#131-lite--standard--full-gate-矩阵)。本文件仅列出 Makefile 执行命令，Gate 语义以 core-rules.md 为准。
+
 ```text
 goalcli worktree-check --context local_write
 make goal-check        make context-check   make spec-check

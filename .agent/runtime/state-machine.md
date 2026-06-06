@@ -1,5 +1,35 @@
 # 状态机
 
+> **SSOT**: 治理状态机的权威定义在 [`CONSTITUTION.md` §9](../../CONSTITUTION.md)（13 正常 + 8 异常状态）。本文件是执行面简化版（10 正常 + 2 异常），以下提供显式映射。
+
+## 治理状态 → 执行状态映射
+
+| 治理状态（CONSTITUTION §9） | 执行状态（本文件） | 说明 |
+|---------------------------|-----------------|------|
+| INIT | intake | 初始加载 |
+| CONTEXT_READY | intake | 上下文已恢复 |
+| GOAL_READY | intake | Goal 已定义 |
+| SPEC_READY | scope_lock | Spec 已锁定 |
+| DESIGN_READY | plan | 设计已完成 |
+| PLAN_READY | plan | 计划已制定 |
+| TASKS_READY | plan | 任务已拆解 |
+| EXECUTING | implement | 执行中 |
+| VERIFYING | verify | 验证中 |
+| REVIEWING | review | 审查中 |
+| RELEASING | release | 发布中 |
+| RETROSPECTING | retrospective | 复盘中 |
+| DONE | complete | 完成 |
+| BLOCKED | blocked | 阻塞 |
+| FAILED | blocked | 失败 |
+| NEEDS_RESEARCH | blocked | 需要研究 |
+| NEEDS_DECISION | blocked | 需要决策 |
+| NEEDS_REPLAN | blocked | 需要重新计划 |
+| NEEDS_ROLLBACK | rollback | 需要回滚 |
+| NEEDS_HUMAN_APPROVAL | blocked | 需要人工批准 |
+| INCONSISTENT_STATE | blocked | 状态不一致 |
+
+## 执行状态机
+
 ```text
 intake -> scope_lock -> plan -> implement -> verify -> review -> release -> retrospective -> complete
                          |          |          |          |             |
