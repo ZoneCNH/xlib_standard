@@ -184,10 +184,9 @@
   "downstream_sync_required": false,
   "downstream_adoption": {
     "adoption_claim": "not_claimed",
-    "downstream_adoption_scope": "local_contract_only",
     "proof_based_adoption": false,
     "downstream_repo_write": false,
-    "source": "release-manifest-local-evidence"
+    "accepted_ledger": ""
   },
   "generator_evidence": {
     "command": "GOWORK=off make integration",

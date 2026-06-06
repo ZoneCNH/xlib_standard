@@ -329,8 +329,13 @@ func buildManifest() (Manifest, error) {
 		Debt:                   debtEvidence,
 		GovernanceRuntime:      buildGovernanceRuntime(),
 		DownstreamSyncRequired: standardImpact.DownstreamSyncRequired,
-		DownstreamAdoption:     buildDownstreamAdoptionEvidence(),
-		GeneratorEvidence:      buildGeneratorEvidence(),
+		DownstreamAdoption: DownstreamAdoptionEvidence{
+			AdoptionClaim:       "not_claimed",
+			ProofBasedAdoption:  false,
+			DownstreamRepoWrite: false,
+			AcceptedLedger:      "",
+		},
+		GeneratorEvidence: buildGeneratorEvidence(),
 		Tools: map[string]string{
 			"go":            firstLine(runTrimmedDefault(runtime.Version(), "go", "version")),
 			"golangci-lint": toolVersion("golangci-lint", "--version"),
