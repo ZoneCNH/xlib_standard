@@ -19,57 +19,17 @@ Goal → Context Recovery → Spec → Design → Plan → Tasks → Execution
 
 ## 第一性原理铁律
 
-### RULE-CORE-001：没有证据，不允许 DONE
+> **SSOT**: RULE-CORE-001~006 的权威定义在 [`core-rules.md` §1](./core-rules.md#1-第一性原理铁律)。本文件仅引用，避免重复定义导致漂移。
+> 七律压缩版见 [`iron-rules.md`](./iron-rules.md)。
 
-任何 Task、Issue、Goal、Release 都不能只靠描述完成。必须使用：
+六条铁律概要（详细定义见 core-rules.md）：
 
-```text
-DONE with evidence:
-- EVID-xxx
-- test report
-- command output
-- PR link
-- release manifest
-```
-
-### RULE-CORE-002：Goal 必须从真实上下文开始
-
-禁止在没有恢复上下文的情况下直接设计方案。必须先检查：
-
-```text
-仓库结构、已有文档、已有 Makefile target、已有 CI、已有 tests、
-已有 .agent、已有 harness、已有 issues、已有 release、已有规则、已有冲突
-```
-
-### RULE-CORE-003：需求必须可验证
-
-```text
-Requirement → Acceptance Criteria → Test → Evidence
-```
-
-没有 AC 的需求，不允许进入实现。
-
-### RULE-CORE-004：所有变更必须可追踪
-
-每个变更必须能追踪到：
-
-```text
-Goal ID → Requirement ID → AC ID → Task ID → Issue ID → Commit → PR → Evidence → Release
-```
-
-### RULE-CORE-005：Harness 是机器裁判
-
-任何人工判断不能绕过 P0 Harness Gate。
-
-### RULE-CORE-006：Self-improving 是强制环节
-
-每次 Goal 完成后必须输出：
-
-```text
-Retrospective、Prompt Patch、Harness Patch、Rule Patch、CI Gate Suggestion、New Issue Candidates
-```
-
-否则 Goal 不算闭环完成。
+1. **RULE-CORE-001**: 没有证据，不允许 DONE
+2. **RULE-CORE-002**: Goal 必须从真实上下文开始
+3. **RULE-CORE-003**: 需求必须可验证（Requirement → AC → Test → Evidence）
+4. **RULE-CORE-004**: 所有变更必须可追踪（Goal → Req → AC → Task → Issue → Commit → PR → Evidence → Release）
+5. **RULE-CORE-005**: Harness 是机器裁判（人工判断不能绕过 P0 Gate）
+6. **RULE-CORE-006**: Self-improving 是强制环节（每次 Goal 必须产出 Retrospective + Patch）
 
 ---
 
@@ -434,19 +394,16 @@ release/
 
 ## 最终铁律摘要
 
-```text
-1. Goal 不是 todo，是 Runtime System。
-2. 不恢复上下文，不允许设计。
-3. 没有 AC 的需求，不允许实现。
-4. 没有 Evidence，不允许 DONE。
-5. main 只做基线，不允许开发。
-6. 所有开发必须使用 git worktree。
-7. 所有变更必须可追踪到 Goal / Req / AC / Task / Evidence。
-8. Harness Gate 失败必须阻断。
-9. PR 没有 Evidence 不允许 merge。
-10. Release 没有 Manifest 不允许发布。
-11. Retrospective 缺失不算闭环。
-12. 重复问题必须升级为 Prompt / Harness / Rule Patch。
-```
+> **SSOT**: 铁律的权威定义在 [`iron-rules.md`](./iron-rules.md)（七律）。以下为引用，避免重复定义导致漂移。
+
+七律概要（详细定义见 iron-rules.md）：
+
+1. 没有 Evidence，不允许 DONE
+2. 不恢复上下文，不允许设计
+3. 没有 Acceptance Criteria 的需求，不允许实现
+4. 所有变更必须可追踪
+5. main 只做基线，所有开发必须 worktree
+6. Harness Gate 是机器裁判，失败必须阻断
+7. 重复问题必须升级为 Rule / Harness / Prompt Patch
 
 > 最终目标：让任何 Goal 都能自动拆解、自动执行、自动验证、自动交付、自动复盘，并把每一次执行经验固化为下一轮更强的工程系统。

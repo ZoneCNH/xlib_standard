@@ -422,18 +422,18 @@ reports/<command>.json
 
 <sub>level: P1 · status: active · enforced_by: `goalcli` · exit: 1 · source: §84 L3721</sub>
 
+> **SSOT**: 退出码定义以 [`iron-rules.md`](./iron-rules.md) 为准。以下为引用，避免重复定义导致漂移。
+
 ```text
-0  = PASS
-1  = GENERAL_FAILURE
-2  = POLICY_VIOLATION
-3  = SCHEMA_INVALID
-4  = EVIDENCE_MISSING
-5  = TRACEABILITY_BROKEN
-6  = WORKTREE_INVALID
-7  = SECRET_DETECTED
-8  = RELEASE_BLOCKED
-9  = NEEDS_HUMAN_APPROVAL
-10 = INCONSISTENT_STATE
+0  = OK
+1  = 通用失败
+2  = 参数错误
+5  = worktree / main 违规      (RULE-WORKTREE-* / RULE-MAIN-SYNC-* / RULE-BRANCH-*)
+6  = schema 校验失败            (RULE-SCHEMA-*)
+7  = secret / 凭据泄漏          (RULE-SECURITY-* / RULE-SECRET-*)
+8  = Evidence 缺失或伪造        (RULE-EVIDENCE-* / RULE-CORE-001)
+9  = Traceability 断链          (RULE-TRACE-* / RULE-CORE-004)
+10 = Release 不完整             (RULE-RELEASE-* / RULE-REL-ARTIFACT-*)
 ```
 
 CI、Agent、脚本必须基于退出码做决策。
@@ -441,10 +441,10 @@ CI、Agent、脚本必须基于退出码做决策。
 例如：
 
 ```text
-exit 4 → 自动进入 Evidence 修复流程
-exit 6 → 阻断 commit / PR
-exit 9 → 进入人工审批
-exit 10 → 进入状态修复，不允许继续执行
+exit 7 → 阻断 commit / PR（secret 泄漏）
+exit 8 → 自动进入 Evidence 修复流程
+exit 9 → 阻断 release（Traceability 断链）
+exit 10 → 阻断发布（Release 不完整）
 ```
 
 ---
