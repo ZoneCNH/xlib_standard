@@ -314,13 +314,128 @@ fact-audit:
 dashboard-generate:
 	$(GOALCLI) dashboard-generate
 
-.PHONY: agent-team-contract scope-lock pr-template acceptance-matrix runtime-health upgrade-standard conformance-profile downstream-registry self-healing-skeleton goal-runtime github-governance supply-chain changelog governance-fixture-test autoresearch policy-schema github-settings toolchain evidence-artifacts naming
-agent-team-contract scope-lock pr-template acceptance-matrix runtime-health upgrade-standard conformance-profile downstream-registry self-healing-skeleton goal-runtime github-governance supply-chain changelog governance-fixture-test autoresearch policy-schema github-settings toolchain evidence-artifacts naming:
+.PHONY: agent-team-contract
+agent-team-contract:
 	$(GOALCLI) $@ --dry-run --verify
 
+.PHONY: scope-lock
+scope-lock:
+	$(GOALCLI) $@ --dry-run --verify
 
-.PHONY: install-runtime upgrade-runtime release-ready evidence-replay attest-conformance pack-standard pack-gate pack-evidence downstream-baseline downstream-adoption runtime-file-ownership
-install-runtime upgrade-runtime release-ready evidence-replay attest-conformance pack-standard pack-gate pack-evidence downstream-baseline downstream-adoption runtime-file-ownership:
+.PHONY: pr-template
+pr-template:
+	$(GOALCLI) $@ --dry-run --verify
+
+.PHONY: acceptance-matrix
+acceptance-matrix:
+	$(GOALCLI) $@ --dry-run --verify
+
+.PHONY: runtime-health
+runtime-health:
+	$(GOALCLI) $@ --dry-run --verify
+
+.PHONY: goal-runtime
+goal-runtime:
+	$(GOALCLI) $@ --dry-run --verify
+
+.PHONY: naming
+naming:
+	$(GOALCLI) $@ --dry-run --verify
+
+.PHONY: upgrade-standard
+upgrade-standard:
+	$(GOALCLI) $@ --dry-run --verify
+
+.PHONY: conformance-profile
+conformance-profile:
+	$(GOALCLI) $@ --dry-run --verify
+
+.PHONY: downstream-registry
+downstream-registry:
+	$(GOALCLI) $@ --dry-run --verify
+
+.PHONY: self-healing-skeleton
+self-healing-skeleton:
+	$(GOALCLI) $@ --dry-run --verify
+
+.PHONY: policy-schema
+policy-schema:
+	$(GOALCLI) $@ --dry-run --verify
+
+.PHONY: github-settings
+github-settings:
+	$(GOALCLI) $@ --dry-run --verify
+
+.PHONY: github-governance
+github-governance:
+	$(GOALCLI) $@ --dry-run --verify
+
+.PHONY: governance-fixture-test
+governance-fixture-test:
+	$(GOALCLI) $@ --dry-run --verify
+
+.PHONY: toolchain
+toolchain:
+	$(GOALCLI) $@ --dry-run --verify
+
+.PHONY: evidence-artifacts
+evidence-artifacts:
+	$(GOALCLI) $@ --dry-run --verify
+
+.PHONY: install-runtime
+install-runtime:
+	$(GOALCLI) $@ --dry-run --verify
+
+.PHONY: upgrade-runtime
+upgrade-runtime:
+	$(GOALCLI) $@ --dry-run --verify
+
+.PHONY: release-ready
+release-ready:
+	$(GOALCLI) $@ --dry-run --verify
+
+.PHONY: evidence-replay
+evidence-replay:
+	$(GOALCLI) $@ --dry-run --verify
+
+.PHONY: attest-conformance
+attest-conformance:
+	$(GOALCLI) $@ --dry-run --verify
+
+.PHONY: pack-standard
+pack-standard:
+	$(GOALCLI) $@ --dry-run --verify
+
+.PHONY: pack-gate
+pack-gate:
+	$(GOALCLI) $@ --dry-run --verify
+
+.PHONY: pack-evidence
+pack-evidence:
+	$(GOALCLI) $@ --dry-run --verify
+
+.PHONY: runtime-file-ownership
+runtime-file-ownership:
+	$(GOALCLI) $@ --dry-run --verify
+
+.PHONY: downstream-baseline
+downstream-baseline:
+	$(GOALCLI) $@ --dry-run --verify
+
+.PHONY: downstream-adoption
+downstream-adoption:
+	$(GOALCLI) $@ --dry-run --verify
+
+.PHONY: autoresearch
+autoresearch:
+	$(GOALCLI) $@ --dry-run --verify
+
+.PHONY: changelog
+changelog:
+	$(GOALCLI) $@ --dry-run --verify
+
+.PHONY: supply-chain
+supply-chain:
 	$(GOALCLI) $@ --dry-run --verify
 
 .PHONY: execution-context
