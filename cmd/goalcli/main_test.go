@@ -1917,6 +1917,56 @@ func TestCommandRegistryRequiresFullCommandSurface(t *testing.T) {
 		}
 	})
 
+	t.Run("rejects non-canonical agent index paths", func(t *testing.T) {
+		root := t.TempDir()
+		writeValidAgentIndexFixture(t, root)
+		indexPath := filepath.Join(root, ".agent", "index.yaml")
+		index, err := os.ReadFile(indexPath)
+		if err != nil {
+			t.Fatalf("read agent index: %v", err)
+		}
+		indexText := strings.Replace(string(index), "  - path: .agent/rules/registry.yaml\n", "  - path: ./.agent/rules/registry.yaml\n", 1)
+		writeTestFiles(t, root, map[string]string{
+			".agent/index.yaml":                       indexText,
+			".agent/registries/command-registry.yaml": commandRegistryFixture(""),
+		})
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		got := run([]string{"command-registry"}, strings.NewReader(""), &stdout, &stderr)
+		if got != 1 {
+			t.Fatalf("command-registry non-canonical index path exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+		}
+		if !strings.Contains(stdout.String(), ".agent/index.yaml ./.agent/rules/registry.yaml must use canonical repo-relative slash path") {
+			t.Fatalf("stdout = %q; want non-canonical index path gap", stdout.String())
+		}
+	})
+
+	t.Run("rejects non-canonical generated artifact paths", func(t *testing.T) {
+		root := t.TempDir()
+		writeValidAgentIndexFixture(t, root)
+		artifactsPath := filepath.Join(root, ".agent", "registries", "generated-artifacts.yaml")
+		artifacts, err := os.ReadFile(artifactsPath)
+		if err != nil {
+			t.Fatalf("read generated artifacts: %v", err)
+		}
+		artifactsText := strings.Replace(string(artifacts), "  - path: .agent/rules/core-rules.md\n", "  - path: .agent/rules/../rules/core-rules.md\n", 1)
+		writeTestFiles(t, root, map[string]string{
+			".agent/registries/generated-artifacts.yaml": artifactsText,
+			".agent/registries/command-registry.yaml":    commandRegistryFixture(""),
+		})
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		got := run([]string{"command-registry"}, strings.NewReader(""), &stdout, &stderr)
+		if got != 1 {
+			t.Fatalf("command-registry non-canonical generated artifact path exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+		}
+		if !strings.Contains(stdout.String(), ".agent/registries/generated-artifacts.yaml .agent/rules/../rules/core-rules.md must use canonical repo-relative slash path") {
+			t.Fatalf("stdout = %q; want non-canonical generated artifact path gap", stdout.String())
+		}
+	})
+
 	t.Run("rejects rules registry unknown enforcer", func(t *testing.T) {
 		root := t.TempDir()
 		writeValidAgentIndexFixture(t, root)
