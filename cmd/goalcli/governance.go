@@ -433,6 +433,10 @@ func requiredMakefileTargets() []string {
 	return append(requiredTargets, plannedCommandMakefileTargets()...)
 }
 
+func plannedDownstreamMakefileTargets() []string {
+	return nil
+}
+
 func plannedCommandMakefileTargets() []string {
 	return []string{
 		"agent-team-contract",
