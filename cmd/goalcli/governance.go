@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	pathpkg "path"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -1637,18 +1638,22 @@ func appendAgentIndexGaps(path string, gaps *[]string) {
 			*gaps = append(*gaps, path+" contains file entry without path")
 			continue
 		}
-		if seen[entry.path] {
-			*gaps = append(*gaps, path+" duplicate file entry "+entry.path)
+		canonicalPath, ok := canonicalRepoPath(entry.path)
+		if !ok {
+			*gaps = append(*gaps, path+" "+entry.path+" must use canonical repo-relative slash path")
 		}
-		seen[entry.path] = true
-		present[entry.path] = true
-		if !strings.HasPrefix(entry.path, ".agent/") {
+		if seen[canonicalPath] {
+			*gaps = append(*gaps, path+" duplicate file entry "+canonicalPath)
+		}
+		seen[canonicalPath] = true
+		present[canonicalPath] = true
+		if !strings.HasPrefix(canonicalPath, ".agent/") {
 			*gaps = append(*gaps, path+" "+entry.path+" must stay under .agent/")
 		}
-		if info, statErr := os.Stat(entry.path); statErr != nil {
-			*gaps = append(*gaps, path+" references missing "+entry.path)
+		if info, statErr := os.Stat(canonicalPath); statErr != nil {
+			*gaps = append(*gaps, path+" references missing "+canonicalPath)
 		} else if info.IsDir() {
-			*gaps = append(*gaps, path+" "+entry.path+" must be a file")
+			*gaps = append(*gaps, path+" "+canonicalPath+" must be a file")
 		}
 
 		appendRequiredAgentIndexField(path, entry, "layer", gaps)
