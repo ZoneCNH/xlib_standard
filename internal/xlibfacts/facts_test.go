@@ -10,9 +10,9 @@ func TestParseExpectedFacts(t *testing.T) {
 	facts, err := Parse([]byte(`schema_version: xlib-facts/v1
 module: github.com/ZoneCNH/xlib-standard
 current_release:
-  version: v0.4.15
-  commit: c0fc3813e156cf35a37ddd0033432a78943bb32b
-  released_at: 2026-06-05T10:24:00Z
+  version: v0.5.0
+  commit: 949f1995f641d17d2afc5736f6beb95340b36587
+  released_at: 2026-06-06T02:45:23Z
 runtime:
   goal_runtime_version: v3.1
   governance_runtime_version: v2.9.3

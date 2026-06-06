@@ -2,5 +2,5 @@ package templatex
 
 const (
 	ModuleName = "github.com/ZoneCNH/xlib-standard"
-	Version    = "v0.4.15"
+	Version    = "v0.5.0"
 )
