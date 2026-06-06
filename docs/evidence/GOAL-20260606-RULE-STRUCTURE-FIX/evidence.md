@@ -57,6 +57,10 @@ Passed:
 - `GOWORK=off make governance-check`
 - `GOWORK=off make lint`
 - `GOWORK=off make rules-verify`
+- `XLIB_ENABLE_VULNCHECK=1 XLIB_FORCE_VULNCHECK=1 GOWORK=off make security`
+- `GOWORK=off make integration`
+- `GOWORK=off make p2-runtime-check`
+- `GOWORK=off make release-check`
 - `git diff --check`
 
 Known failed-then-fixed gate:
@@ -76,7 +80,20 @@ gaps are pre-existing governance debt surfaced by the gate output, not a blocker
 under the current passing contract.
 
 Security note: the governance run reported govulncheck as suspended unless
-`XLIB_ENABLE_VULNCHECK=1` is set; the secret scan passed.
+`XLIB_ENABLE_VULNCHECK=1` is set. A separate forced vulnerability run passed
+with `XLIB_ENABLE_VULNCHECK=1 XLIB_FORCE_VULNCHECK=1 GOWORK=off make security`;
+the scan reported no reachable vulnerabilities and the secret scan passed.
+
+Release and runtime notes:
+
+- `GOWORK=off make integration` rendered and verified `kernel`, `configx`, and
+  `redisx` templates.
+- `GOWORK=off make p2-runtime-check` passed runtime install, upgrade, release,
+  evidence replay, conformance, pack, downstream dry-run, ownership, and
+  execution-context checks.
+- `GOWORK=off make release-check` passed the full release harness, including
+  formatting, vet, tests, race tests, governance, rules, integration, dependency
+  governance, release evidence, and checksum checks.
 
 ## Changed Files
 
@@ -92,7 +109,7 @@ Security note: the governance run reported govulncheck as suspended unless
 
 ## Residual Risk
 
-- Downstream adoption repositories were not run.
-- Template release and e2e checks were not run.
-- Govulncheck was not run without the suspended-gate environment override.
+- No proof-based external downstream adoption repository run is claimed; local
+  `adoption-check`, `integration`, `downstream-baseline --dry-run --verify`,
+  and `downstream-adoption --dry-run --verify` passed.
 - Existing traceability lifecycle graph gaps remain reported as partial.
