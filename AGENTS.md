@@ -156,6 +156,31 @@ Agent 开始任务时，应按以下顺序恢复上下文：
 
 禁止只读 README 后直接改代码。
 
+## 3.1 Project Map After Context Recovery
+
+恢复上下文后，Agent 必须先把本仓库识别为五合一标准仓库，而不是普通业务应用仓库：
+
+* `xlib-standard` 是 Standard Source、Go Reference Template、Generator、Harness、Evidence Runtime 的合一仓库。
+* `.agent/` 是运行控制面，包含 rules、harness、registries、evidence、release、traceability。修改这里通常必须同步规则索引、Gate、文档和 Evidence。
+* `cmd/goalcli/` 是治理与门禁 CLI。修改命令行为必须同步 `.agent/registries/command-registry.yaml`、Makefile 入口、CLI 契约文档和测试。
+* `Makefile`、`scripts/`、`.githooks/`、`.github/` 是人工、Hook 和 CI 入口。修改它们必须考虑本地门禁与 CI 门禁是否一致。
+* `docs/standard/` 是标准叙事与执行规范的主要文档面；`docs/architecture/` 和 `docs/adr/` 记录设计与决策； dated report 只作为当时分析证据，不自动覆盖规范。
+* `contracts/` 保存公共契约和结构化 schema。修改公共行为必须同步 contracts、examples、docs、tests 和 release 影响说明。
+* `pkg/templatex/`、`examples/`、`testkit/` 是 Go reference template 的可执行证明面；它们不应携带业务域逻辑。
+* `internal/` 保存私有实现，包括 `goalruntime`、`releasequality`、`validation`、`sanitize`、`xlibfacts`、`debtcheck` 和 release manifest 工具。不得把 internal 形状当作公共 API，除非同步 Spec、contracts 和 release。
+* `templates/l2/` 是下游 L2 adapter 的模板与契约测试面。修改这里必须考虑 downstream adoption 与 integration 证据。
+* `release/manifest/latest.json` 是生成产物，不得提交。处理生成产物前必须检查 `.agent/registries/generated-artifacts.yaml` 与 `.agent/contracts/scope-locks.yaml`。
+
+## 3.2 Source-of-Truth Navigation
+
+当事实分散或冲突时，按第 0 节优先级裁决，并使用以下入口定位具体规则：
+
+* 宪法与核心规则：`CONSTITUTION.md`、`.agent/rules/iron-rules.md`、`.agent/rules/core-rules.md`、`.agent/rules/worktree-rules.md`、`.agent/rules/registry.yaml`。
+* Harness 与命令入口：`.agent/harness/gates.md`、`.agent/harness/harness.yaml`、`.agent/registries/command-registry.yaml`、`.agent/registries/makefile-target-registry.yaml`、`Makefile`。
+* 分层与契约：`docs/standard/layering.md`、`docs/standard/module-boundary.md`、`.agent/policies/layer-governance.yaml`、`.agent/contracts/scope-locks.yaml`、`contracts/`。
+* Evidence 与 Release：`.agent/evidence/evidence-protocol.md`、`docs/standard/evidence-protocol.md`、`docs/release.md`、`.agent/release/`、`release/manifest/template.json`。
+* 当前事实与已知差距：`.agent/evidence/truth-state.yaml`、`docs/standard/truth-state.md`、最新相关 `docs/*analysis*` 或 `docs/reports/*`。分析报告只证明报告生成时的观察结果，不替代 Gate。
+
 ---
 
 ## 4. Work Classification
@@ -225,6 +250,28 @@ Agent 必须先判断任务类型。
 * Review
 * Release
 * Retrospective
+
+## 4.1 Worktree and Branch Protocol
+
+任何会产生文件变更的任务，执行前必须确认当前工作区位置：
+
+```bash
+git branch --show-current
+git status --short
+git worktree list
+```
+
+若当前在 `main` 或 `master`，必须先创建或切换到独立 `git worktree`，然后再编辑文件。不得在主分支上做修复、生成文件、提交或临时改动。
+
+分支命名应绑定可追踪对象：
+
+```text
+goal/<GOAL-ID>/<TASK-ID>
+issue/<ISSUE-ID>
+task/<TASK-ID>
+```
+
+当用户只给出 Lite 任务且没有现成持久 ID 时，可以使用描述性短分支，如 `codex/<short-task>`，但必须在 Evidence 中记录原因。任何 worktree 中已有的非本任务 dirty / untracked 内容都视为他人改动，禁止回滚、覆盖或顺手清理。
 
 ---
 
@@ -362,6 +409,7 @@ Agent 修改代码时必须遵守：
 * 修改 CI 必须同步 Harness、Evidence、Release
 * 修改架构必须新增或更新 ADR
 * 修改规则必须同步 `.agent/rules/` 与相关 Gate
+* 修改生成产物、Release manifest、Gate 输出或运行记录前，必须先确认 `.agent/registries/generated-artifacts.yaml` 与 `.agent/contracts/scope-locks.yaml`
 * 禁止为通过测试而降低测试质量
 * 禁止用 mock 掩盖真实契约破坏
 * 禁止引入无边界的 util / common / helper 上帝模块
@@ -393,6 +441,19 @@ make release-check
 * 推荐人工验证命令
 
 禁止声称未运行的测试已经通过。
+
+## 10.1 Gate Selection by Change Class
+
+Gate 必须与变更类型匹配；不能用一个无关通过项替代相关门禁。
+
+* 文档、AGENTS、规则叙述类变更：最低运行 `GOWORK=off make docs-check` 与 `GOWORK=off make rules-verify`。若触及 `.agent/rules/`、`.agent/harness/`、registries、Makefile 或命令入口，还应在可行时运行 `XLIB_CONTEXT=local_write GOWORK=off make governance-check`。
+* Go 代码或公共 API 变更：运行 `GOWORK=off make fmt`、`GOWORK=off make vet`、`GOWORK=off make test`，并按影响面补充 `GOWORK=off make contracts`、`GOWORK=off make boundary` 和相关包测试。
+* `cmd/goalcli`、Harness、Makefile、registry 变更：运行相关 `go test`，并补充 command registry、makefile baseline、governance 或 context profile Gate。
+* Generator、template、downstream adoption 变更：运行 `GOWORK=off make integration`、`GOWORK=off make render-check`、`GOWORK=off make standard-impact-check`，并在需要时生成 downstream sync plan。
+* Security、dependency、config 变更：运行 `GOWORK=off make security`、`GOWORK=off make dependency-check`，并同步 secret policy、defaults、docs 和 tests。
+* Release 或 Full 级变更：运行 `GOWORK=off make context-full`、`GOWORK=off make context-release`、`GOWORK=off make release-check`、`GOWORK=off make release-final-check` 和 `goalcli score` 相关命令。
+
+如果某个相关 Gate 失败、不可用或因环境限制未运行，Evidence 必须记录 exact command、状态、原因、风险和推荐补验命令。禁止把 skipped / not run 写成 passed。
 
 ---
 
@@ -430,6 +491,21 @@ DONE with evidence:
 - Follow-up:
 ```
 
+## 11.1 Evidence Granularity
+
+Evidence 应按任务粒度保存到 `docs/evidence/<GOAL-ID>/` 或 `.agent/runs/<run-id>/`。Release 证据必须使用 release manifest 与 checksum 链；普通本地 Evidence 只能证明本地任务完成，不能替代 release-final 证据。
+
+每份 Evidence 至少记录：
+
+* Goal / Task / worktree / branch / commit 或 tree 状态
+* 执行过的命令、结果和关键输出摘要
+* 变更文件清单
+* 满足的验收标准
+* 未运行 Gate、失败 Gate 和风险
+* 是否涉及 secret、config、storage、public API、downstream adoption 或 release
+
+`release/manifest/latest.json` 和其他标记为 generated 的产物不得作为人工编辑文件提交；如需要引用，只引用生成命令、checksum、路径和摘要。
+
 ---
 
 ## 12. AutoResearch Trigger
@@ -457,6 +533,15 @@ Decision:
 Impact:
 Follow-up Patch:
 ```
+
+## 12.1 AutoResearch and Known Proof Boundaries
+
+以下边界必须在分析、Evidence 和最终输出中如实说明：
+
+* traceability 当前存在已知证明深度边界：`traceability_status=partial_implemented`、`proof_depth=file_exists`、`proof_depth_level=D3` 时，只能证明文件级存在，不能声称完整 lifecycle graph 已闭环。
+* `make security` 的默认强项是 secret scan；漏洞扫描证据取决于 weekly / forced `govulncheck` 配置，未运行时不能声称依赖漏洞安全。
+* downstream adoption 只有在有外部仓库、CI、manifest 或可复现 smoke 证据时才可声明为 proof-based adoption；本仓库内通过只能声明 local contract / template proof。
+* release-final ready 需要 clean workspace、release manifest、checksum、score、context release 和 final gate 证据同时成立。任一缺失都必须标为 release gap。
 
 ---
 
