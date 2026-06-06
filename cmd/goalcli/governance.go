@@ -433,10 +433,6 @@ func requiredMakefileTargets() []string {
 	return append(requiredTargets, plannedCommandMakefileTargets()...)
 }
 
-func plannedDownstreamMakefileTargets() []string {
-	return nil
-}
-
 func plannedCommandMakefileTargets() []string {
 	return []string{
 		"agent-team-contract",
@@ -471,10 +467,6 @@ func plannedCommandMakefileTargets() []string {
 		"changelog",
 		"supply-chain",
 	}
-}
-
-func plannedDownstreamMakefileTargets() []string {
-	return []string{"upgrade-standard", "downstream-registry", "downstream-baseline", "downstream-adoption"}
 }
 
 func plannedDownstreamMakefileTargets() []string {
