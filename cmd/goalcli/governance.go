@@ -473,6 +473,10 @@ func plannedCommandMakefileTargets() []string {
 	}
 }
 
+func plannedDownstreamMakefileTargets() []string {
+	return []string{"upgrade-standard", "downstream-registry", "downstream-baseline", "downstream-adoption"}
+}
+
 func dockerMakefileTargets() []string {
 	return []string{
 		"docker-toolchain-check",

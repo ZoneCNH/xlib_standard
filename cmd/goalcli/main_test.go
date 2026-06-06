@@ -2627,6 +2627,42 @@ func TestDownstreamAdoptionProofContractIsDocumented(t *testing.T) {
 	assertFileContainsAll(t, ".agent/registries/downstream-baseline-scan.yaml", "gap_explicit_when_repo_missing")
 }
 
+func TestDownstreamGovernanceCommandsHaveSemanticContracts(t *testing.T) {
+	chdir(t, filepath.Join("..", ".."))
+
+	for _, command := range plannedDownstreamMakefileTargets() {
+		files := plannedCommandFiles[command]
+		if len(files) == 0 {
+			t.Fatalf("%s has no planned command files", command)
+		}
+		markers := plannedCommandSemanticMarkers[command]
+		if len(markers) == 0 {
+			t.Fatalf("%s has no semantic markers", command)
+		}
+		for _, path := range files {
+			pathMarkers, ok := markers[path]
+			if !ok || len(pathMarkers) == 0 {
+				t.Fatalf("%s missing semantic markers for %s", command, path)
+			}
+			assertFileContainsAll(t, path, pathMarkers...)
+		}
+
+		var stdout, stderr bytes.Buffer
+		got := run([]string{command, "--dry-run", "--verify"}, strings.NewReader(""), &stdout, &stderr)
+		if got != 0 {
+			t.Fatalf("%s verify exit = %d, stderr %q, stdout %q; want 0", command, got, stderr.String(), stdout.String())
+		}
+	}
+}
+
+func TestDownstreamGovernanceTemplatesExposeRuntimeTargets(t *testing.T) {
+	chdir(t, filepath.Join("..", ".."))
+
+	for _, path := range []string{"mk/governance.mk", "templates/l2/Makefile", "scripts/check_rendered_template.sh"} {
+		assertFileContainsAll(t, path, "downstream-baseline", "downstream-adoption", "p2-runtime-check")
+	}
+}
+
 func TestDownstreamGapWithoutVerifyIsBlocking(t *testing.T) {
 	chdir(t, filepath.Join("..", ".."))
 
