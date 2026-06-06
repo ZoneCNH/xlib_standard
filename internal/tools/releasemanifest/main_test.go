@@ -717,7 +717,7 @@ func TestBuildManifestRecordsFixtureRepositoryFacts(t *testing.T) {
 	if manifest.DownstreamSyncRequired != manifest.StandardImpact.DownstreamSyncRequired {
 		t.Fatalf("downstream_sync_required = %t, want standard impact value %t", manifest.DownstreamSyncRequired, manifest.StandardImpact.DownstreamSyncRequired)
 	}
-	if manifest.DownstreamAdoption.AdoptionClaim != "not_claimed" || manifest.DownstreamAdoption.ProofBasedAdoption || manifest.DownstreamAdoption.DownstreamRepoWrite || manifest.DownstreamAdoption.AcceptedLedger != "" {
+	if manifest.DownstreamAdoption.AdoptionClaim != "not_claimed" || manifest.DownstreamAdoption.ProofBasedAdoption || manifest.DownstreamAdoption.DownstreamRepoWrite || manifest.DownstreamAdoption.AcceptedLedgerEvidencePath != "" {
 		t.Fatalf("downstream_adoption = %+v, want local no-adoption-claim defaults", manifest.DownstreamAdoption)
 	}
 	assertGovernanceRuntimeEvidence(t, manifest.GovernanceRuntime)
@@ -762,9 +762,12 @@ func TestReleaseManifestTemplateListsEvidenceContractsAndAdoptionDefaults(t *tes
 		`"sha256": "{{DOWNSTREAM_ADOPTION_PROOF_SCHEMA_SHA256}}"`,
 		`"downstream_adoption"`,
 		`"adoption_claim": "not_claimed"`,
+		`"downstream_adoption_scope": "local_contract_only"`,
 		`"proof_based_adoption": false`,
 		`"downstream_repo_write": false`,
-		`"accepted_ledger": ""`,
+		`"proof_artifact_path": ""`,
+		`"accepted_ledger_evidence_path": ""`,
+		`"source": "release-manifest-local-evidence"`,
 	} {
 		if !strings.Contains(template, want) {
 			t.Fatalf("release manifest template missing %s", want)
@@ -898,10 +901,10 @@ func TestVerifyManifestAcceptsFreshManifestAndRejectsDrift(t *testing.T) {
 	manifest.GovernanceRuntime.Status = "stale"
 	manifest.DownstreamSyncRequired = !manifest.StandardImpact.DownstreamSyncRequired
 	manifest.DownstreamAdoption = DownstreamAdoptionEvidence{
-		AdoptionClaim:       "adopted",
-		ProofBasedAdoption:  true,
-		DownstreamRepoWrite: true,
-		AcceptedLedger:      ".agent/evidence/ledger.jsonl",
+		AdoptionClaim:           "adopted",
+		DownstreamAdoptionScope: "downstream_generated",
+		ProofBasedAdoption:      true,
+		DownstreamRepoWrite:     true,
 	}
 	manifest.GovernanceRuntime.GateStatuses["governance"] = "failed"
 	manifest.DownstreamAdoption.AdoptionClaim = "adopted"
@@ -926,11 +929,9 @@ func TestVerifyManifestAcceptsFreshManifestAndRejectsDrift(t *testing.T) {
 		"debt does not match current debt evidence",
 		"governance_runtime does not match current context runtime evidence",
 		"downstream_sync_required must match standard_impact.downstream_sync_required",
-		"downstream_adoption does not match unsupported-claim guard defaults",
-		`downstream_adoption.adoption_claim must be one of not_claimed, got "adopted"`,
-		"downstream_adoption.proof_based_adoption must be false unless downstream-generated proof and accepted ledger evidence are present",
-		"downstream_adoption.downstream_repo_write must be false for local release manifest evidence",
-		"downstream_adoption.accepted_ledger must be empty when adoption_claim is not_claimed",
+		"downstream_adoption does not match current downstream adoption evidence",
+		"downstream_adoption.downstream_repo_write must be false",
+		"downstream adoption claims require downstream-generated proof and accepted ledger evidence",
 		"governance_runtime does not match current governance runtime evidence",
 		`governance_runtime.gate_statuses.governance must be passed, got "failed"`,
 		"generator_evidence does not match current integration evidence",
