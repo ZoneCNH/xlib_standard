@@ -71,3 +71,12 @@ Reasons:
 - `git diff --name-status HEAD..origin/codex/v060-docs-analysis`
 - `git diff --unified=80 HEAD..origin/codex/v060-docs-analysis -- internal/goalruntime/goalruntime_test.go`
 - `git merge-tree --write-tree HEAD origin/codex/v060-docs-analysis`
+
+## Subagent Findings Integrated
+
+Subagents spawned: 2.
+
+- Branch/diff probe (`019e9f11-7467-7823-832d-4cd488d09259`): confirmed this worker checkout is detached at `ea2848c`, aligned with `main`/`origin/main`, and has no tracked delta before this evidence report; identified `origin/codex/v060-docs-analysis` as the separate branch whose practical integration surface is the two GOAL evidence files plus `internal/goalruntime/goalruntime_test.go`.
+- Validation-command probe (`019e9f11-8a8e-7d71-8545-43822412b1a9`): confirmed local Go/doc/governance gates are appropriate for merge-risk verification, with Docker/release/security gates reserved for higher-confidence or release-context validation.
+
+Integrated conclusion: the immediate worker-to-leader delta is a task evidence report, while the branch-governance decision for `origin/codex/v060-docs-analysis` should treat the branch as a low-conflict but review-sensitive three-file integration candidate.
