@@ -182,6 +182,20 @@ func TestDownstreamAdoptionProofContractRequiredFields(t *testing.T) {
 	}
 }
 
+func TestDownstreamAdoptionModesRegistryMatchesProofContract(t *testing.T) {
+	schema := readSchema(t, "downstream-adoption-proof.schema.json")
+	registry, err := os.ReadFile("../.agent/registries/downstream-adoption-modes.yaml")
+	if err != nil {
+		t.Fatalf("read downstream adoption modes registry: %v", err)
+	}
+	text := string(registry)
+	for _, mode := range schema.Properties["mode"].Enum {
+		if !strings.Contains(text, mode) {
+			t.Fatalf("downstream adoption modes registry missing schema mode %q", mode)
+		}
+	}
+}
+
 func TestExecutionEvidenceContractMatchesEvidenceManifest(t *testing.T) {
 	manifest, err := os.ReadFile("../.agent/evidence/evidence-artifacts.yaml")
 	if err != nil {
