@@ -358,6 +358,13 @@ files:
     owner: governance
     validator: evidence-check
     purpose: L2 standard-usage fix Goal 执行证据。
+  - path: .agent/runs/GOAL-20260606-RULES-001/evidence.md
+    layer: evidence
+    authority: source_of_truth
+    mutability: hand_written
+    owner: governance
+    validator: evidence-check
+    purpose: Rules governance drift fix Goal 执行证据。
   - path: .agent/evidence/README.md
     layer: evidence
     authority: source_of_truth
