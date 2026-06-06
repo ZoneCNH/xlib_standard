@@ -1264,14 +1264,30 @@ func TestMakefileBaselineRequiresExecutionContext(t *testing.T) {
 		t.Fatal("runMakefileBaseline accepted a stale fixture without execution-context; want missing target failure")
 	}
 	for _, want := range []string{
-		"Makefile missing .PHONY: execution-context",
-		"Makefile missing execution-context:",
+		"Makefile missing phony target execution-context",
+		"Makefile missing target block execution-context",
 		".agent/registries/makefile-target-registry.yaml missing execution-context",
 		".agent/registries/makefile-baseline.yaml missing execution-context",
 	} {
 		if !strings.Contains(stdout.String(), want) {
 			t.Fatalf("stdout = %q; want %q", stdout.String(), want)
 		}
+	}
+}
+
+func TestMakefileBaselineCoversDownstreamGovernanceTargets(t *testing.T) {
+	chdir(t, filepath.Join("..", ".."))
+
+	makefileText := readText(t, "Makefile")
+	var gaps []string
+	appendMakefileTargetCoverageGaps(makefileText, plannedDownstreamMakefileTargets(), &gaps)
+	if len(gaps) != 0 {
+		t.Fatalf("downstream governance Makefile gaps = %#v; want none", gaps)
+	}
+
+	for _, target := range plannedDownstreamMakefileTargets() {
+		assertFileContainsAll(t, ".agent/registries/makefile-target-registry.yaml", target)
+		assertFileContainsAll(t, ".agent/registries/makefile-baseline.yaml", target)
 	}
 }
 
@@ -2593,6 +2609,42 @@ func TestDownstreamAdoptionProofContractIsDocumented(t *testing.T) {
 	assertFileContainsAll(t, ".agent/registries/downstream-adoption-status.yaml", "proof_contract:", "source_repo", "gate_outputs", "rollback")
 	assertFileContainsAll(t, "contracts/downstream-adoption-proof.schema.json", "source_repo", "source_commit", "gate_outputs", "rollback")
 	assertFileContainsAll(t, "docs/standard/downstream-registry.md", "Proof contract", "source_repo", "gate_outputs", "rollback")
+}
+
+func TestDownstreamGovernanceCommandsHaveSemanticContracts(t *testing.T) {
+	chdir(t, filepath.Join("..", ".."))
+
+	for _, command := range plannedDownstreamMakefileTargets() {
+		files := plannedCommandFiles[command]
+		if len(files) == 0 {
+			t.Fatalf("%s has no planned command files", command)
+		}
+		markers := plannedCommandSemanticMarkers[command]
+		if len(markers) == 0 {
+			t.Fatalf("%s has no semantic markers", command)
+		}
+		for _, path := range files {
+			pathMarkers, ok := markers[path]
+			if !ok || len(pathMarkers) == 0 {
+				t.Fatalf("%s missing semantic markers for %s", command, path)
+			}
+			assertFileContainsAll(t, path, pathMarkers...)
+		}
+
+		var stdout, stderr bytes.Buffer
+		got := run([]string{command, "--dry-run", "--verify"}, strings.NewReader(""), &stdout, &stderr)
+		if got != 0 {
+			t.Fatalf("%s verify exit = %d, stderr %q, stdout %q; want 0", command, got, stderr.String(), stdout.String())
+		}
+	}
+}
+
+func TestDownstreamGovernanceTemplatesExposeRuntimeTargets(t *testing.T) {
+	chdir(t, filepath.Join("..", ".."))
+
+	for _, path := range []string{"mk/governance.mk", "templates/l2/Makefile", "scripts/check_rendered_template.sh"} {
+		assertFileContainsAll(t, path, "downstream-baseline", "downstream-adoption", "p2-runtime-check")
+	}
 }
 
 func TestDownstreamGapWithoutVerifyIsBlocking(t *testing.T) {

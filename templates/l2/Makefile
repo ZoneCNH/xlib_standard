@@ -1,3 +1,4 @@
+GOALCLI ?= go run ./cmd/goalcli
 L2_MANIFEST ?= .agent/l2-capabilities.yaml
 L2_EVIDENCE_DIR ?= .agent/evidence/l2
 L2_RELEASE_READINESS ?= $(L2_EVIDENCE_DIR)/release-readiness.json
@@ -14,7 +15,10 @@ L2_RELEASE_READINESS ?= $(L2_EVIDENCE_DIR)/release-readiness.json
 	l2-manifest-check \
 	l2-contract-placeholder \
 	l2-evidence-check \
-	l2-release-readiness-check
+	l2-release-readiness-check \
+	downstream-baseline \
+	downstream-adoption \
+	p2-runtime-check
 
 l2-capability-check:
 	@test -f $(L2_MANIFEST)
@@ -52,3 +56,11 @@ l2-contract-placeholder: l2-contract
 l2-evidence-check: l2-evidence
 
 l2-release-readiness-check: l2-release-readiness
+
+downstream-baseline:
+	$(GOALCLI) downstream-baseline --dry-run --verify
+
+downstream-adoption:
+	$(GOALCLI) downstream-adoption --dry-run --verify
+
+p2-runtime-check: downstream-baseline downstream-adoption

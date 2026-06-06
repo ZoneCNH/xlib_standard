@@ -81,6 +81,31 @@ for required_target in "${docker_targets[@]}"; do
   fi
 done
 
+governance_targets=(
+  downstream-baseline
+  downstream-adoption
+  p2-runtime-check
+)
+
+for required_target in "${governance_targets[@]}"; do
+  if ! grep -Eq "^\\.PHONY:.*[[:space:]]${required_target}([[:space:]]|$)|^${required_target}:" "$repo_dir/Makefile"; then
+    echo "ERROR: rendered Makefile missing governance target: $required_target" >&2
+    exit 1
+  fi
+done
+
+if [[ ! -f "$repo_dir/mk/governance.mk" ]]; then
+  echo "ERROR: rendered governance fragment missing: mk/governance.mk" >&2
+  exit 1
+fi
+
+for required_target in "${governance_targets[@]}"; do
+  if ! grep -Eq "^\\.PHONY:.*[[:space:]]${required_target}([[:space:]]|$)|^${required_target}:" "$repo_dir/mk/governance.mk"; then
+    echo "ERROR: rendered governance fragment missing target: $required_target" >&2
+    exit 1
+  fi
+done
+
 scan_regex() {
   local pattern="$1"
   local label="$2"
