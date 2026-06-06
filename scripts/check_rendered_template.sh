@@ -140,6 +140,31 @@ scan_fixed() {
   fi
 }
 
+
+scan_fixed_excluding_governance_lock() {
+  local pattern="$1"
+  local label="$2"
+
+  if command -v rg >/dev/null 2>&1; then
+    if rg -n --hidden \
+      --glob '!.git/**' \
+      --glob '!xlib-standard.lock' \
+      --glob '!**/xlib-standard.lock' \
+      --fixed-strings "$pattern" "$repo_dir"; then
+      echo "ERROR: found stale $label" >&2
+      exit 1
+    fi
+  else
+    if find "$repo_dir" -type f \
+      -not -path '*/.git/*' \
+      -not -name 'xlib-standard.lock' \
+      -print0 | xargs -0 grep -InF "$pattern"; then
+      echo "ERROR: found stale $label" >&2
+      exit 1
+    fi
+  fi
+}
+
 scan_template_placeholders() {
   local pattern='\{\{[^}]+\}\}|TODO_TEMPLATE'
 
@@ -189,11 +214,11 @@ scan_template_placeholders() {
 }
 
 scan_template_placeholders
-scan_fixed "github.com/ZoneCNH/xlib-standard" "module path"
+scan_fixed_excluding_governance_lock "github.com/ZoneCNH/xlib-standard" "module path"
 scan_fixed "github.com/ZoneCNH/baselib-template" "module path"
 
 if [[ "$module_name" != "xlib-standard" ]]; then
-  scan_fixed "xlib-standard" "module name"
+  scan_fixed_excluding_governance_lock "xlib-standard" "module name"
 fi
 
 if [[ "$module_name" != "baselib-template" ]]; then

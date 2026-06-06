@@ -73,6 +73,30 @@ func TestRunIntegrationCoversRequiredDownstreams(t *testing.T) {
 	}
 }
 
+func TestRenderedTemplateCheckAllowsGovernanceLockUpstreamReference(t *testing.T) {
+	contents, err := os.ReadFile("check_rendered_template.sh")
+	if err != nil {
+		t.Fatalf("read check_rendered_template.sh: %v", err)
+	}
+
+	script := string(contents)
+	if !strings.Contains(script, "scan_fixed_excluding_governance_lock \"github.com/ZoneCNH/xlib-standard\" \"module path\"") {
+		t.Fatal("check_rendered_template.sh must allow xlib-standard.lock to retain the upstream standard repo module path")
+	}
+	if !strings.Contains(script, "scan_fixed_excluding_governance_lock \"xlib-standard\" \"module name\"") {
+		t.Fatal("check_rendered_template.sh must allow xlib-standard.lock to retain the upstream standard identity")
+	}
+	for _, token := range []string{
+		"--glob '!xlib-standard.lock'",
+		"--glob '!**/xlib-standard.lock'",
+		"-not -name 'xlib-standard.lock'",
+	} {
+		if !strings.Contains(script, token) {
+			t.Fatalf("check_rendered_template.sh missing governance lock exclusion %q", token)
+		}
+	}
+}
+
 func TestRenderedTemplateCheckSkipsMigratedInboxArchive(t *testing.T) {
 	contents, err := os.ReadFile("check_rendered_template.sh")
 	if err != nil {
