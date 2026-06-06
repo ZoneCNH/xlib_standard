@@ -95,6 +95,20 @@ Release and runtime notes:
   formatting, vet, tests, race tests, governance, rules, integration, dependency
   governance, release evidence, and checksum checks.
 
+Push and release execution notes:
+
+- `git push -u origin agent/team-rule-structure-fix` pushed the branch and set
+  its upstream to `origin/agent/team-rule-structure-fix`.
+- `git ls-remote --tags origin refs/tags/v0.5.0` confirmed remote tag
+  `v0.5.0` exists at `80435cfb7df48de784e462a71346f706f147c53b`.
+- `gh release view v0.5.0 --repo ZoneCNH/xlib-standard` confirmed GitHub
+  Release `v0.5.0` is published at
+  `https://github.com/ZoneCNH/xlib-standard/releases/tag/v0.5.0`.
+- `XLIB_CONTEXT=release_verify GOWORK=off make release-preflight VERSION=v0.5.0`
+  stopped at the required release branch gate:
+  `ERROR: release preflight must run on main; current branch is agent/team-rule-structure-fix`.
+  No duplicate release or tag was created from the repair branch.
+
 ## Changed Files
 
 - `.agent/INDEX.md`
