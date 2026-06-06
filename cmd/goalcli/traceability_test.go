@@ -47,6 +47,81 @@ func TestTraceabilityCheckPasses(t *testing.T) {
 	}
 }
 
+func TestTraceabilityCheckReportsPartialProofDepthAndLifecycleGap(t *testing.T) {
+	dir := t.TempDir()
+	chdir(t, dir)
+	writeTraceFile(t, dir, ".agent/traceability/traceability-matrix.md", traceabilityValidMatrix)
+	writeTraceFile(t, dir, "docs/standard/foo.md", "x")
+	writeTraceFile(t, dir, ".agent/state.yaml", "x")
+	writeTraceFile(t, dir, "docs/release.md", "x")
+	writeTraceFile(t, dir, "cmd/goalcli/main.go", "x")
+	writeTraceFile(t, dir, "docs/spec.md", "x")
+
+	var stdout, stderr bytes.Buffer
+	code := runTraceabilityCheck(nil, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("exit=%d want 0; stdout=%s stderr=%s", code, stdout.String(), stderr.String())
+	}
+	out := stdout.String()
+	for _, needle := range []string{
+		"traceability_status=partial_implemented",
+		"proof_depth=file_exists",
+		"proof_depth_level=D3",
+		"full_lifecycle_graph=gap",
+	} {
+		if !strings.Contains(out, needle) {
+			t.Fatalf("expected traceability detail %q, got: %s", needle, out)
+		}
+	}
+	if strings.Contains(out, "traceability_status=implemented") {
+		t.Fatalf("traceability report must not overstate full implementation, got: %s", out)
+	}
+}
+
+func TestTraceabilityCheckMissingEvidencePathExits9(t *testing.T) {
+	dir := t.TempDir()
+	chdir(t, dir)
+	matrix := `# Traceability
+
+| REQ | 需求摘要 | 主要产物 | 验证/Evidence | 收敛 owner |
+| --- | --- | --- | --- | --- |
+| REQ-001 | 示例需求 A | docs/standard/foo.md | docs/missing-evidence.md | agent-runtime |
+`
+	writeTraceFile(t, dir, ".agent/traceability/traceability-matrix.md", matrix)
+	writeTraceFile(t, dir, "docs/standard/foo.md", "x")
+
+	var stdout, stderr bytes.Buffer
+	code := runTraceabilityCheck(nil, &stdout, &stderr)
+	if code != 9 {
+		t.Fatalf("exit=%d want 9 (gap); stdout=%s stderr=%s", code, stdout.String(), stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "missing evidence ref: docs/missing-evidence.md") {
+		t.Fatalf("expected missing evidence gap, got: %s", stdout.String())
+	}
+}
+
+func TestTraceabilityCheckEmptyEvidenceColumnExits9(t *testing.T) {
+	dir := t.TempDir()
+	chdir(t, dir)
+	matrix := `# Traceability
+
+| REQ | 需求摘要 | 主要产物 | 验证/Evidence | 收敛 owner |
+| --- | --- | --- | --- | --- |
+| REQ-001 | 示例需求 A | docs/standard/foo.md |  | agent-runtime |
+`
+	writeTraceFile(t, dir, ".agent/traceability/traceability-matrix.md", matrix)
+	writeTraceFile(t, dir, "docs/standard/foo.md", "x")
+
+	var stdout, stderr bytes.Buffer
+	code := runTraceabilityCheck(nil, &stdout, &stderr)
+	if code != 9 {
+		t.Fatalf("exit=%d want 9 (gap); stdout=%s stderr=%s", code, stdout.String(), stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "验证/Evidence column is empty") {
+		t.Fatalf("expected empty evidence gap, got: %s", stdout.String())
+	}
+}
+
 func TestTraceabilityCheckGapExits9(t *testing.T) {
 	dir := t.TempDir()
 	chdir(t, dir)

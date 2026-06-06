@@ -51,9 +51,10 @@ var traceabilityRowRegex = regexp.MustCompile(`^\|\s*(REQ-\d+)\s*\|([^|]*)\|([^|
 
 // traceabilityRow 表示矩阵中一行 REQ 的解析结果。
 type traceabilityRow struct {
-	ReqID     string
-	Artifacts []string
-	Evidence  []string
+	ReqID        string
+	Artifacts    []string
+	EvidenceText string
+	EvidenceRefs []string
 }
 
 func runTraceabilityCheck(args []string, stdout io.Writer, stderr io.Writer) int {
@@ -86,10 +87,13 @@ func runTraceabilityCheck(args []string, stdout io.Writer, stderr io.Writer) int
 	var details []string
 	var gaps []string
 	for _, row := range rows {
-		details = append(details, fmt.Sprintf("%s: %d artifact(s), %d evidence ref(s)", row.ReqID, len(row.Artifacts), len(row.Evidence)))
+		details = append(details, fmt.Sprintf("%s: traceability_status=partial_implemented proof_depth=file_exists proof_depth_level=D3 full_lifecycle_graph=gap artifact(s)=%d evidence_ref(s)=%d", row.ReqID, len(row.Artifacts), len(row.EvidenceRefs)))
 		if len(row.Artifacts) == 0 {
 			gaps = append(gaps, row.ReqID+": 主要产物 column is empty")
 			continue
+		}
+		if strings.TrimSpace(row.EvidenceText) == "" {
+			gaps = append(gaps, row.ReqID+": 验证/Evidence column is empty")
 		}
 		for _, artifact := range row.Artifacts {
 			if !looksLikePath(artifact) {
@@ -97,6 +101,14 @@ func runTraceabilityCheck(args []string, stdout io.Writer, stderr io.Writer) int
 			}
 			if err := verifyArtifactExists(artifact); err != nil {
 				gaps = append(gaps, fmt.Sprintf("%s: %s", row.ReqID, err.Error()))
+			}
+		}
+		for _, evidence := range row.EvidenceRefs {
+			if !looksLikePath(evidence) {
+				continue
+			}
+			if err := verifyArtifactExists(evidence); err != nil {
+				gaps = append(gaps, fmt.Sprintf("%s: missing evidence ref: %s", row.ReqID, evidence))
 			}
 		}
 	}
@@ -138,10 +150,12 @@ func parseTraceabilityMatrix(path string) ([]traceabilityRow, error) {
 		if m == nil {
 			continue
 		}
+		evidenceCell := strings.TrimSpace(m[4])
 		row := traceabilityRow{
-			ReqID:     strings.TrimSpace(m[1]),
-			Artifacts: splitCellTokens(m[3]),
-			Evidence:  splitCellTokens(m[4]),
+			ReqID:        strings.TrimSpace(m[1]),
+			Artifacts:    splitCellTokens(m[3]),
+			EvidenceText: evidenceCell,
+			EvidenceRefs: splitCellTokens(evidenceCell),
 		}
 		rows = append(rows, row)
 	}

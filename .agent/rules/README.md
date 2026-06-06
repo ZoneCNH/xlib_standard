@@ -63,7 +63,9 @@ python3 scripts/render_domain_rules.py    # core-rules.md / schema-registry-rule
 | `status` | `active` (有 enforced_by) / `indexed` (仅登记) / `deprecated` |
 | `duplicate_at` | 该 id 在源文档中被二次定义的行号（若存在） |
 
-## 当前覆盖率
+## 当前覆盖率快照
+
+以下数字来自当前 registry 快照；重新生成 registry 后必须以 `rules-verify` / `rules-consistency-check` 实时输出为准。
 
 - 总规则数: 419
 - P0 规则: 119
@@ -74,4 +76,4 @@ python3 scripts/render_domain_rules.py    # core-rules.md / schema-registry-rule
 `make rules-verify` 强制断言: 任何 `status: active` 的规则其 `enforced_by` 命令必须真实存在
 (goalcli 子命令 / Makefile target / .githooks / scripts), 否则 CI 失败。
 
-提高 active 比例是后续 Goal 的核心 KPI。当前已知 P0 gap 见 [`iron-rules.md` 的 "已知 P0 Gap" 章节](./iron-rules.md#已知-p0-gap)。
+P0 命令覆盖由 `make rules-verify` / `make rules-consistency-check` 验证；Traceability 与 Self-improving 已分别由 `make traceability-check`、`goalcli self-improving-check` / `make retro-check` 覆盖。当前 indexed 规则为非 P0 的治理报告、Dashboard、Retro、Design 等后续 enforcer 工作。

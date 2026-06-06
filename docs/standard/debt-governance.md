@@ -10,3 +10,5 @@ Required gates:
 - `make debt-evidence` generates `release/debt/latest.json`, `release/debt/latest.md`, and `release/debt/latest.json.sha256`.
 
 Release manifests include `debt` evidence with policy/report digests, score, status, active profile, and per-section P0/P1/P2 counts. Release verification rejects missing debt evidence, non-passing status, score below 9.8, or any P0 finding.
+
+Debt report findings remain backward-compatible with older entries that only include `id`, `severity`, `path`, and `message`. New findings may additionally carry optional `invariant_id`, `release_blocking`, `proof_depth`, `owner`, `expiry`, `remediation`, and `detector` metadata; absent optional fields must not invalidate existing debt registry or report entries.

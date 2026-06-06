@@ -17,7 +17,7 @@
 - **保留**: `.agent/registries/generated-artifacts.yaml` 将 `registry.yaml` 与三个机器渲染 Markdown 的 `generated_by` 都标为 `goalcli rules-verify`，但当前 README 与文件头显示实际生成入口分别是 `scripts/extract_rules.py` / `scripts/render_domain_rules.py`，属于生成物清单元信息漂移。
 - **保留**: 三个机器渲染文件体量大、`.worktree/goal-patch.md` 源引用在当前 worktree 不存在、机器渲染文本仍残留 `07-worktree-rules.md` 历史路径、部分手写规则文件较薄、手写文件间交叉引用不足，均为真实但优先级不同的问题。
 - **补充**: `registry.yaml` 不是只存在“文本重复”问题，而是已经在索引层显式记录了重复定义（`duplicate_at`）；这说明重复不是纯叙事噪音，而是可机器化证实的数据结构事实。
-- **补充**: `iron-rules.md` 的“已知 P0 Gap”应被单独视为当前体系最高风险债务，因为它明确披露了 `Traceability Gate` 与 `Self-improving Gate` 仍未落地，且 `traceability-check` 尚未实现。
+- **补充（2026-06-06 MVA-7 调和）**: `iron-rules.md` 的“已知 P0 Gap”仍是最高风险债务；`traceability-check` 已实现矩阵行、产物路径与 path-like Evidence 引用校验，但只能声明 `partial_implemented` / D3 `file_exists`，完整 lifecycle graph 仍是 `full_lifecycle_graph=gap`。`Self-improving Gate` 仍需单独跟进。
 
 - “`.agent/rules/registry.yaml` 缺失 / 治理索引不存在”是错误结论。当前目录存在 `.agent/rules/registry.yaml`，且 `python3 scripts/verify_rules.py` 可读取并通过校验。
 - “需要恢复 `00-index.md`、`01-core-rules.md` 等数字前缀文件名”是错误方向。当前 README 已声明真实树为 `README.md`、`registry.yaml`、`core-rules.md`、`schema-registry-rules.md`、`agent-runtime-rules.md` 等非数字前缀文件。

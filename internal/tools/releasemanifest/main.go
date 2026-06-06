@@ -7,13 +7,16 @@ import (
 	"fmt"
 	"io"
 	"os"
+
+	"github.com/ZoneCNH/xlib-standard/internal/xlibfacts"
 )
 
 var exit = os.Exit
 
 // Release manifest CLI 的 gate 以 main.go 作为契约锚点。
+// Canonical release version is v0.4.15; the executable reads it from xlibfacts.
 const (
-	defaultReleaseVersion       = "v0.4.14"
+	defaultReleaseVersion       = xlibfacts.CurrentReleaseVersion
 	defaultManifestOutputPath   = "release/manifest/latest.json"
 	defaultManifestChecksumPath = "release/manifest/latest.json.sha256"
 )

@@ -842,13 +842,15 @@ func TestDownstreamDebtAliasUsesSupportedDebtSurface(t *testing.T) {
 func TestGoalGovernanceCommandSurface(t *testing.T) {
 	chdir(t, repoRoot(t))
 	required := []struct {
-		command    string
-		args       []string
-		wantCode   int
-		wantStatus string
+		command           string
+		args              []string
+		wantCode          int
+		wantStatus        string
+		wantReportCommand string
 	}{
 		{command: "version"},
 		{command: "doctor"},
+		{command: "fact", args: []string{"audit", "--strict"}, wantReportCommand: "fact audit"},
 		{command: "minimal-kernel"},
 		{command: "main-guard", args: []string{"--context", "local_readonly"}},
 		{command: "worktree-guard", args: []string{"--context", "local_readonly"}},
@@ -928,8 +930,12 @@ func TestGoalGovernanceCommandSurface(t *testing.T) {
 			if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
 				t.Fatalf("stdout is not gateReport JSON: %v; stdout %q", err, stdout.String())
 			}
-			if report.Command != command {
-				t.Fatalf("report command = %q; want %q", report.Command, command)
+			wantCommand := tt.wantReportCommand
+			if wantCommand == "" {
+				wantCommand = command
+			}
+			if report.Command != wantCommand {
+				t.Fatalf("report command = %q; want %q", report.Command, wantCommand)
 			}
 			wantStatus := tt.wantStatus
 			if wantStatus == "" {
@@ -1500,7 +1506,7 @@ func TestRunGovernanceCommands(t *testing.T) {
 		}
 		if report.Command != "version" ||
 			report.Status != "passed" ||
-			!slicesContain(report.Details, "xlib-standard release v0.4.14") ||
+			!slicesContain(report.Details, "xlib-standard release v0.4.15") ||
 			!slicesContain(report.Details, "goalcli governance runtime v2.9.3") {
 			t.Fatalf("report = %#v; want version gate report", report)
 		}
@@ -1605,6 +1611,22 @@ func TestRunExternalErrorPaths(t *testing.T) {
 			t.Fatalf("stderr = %q; want ERROR", stderr.String())
 		}
 	})
+}
+
+func TestFactAuditStrictPassesCanonicalFacts(t *testing.T) {
+	root := repoRoot(t)
+	var stdout, stderr bytes.Buffer
+
+	got := run([]string{"fact", "audit", "--strict", "--root", root}, strings.NewReader(""), &stdout, &stderr)
+
+	if got != 0 {
+		t.Fatalf("fact audit exit = %d, stderr %q, stdout %q; want 0", got, stderr.String(), stdout.String())
+	}
+	for _, needle := range []string{`"command": "fact audit"`, `"status": "passed"`, "v0.4.15", ".xlib/facts/xlib.yaml"} {
+		if !strings.Contains(stdout.String(), needle) {
+			t.Fatalf("stdout = %q; want %q", stdout.String(), needle)
+		}
+	}
 }
 
 func TestRunDoctorAllowsRenderedDownstreamWithoutSourceGoal(t *testing.T) {
@@ -1933,6 +1955,44 @@ func TestCommandRegistryRequiresFullCommandSurface(t *testing.T) {
 		}
 	})
 
+	t.Run("rejects harness required gate missing proof depth metadata", func(t *testing.T) {
+		root := t.TempDir()
+		writeValidAgentIndexFixture(t, root)
+		writeTestFiles(t, root, map[string]string{
+			".agent/registries/command-registry.yaml": commandRegistryFixture(""),
+			".agent/harness/harness.yaml":             strings.Replace(validHarnessAliasFixture(), "    proof_depth: live_run\n", "", 1),
+		})
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		got := run([]string{"command-registry"}, strings.NewReader(""), &stdout, &stderr)
+		if got != 1 {
+			t.Fatalf("command-registry missing harness proof depth exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+		}
+		if !strings.Contains(stdout.String(), ".agent/harness/harness.yaml governance_check missing proof_depth") {
+			t.Fatalf("stdout = %q; want harness proof_depth gap", stdout.String())
+		}
+	})
+
+	t.Run("rejects harness required gate unknown target depth", func(t *testing.T) {
+		root := t.TempDir()
+		writeValidAgentIndexFixture(t, root)
+		writeTestFiles(t, root, map[string]string{
+			".agent/registries/command-registry.yaml": commandRegistryFixture(""),
+			".agent/harness/harness.yaml":             strings.Replace(validHarnessAliasFixture(), "    target_depth: live_run\n", "    target_depth: mythical_depth\n", 1),
+		})
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		got := run([]string{"command-registry"}, strings.NewReader(""), &stdout, &stderr)
+		if got != 1 {
+			t.Fatalf("command-registry unknown harness target depth exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+		}
+		if !strings.Contains(stdout.String(), ".agent/harness/harness.yaml governance_check unknown target_depth mythical_depth") {
+			t.Fatalf("stdout = %q; want harness target_depth gap", stdout.String())
+		}
+	})
+
 	t.Run("requires harness gate link semantics", func(t *testing.T) {
 		root := t.TempDir()
 		writeValidAgentIndexFixture(t, root)
@@ -2073,6 +2133,7 @@ func TestRunInternalGovernanceCommands(t *testing.T) {
 	}{
 		{name: "version", args: []string{"version"}, wantStdout: `"command": "version"`},
 		{name: "doctor", args: []string{"doctor"}, wantStdout: `"status": "passed"`},
+		{name: "fact audit strict", args: []string{"fact", "audit", "--strict"}, wantStdout: `"command": "fact audit"`},
 		{name: "main guard", args: []string{"main-guard", "--context", "local_readonly"}, wantStdout: `"command": "main-guard"`},
 		{name: "worktree guard", args: []string{"worktree-guard", "--context", "local_readonly"}, wantStdout: `"command": "worktree-guard"`},
 		{name: "worktree check", args: []string{"worktree-check", "--context", "local_readonly"}, wantStdout: `"command": "worktree-check"`},
@@ -3571,44 +3632,77 @@ artifacts:
 
 func validHarnessAliasFixture() string {
 	return `schema_version: "2.9.3"
+proof_depth:
+  taxonomy:
+    - id: live_run
+      meaning: "fixture live command execution"
+      release_evidence: true
+    - id: evidence_replay
+      meaning: "fixture evidence replay"
+      release_evidence: true
+    - id: downstream_adoption
+      meaning: "fixture downstream adoption proof"
+      release_evidence: true
+  status_reconciliation:
+    implemented: implemented
+  minimums:
+    release_gate: live_run
 required_gates:
   - id: governance_check
     command: "GOWORK=off make governance-check"
     purpose: "fixture"
+    proof_depth: live_run
+    target_depth: live_run
   - id: p1_governance_check
     command: "GOWORK=off make p1-governance-check"
     purpose: "fixture"
+    proof_depth: live_run
+    target_depth: live_run
   - id: p2_runtime_check
     command: "GOWORK=off make p2-runtime-check"
     purpose: "fixture"
+    proof_depth: live_run
+    target_depth: live_run
   - id: governance_chain
     command: "GOWORK=off make governance-check"
     purpose: "fixture"
+    proof_depth: live_run
+    target_depth: live_run
     alias_of: governance_check
     semantic_role: "fixture"
   - id: p1_governance_chain
     command: "GOWORK=off make p1-governance-check"
     purpose: "fixture"
+    proof_depth: live_run
+    target_depth: live_run
     alias_of: p1_governance_check
     semantic_role: "fixture"
   - id: p2_runtime_chain
     command: "GOWORK=off make p2-runtime-check"
     purpose: "fixture"
+    proof_depth: live_run
+    target_depth: live_run
     alias_of: p2_runtime_check
     semantic_role: "fixture"
   - id: governance_release_scope
     command: "GOWORK=off make governance-check"
     purpose: "fixture"
+    proof_depth: live_run
+    target_depth: live_run
     alias_of: governance_check
     semantic_role: "fixture"
   - id: p1_governance_release_scope
     command: "GOWORK=off make p1-governance-check"
     purpose: "fixture"
+    proof_depth: live_run
+    target_depth: live_run
     alias_of: p1_governance_check
     semantic_role: "fixture"
   - id: p2_runtime_release_scope
     command: "GOWORK=off make p2-runtime-check"
     purpose: "fixture"
+    proof_depth: live_run
+    target_depth: live_run
     alias_of: p2_runtime_check
     semantic_role: "fixture"
 gate_link_semantics:

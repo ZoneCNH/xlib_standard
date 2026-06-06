@@ -19,7 +19,7 @@ first-PR/MVA 必须至少区分：
 | 文件 | 职责 | 不得表示 |
 | --- | --- | --- |
 | `.agent/evidence/truth-state.yaml` | 汇总治理状态分类、允许状态值和 first-PR/MVA scope。 | 不得声明 release 已通过或 downstream 已 adopted。 |
-| `.agent/registries/command-implementation-status.yaml` | 区分 command registered、planned、dry-run verify 和 implemented。 | 不得把 planned command 记为真实 gate success。 |
+| `.agent/registries/command-implementation-status.yaml` | 区分 command registered、planned、dry-run verify、partial implemented 和 implemented。 | 不得把 planned 或 partial implemented command 记为真实 release-usable gate success。 |
 | `.agent/release/release-required-gates.yaml` | 列出 release required gate 与当前证据等级。 | 不得生成或替代 `release/manifest/latest.json`。 |
 | `.agent/evidence/evidence-usability.yaml` | 区分 artifact exists、checksum verified、replayable、usable。 | 不得把 artifact upload 等同 release usable。 |
 | `.agent/registries/downstream-adoption-status.yaml` | 区分 downstream registered、baseline scanned、patch planned、proof adopted。 | 不得把 registry 存在等同 adopted。 |
@@ -34,6 +34,7 @@ first-PR/MVA 必须至少区分：
 | `baseline_scanned` | 已完成静态或 baseline 扫描。 | 否，除非 gate 明确只要求 scan。 |
 | `planned` | 有计划、命令入口或 contract，但未实现真实行为。 | 否。 |
 | `dry_run_ready` | 可执行本地 dry-run 或 contract 检查。 | 仅可作为 dry-run gate evidence。 |
+| `partial_implemented` | 已有局部真实实现，但 proof depth 或 lifecycle coverage 仍不足以支撑 release-usable 结论。 | 否，除非调用方明确只要求该局部 proof depth。 |
 | `implemented` | 已有真实本地实现，可在要求 context 下执行。 | 取决于命令输出。 |
 | `executed` | 本次 Evidence 中有命令输出和退出码。 | 是，但必须保留命令证据。 |
 | `artifact_exists` | artifact 文件或 CI 上传存在。 | 否。 |

@@ -30,6 +30,11 @@
       "check": "templates/l2/.agent/l2-capabilities.yaml",
       "status": "PASS",
       "details": "template manifest validates against capability schema"
+    },
+    {
+      "check": "template-release-readiness-behavior",
+      "status": "PASS",
+      "details": "fails closed without active evidence and passes with a cleaned-up schema-valid temporary fixture"
     }
   ]
 }
