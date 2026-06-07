@@ -104,28 +104,43 @@ func TestStandardImpactRequiresDownstreamSyncForContextRuntimeV4Categories(t *te
 func TestStandardImpactRequiresDownstreamSyncForMigrationInventoryAndRepositoryRules(t *testing.T) {
 	report := runStandardImpact(t, []string{
 		".agent/index.yaml",
+		".agent/contracts/scope-locks.yaml",
 		".agent/registries/generated-artifacts.yaml",
 		".agent/registries/physical-migration-manifest.yaml",
+		".omx/context/stable-config-migration-gates-20260607T030733Z.md",
 		".githooks/pre-commit",
 		".devcontainer/devcontainer.json",
 		".gitignore",
 		".dockerignore",
+		".github/ISSUE_TEMPLATE/bug_report.md",
+		".github/pull_request_template.md",
+		".github/rulesets/default.yml",
+		"templates/l2/README.md",
+		"scripts/verify_l2_standard.py",
 	})
 
 	assertReportContains(t, report,
 		"- downstream_sync_required: `true`",
 		"- migration_inventory_change: `true`",
 		"- repository_rules_release_decision: `audit_required`",
-		"- changed_file_count: `7`",
+		"- changed_file_count: `14`",
 		"## migration_inventory",
+		"- `.agent/contracts/scope-locks.yaml`",
 		"- `.agent/index.yaml`",
 		"- `.agent/registries/generated-artifacts.yaml`",
 		"- `.agent/registries/physical-migration-manifest.yaml`",
+		"- `.omx/context/stable-config-migration-gates-20260607T030733Z.md`",
 		"## repository_rules",
 		"- `.devcontainer/devcontainer.json`",
 		"- `.dockerignore`",
+		"- `.github/ISSUE_TEMPLATE/bug_report.md`",
+		"- `.github/pull_request_template.md`",
+		"- `.github/rulesets/default.yml`",
 		"- `.gitignore`",
 		"- `.githooks/pre-commit`",
+		"## downstream_context",
+		"- `scripts/verify_l2_standard.py`",
+		"- `templates/l2/README.md`",
 		"migration_inventory",
 	)
 }
@@ -245,19 +260,25 @@ func TestStandardImpactUsesUpstreamMergeBaseForCleanBranches(t *testing.T) {
 func TestStandardImpactIgnoresLocalAgentRuntimeState(t *testing.T) {
 	report := runStandardImpact(t, []string{
 		".omc/state/mission-state.json",
+		".omx/context/stable-config-migration-gates-20260607T030733Z.md",
 		".omx/state/ralph-progress.json",
 		".worktree/scratch/README.md",
 		"docs/standard/README.md",
 	})
 
 	assertReportContains(t, report,
-		"- changed_file_count: `1`",
+		"- downstream_sync_required: `true`",
+		"- migration_inventory_change: `true`",
+		"- downstream_release_decision: `required`",
+		"- changed_file_count: `2`",
+		"## migration_inventory",
+		"- `.omx/context/stable-config-migration-gates-20260607T030733Z.md`",
 		"## docs",
 		"- `docs/standard/README.md`",
-		"- `not_required`",
+		"- `required`",
 	)
 
-	for _, localStatePath := range []string{".omc/", ".omx/", ".worktree/"} {
+	for _, localStatePath := range []string{".omc/state/", ".omx/state/", ".worktree/"} {
 		if strings.Contains(report, localStatePath) {
 			t.Fatalf("report included local runtime state %q:\n%s", localStatePath, report)
 		}

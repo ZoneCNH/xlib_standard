@@ -29,6 +29,16 @@ owners:
     review_required: true
     review_rule: GATE-CHANGE
     rationale: Gate 定义；修改可能改变 release/PR 阻断行为
+  ".agent/contracts/scope-locks.yaml":
+    owner: governance
+    review_required: true
+    review_rule: RULE-CHANGE
+    rationale: scope lock 是 source-of-truth 边界分类；漂移会误分 generated 与 runtime artifacts
+  ".agent/registries/generated-artifacts.yaml":
+    owner: release
+    review_required: true
+    review_rule: RELEASE-CHANGE
+    rationale: generated artifact inventory 控制哪些输出不得作为手写 release evidence 提交
   "cmd/goalcli/":
     owner: gate-runtime
     review_required: true
@@ -74,6 +84,26 @@ owners:
     review_required: true
     review_rule: CODEOWNERS-CHANGE
     rationale: 账号到角色的映射，决定 PR 强制审查名单
+  ".github/dependabot.yml":
+    owner: security
+    review_required: true
+    review_rule: SECURITY-CHANGE
+    rationale: dependency automation 影响安全与供应链审查覆盖
+  ".github/ISSUE_TEMPLATE/":
+    owner: governance
+    review_required: true
+    review_rule: GOVERNANCE-CHANGE
+    rationale: issue intake template 定义实现前必须收集的 Goal 与 Evidence 字段
+  ".github/pull_request_template.md":
+    owner: governance
+    review_required: true
+    review_rule: GOVERNANCE-CHANGE
+    rationale: PR template 承载 Evidence、release、downstream 和 generated-artifact 断言
+  ".github/rulesets/":
+    owner: ci
+    review_required: true
+    review_rule: CI-CHANGE
+    rationale: repository ruleset 是平台原生 enforcement adapter，必须与本地 gate 对齐
   "Makefile":
     owner: ci
     review_required: true
@@ -89,11 +119,31 @@ owners:
     review_required: true
     review_rule: CI-CHANGE
     rationale: Docker build context 边界；必须排除本地运行态和 generated release 输出
+  ".omx/context/goalcli-v0.1.0-team-20260603T005302Z.md":
+    owner: governance
+    review_required: true
+    review_rule: EVIDENCE-CHANGE
+    rationale: 已纳入版本控制的 runtime context 是非 release 迁移 evidence，不能按本地状态忽略
+  ".omx/context/stable-config-migration-gates-20260607T030733Z.md":
+    owner: governance
+    review_required: true
+    review_rule: EVIDENCE-CHANGE
+    rationale: 已纳入版本控制的 runtime context 是 stable migration evidence，必须触发迁移影响 gate
   "pkg/templatex/":
     owner: standard
     review_required: true
     review_rule: STANDARD-API-CHANGE
     rationale: 公共 API 模板，下游库会渲染消费，破坏性变更影响所有下游
+  "templates/l2/":
+    owner: standard
+    review_required: true
+    review_rule: STANDARD-TEMPLATE-CHANGE
+    rationale: L2 adapter template 定义 downstream adoption 表面，可能保留临时兼容路径
+  "scripts/verify_l2_standard.py":
+    owner: testing
+    review_required: true
+    review_rule: GATE-CHANGE
+    rationale: L2 template verifier 是 downstream template contract 的迁移 gate
   "contracts/":
     owner: standard
     review_required: true

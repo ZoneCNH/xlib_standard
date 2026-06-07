@@ -430,6 +430,16 @@ classified_in_place:
     authority: source_of_truth
     mutability: append_only
     reason: "Current physical-classification path with no flat-root source alias."
+  - path: .agent/contracts/scope-locks.yaml
+    layer: registry
+    authority: source_of_truth
+    mutability: hand_written
+    reason: "Stable config migration source-of-truth boundary classification."
+  - path: .agent/registries/generated-artifacts.yaml
+    layer: registry
+    authority: source_of_truth
+    mutability: hand_written
+    reason: "Stable config migration generated artifact inventory classification."
   - path: .devcontainer/devcontainer.json
     layer: machine_contract
     authority: source_of_truth
@@ -445,6 +455,36 @@ classified_in_place:
     authority: source_of_truth
     mutability: hand_written
     reason: "Current physical-classification path with no flat-root source alias."
+  - path: .github/workflows/
+    layer: machine_contract
+    authority: source_of_truth
+    mutability: hand_written
+    reason: "Stable config migration repository automation classification."
+  - path: .github/CODEOWNERS
+    layer: policy
+    authority: source_of_truth
+    mutability: hand_written
+    reason: "Stable config migration review routing classification."
+  - path: .github/dependabot.yml
+    layer: policy
+    authority: source_of_truth
+    mutability: hand_written
+    reason: "Stable config migration dependency automation classification."
+  - path: .github/ISSUE_TEMPLATE/
+    layer: policy
+    authority: source_of_truth
+    mutability: hand_written
+    reason: "Stable config migration issue intake classification."
+  - path: .github/pull_request_template.md
+    layer: policy
+    authority: source_of_truth
+    mutability: hand_written
+    reason: "Stable config migration PR intake classification."
+  - path: .github/rulesets/
+    layer: machine_contract
+    authority: source_of_truth
+    mutability: hand_written
+    reason: "Stable config migration repository ruleset classification."
   - path: .githooks/
     layer: policy
     authority: source_of_truth
@@ -455,6 +495,26 @@ classified_in_place:
     authority: source_of_truth
     mutability: hand_written
     reason: "Current physical-classification path with no flat-root source alias."
+  - path: .omx/context/goalcli-v0.1.0-team-20260603T005302Z.md
+    layer: evidence
+    authority: source_of_truth
+    mutability: hand_written
+    reason: "Stable config migration tracked runtime context evidence classification."
+  - path: .omx/context/stable-config-migration-gates-20260607T030733Z.md
+    layer: evidence
+    authority: source_of_truth
+    mutability: hand_written
+    reason: "Stable config migration tracked runtime context evidence classification."
+  - path: templates/l2/
+    layer: template
+    authority: source_of_truth
+    mutability: hand_written
+    reason: "Stable config migration L2 downstream template classification."
+  - path: scripts/verify_l2_standard.py
+    layer: machine_contract
+    authority: source_of_truth
+    mutability: hand_written
+    reason: "Stable config migration L2 verification gate classification."
   - path: .agent/evidence/README.md
     layer: evidence
     authority: source_of_truth

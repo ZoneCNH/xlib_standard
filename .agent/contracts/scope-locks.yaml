@@ -1,4 +1,16 @@
 schema_version: "2.9.3"
 locks:
   docs/goal/goal.md: leader_owned_readonly
+  .agent/contracts/scope-locks.yaml: source_of_truth_hand_written
+  .agent/registries/generated-artifacts.yaml: source_of_truth_hand_written
+  .omx/context/goalcli-v0.1.0-team-20260603T005302Z.md: runtime_context_non_release_evidence
+  .omx/context/stable-config-migration-gates-20260607T030733Z.md: runtime_context_non_release_evidence
+  .github/github-rules-observed.json: generated_do_not_commit
+  github-rules-observed.json: generated_do_not_commit
+  release/debt/latest.json: generated_do_not_commit
+  release/debt/latest.json.sha256: generated_do_not_commit
+  release/debt/latest.md: generated_do_not_commit
   release/manifest/latest.json: generated_do_not_commit
+  release/manifest/latest.json.sha256: generated_do_not_commit
+  release/standard-impact/latest.md: generated_do_not_commit
+  release/downstream-sync/latest.md: generated_do_not_commit

@@ -24,14 +24,14 @@ Full release 前，legacy-reference scan 不能只覆盖文档和 `.agent`/`.xli
 
 - 源码与脚本：`cmd/`、`internal/`、`pkg/`、`scripts/`、`testkit/`、`*.go`、`*.sh`、`Makefile`、`Dockerfile`、`docker-compose.yml`。
 - 治理与运行入口：`.agent/`、`.xlib/`、`.github/`、`.githooks/`、`.devcontainer/`、`.gitignore`、`.dockerignore`。
-- 下游与模板表面：`templates/`、`contracts/`、`examples/`、`docs/standard/`、`docs/migration/`。
-- 运行时上下文证据：已纳入版本控制的 `.agent/context/` 示例与 schema；本地 `.omx/`、`.worktree/` 只作为运行时输入，不作为 release source-of-truth。
+- 下游与模板表面：`templates/`、`templates/l2/`、`contracts/`、`examples/`、`scripts/verify_l2_standard.py`、`docs/standard/`、`docs/migration/`。
+- 运行时上下文证据：已纳入版本控制的 `.agent/context/` 示例、schema 与 `.omx/context/*.md` 迁移快照；本地 `.omx/state/`、`.worktree/` 只作为运行时输入，不作为 release source-of-truth。
 
 推荐扫描入口：
 
 ```bash
 rg -n "baselib-template|foundationx|\.agent|\.xlib|\.config" \
-  README.md docs .agent .xlib .github .githooks .devcontainer templates contracts examples \
+  README.md docs .agent .xlib .omx/context .github .githooks .devcontainer templates contracts examples \
   cmd internal pkg scripts testkit Makefile Dockerfile docker-compose.yml .gitignore .dockerignore \
   --glob '*.go' --glob '*.sh' --glob '*.md' --glob '*.yaml' --glob '*.yml' --glob '*.json' --glob '*.tmpl'
 ```
@@ -41,7 +41,8 @@ rg -n "baselib-template|foundationx|\.agent|\.xlib|\.config" \
 - `baselib-template` / `foundationx` 只能留在迁移 ADR、本文档、历史 changelog、兼容性说明或明确的下游 adoption proof 中。
 - `.agent` / `.xlib` 允许作为当前运行时和事实目录引用，但迁移到稳定配置根前必须在 runtime ownership、physical migration manifest 或 downstream/template 文档中被分类。
 - `.config` 命中必须表示目标配置根或迁移阻断项；在 `.config/` 统一完成前，不能声明 `v1.0.0` 或 release-ready。
-- `.github`、`.githooks`、`.devcontainer`、ignore 文件和 generated artifacts 不是配置 source-of-truth；它们是平台入口、保护性忽略规则或 gate 生成输出，必须由 inventory/ownership gate 覆盖。
+- `.github`、`.githooks`、`.devcontainer`、ignore 文件和 generated artifacts 不是配置 source-of-truth；其中 workflows、CODEOWNERS、dependabot、issue/PR templates 与 rulesets 是平台入口或保护性规则，必须由 inventory/ownership gate 覆盖。
+- `templates/l2/` 和 `scripts/verify_l2_standard.py` 是下游/template contract 表面；稳定版或 release 断言前必须被 downstream/template gate 覆盖。
 
 ## 验证
 

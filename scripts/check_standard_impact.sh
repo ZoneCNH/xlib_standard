@@ -73,7 +73,10 @@ add_file() {
 
   [[ -n "$file" ]] || return 0
   [[ "$file" == .git/* ]] && return 0
-  [[ "$file" == .omc/* || "$file" == .omx/* || "$file" == .worktree/* ]] && return 0
+  [[ "$file" == .omc/* || "$file" == .worktree/* ]] && return 0
+  if [[ "$file" == .omx/* && "$file" != .omx/context/*.md ]]; then
+    return 0
+  fi
 
   # 未暂存的重命名会同时表现为删除旧路径和新增新路径；报告必须只保留当前权威路径。
   file="$(canonical_changed_file "$file")"
@@ -196,16 +199,16 @@ classify_file() {
   local file="$1"
 
   case "$file" in
-    .agent/index.yaml|.agent/registries/generated-artifacts.yaml|.agent/registries/physical-migration-manifest.yaml)
+    .agent/index.yaml|.agent/contracts/scope-locks.yaml|.agent/registries/generated-artifacts.yaml|.agent/registries/physical-migration-manifest.yaml|.omx/context/*.md)
       add_category_file "migration_inventory" "$file"
       ;;
     .agent/registries/*.yaml)
       add_category_file "governance_registry" "$file"
       ;;
-    templates/context-consumer/*)
+    templates/context-consumer/*|templates/l2/*|scripts/verify_l2_standard.py)
       add_category_file "downstream_context" "$file"
       ;;
-    AGENTS.md|Makefile|.githooks/*|.devcontainer/devcontainer.json|.dockerignore|.gitignore|.github/workflows/*|.github/CODEOWNERS|.github/dependabot.yml|.github/rulesets/*|infra/github-rules/*|.agent/harness/gates.md)
+    AGENTS.md|Makefile|.githooks/*|.devcontainer/devcontainer.json|.dockerignore|.gitignore|.github/workflows/*|.github/CODEOWNERS|.github/dependabot.yml|.github/ISSUE_TEMPLATE/*|.github/pull_request_template.md|.github/rulesets/*|infra/github-rules/*|.agent/harness/gates.md)
       add_category_file "repository_rules" "$file"
       ;;
     cmd/goalcli/*|.agent/context/*|docs/standard/goalcli-cli-contract.md|docs/standard/release-standard.md|docs/standard/harness-gates.md|docs/standard/evidence-protocol.md)

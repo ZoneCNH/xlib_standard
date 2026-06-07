@@ -3271,12 +3271,24 @@ func TestAgentPhysicalMigrationManifestGuardsNewPaths(t *testing.T) {
 		path  string
 		layer string
 	}{
+		{path: ".agent/contracts/scope-locks.yaml", layer: "registry"},
+		{path: ".agent/registries/generated-artifacts.yaml", layer: "registry"},
 		{path: ".devcontainer/devcontainer.json", layer: "machine_contract"},
 		{path: ".dockerignore", layer: "policy"},
 		{path: ".github/", layer: "policy"},
+		{path: ".github/workflows/", layer: "machine_contract"},
+		{path: ".github/CODEOWNERS", layer: "policy"},
+		{path: ".github/dependabot.yml", layer: "policy"},
+		{path: ".github/ISSUE_TEMPLATE/", layer: "policy"},
+		{path: ".github/pull_request_template.md", layer: "policy"},
+		{path: ".github/rulesets/", layer: "machine_contract"},
 		{path: ".githooks/", layer: "policy"},
 		{path: ".gitignore", layer: "policy"},
+		{path: ".omx/context/goalcli-v0.1.0-team-20260603T005302Z.md", layer: "evidence"},
+		{path: ".omx/context/stable-config-migration-gates-20260607T030733Z.md", layer: "evidence"},
 		{path: "Makefile", layer: "machine_contract"},
+		{path: "templates/l2/", layer: "template"},
+		{path: "scripts/verify_l2_standard.py", layer: "machine_contract"},
 	} {
 		for _, needle := range []string{
 			"  - path: " + want.path,
