@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"sort"
@@ -851,7 +852,7 @@ func TestGoalGovernanceCommandSurface(t *testing.T) {
 	}{
 		{command: "version"},
 		{command: "doctor"},
-		{command: "fact", args: []string{"audit", "--strict"}, wantReportCommand: "fact audit"},
+		{command: "fact", args: []string{"audit", "--strict"}, wantCode: 1, wantStatus: "failed", wantReportCommand: "fact audit"},
 		{command: "minimal-kernel"},
 		{command: "main-guard", args: []string{"--context", "local_readonly"}},
 		{command: "worktree-guard", args: []string{"--context", "local_readonly"}},
@@ -1640,7 +1641,8 @@ func TestRunExternalErrorPaths(t *testing.T) {
 }
 
 func TestFactAuditStrictPassesCanonicalFacts(t *testing.T) {
-	root := repoRoot(t)
+	root := t.TempDir()
+	writeCanonicalFactAuditFixture(t, root)
 	var stdout, stderr bytes.Buffer
 
 	got := run([]string{"fact", "audit", "--strict", "--root", root}, strings.NewReader(""), &stdout, &stderr)
@@ -1649,6 +1651,24 @@ func TestFactAuditStrictPassesCanonicalFacts(t *testing.T) {
 		t.Fatalf("fact audit exit = %d, stderr %q, stdout %q; want 0", got, stderr.String(), stdout.String())
 	}
 	for _, needle := range []string{`"command": "fact audit"`, `"status": "passed"`, "v0.6.1", ".xlib/facts/xlib.yaml"} {
+		if !strings.Contains(stdout.String(), needle) {
+			t.Fatalf("stdout = %q; want %q", stdout.String(), needle)
+		}
+	}
+}
+
+func TestFactAuditStrictFailsWhenCurrentReleaseTagAlreadyExists(t *testing.T) {
+	root := t.TempDir()
+	writeCanonicalFactAuditFixture(t, root)
+	initGitRepoWithTag(t, root, xlibfacts.CurrentReleaseVersion)
+	var stdout, stderr bytes.Buffer
+
+	got := run([]string{"fact", "audit", "--strict", "--root", root}, strings.NewReader(""), &stdout, &stderr)
+
+	if got != 1 {
+		t.Fatalf("fact audit exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+	}
+	for _, needle := range []string{`"status": "failed"`, "current_release.version " + xlibfacts.CurrentReleaseVersion + " already exists as local git tag refs/tags/" + xlibfacts.CurrentReleaseVersion} {
 		if !strings.Contains(stdout.String(), needle) {
 			t.Fatalf("stdout = %q; want %q", stdout.String(), needle)
 		}
@@ -1665,6 +1685,47 @@ func TestFactStrictProjectionGapsReportsReleaseRequiredGateDrift(t *testing.T) {
 	if !slicesContain(gaps, want) {
 		t.Fatalf("factStrictProjectionGaps() = %v; want %q", gaps, want)
 	}
+}
+
+func writeCanonicalFactAuditFixture(t *testing.T, root string) {
+	t.Helper()
+	writeFactStrictProjectionFixture(t, root, xlibfacts.CurrentReleaseVersion)
+	writeTestFiles(t, root, map[string]string{
+		xlibfacts.Path: `schema_version: xlib-facts/v1
+module: github.com/ZoneCNH/xlib-standard
+current_release:
+  version: v0.6.1
+  commit: 216ef50cead9ab20437566845b3446d6dbd07ec9
+  released_at: 2026-06-07T05:33:38Z
+runtime:
+  goal_runtime_version: v3.1
+  governance_runtime_version: v2.9.3
+tools:
+  go: "1.23.0"
+  golangci_lint: "v2.1.6"
+  govulncheck: "v1.1.4"
+`,
+	})
+}
+
+func initGitRepoWithTag(t *testing.T, root, tag string) {
+	t.Helper()
+	runGit := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", append([]string{"-C", root}, args...)...)
+		if output, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, output)
+		}
+	}
+	if output, err := exec.Command("git", "init", root).CombinedOutput(); err != nil {
+		t.Fatalf("git init: %v\n%s", err, output)
+	}
+	runGit("config", "user.email", "test@example.invalid")
+	runGit("config", "user.name", "Test User")
+	writeTestFiles(t, root, map[string]string{"tag-anchor.txt": "anchor\n"})
+	runGit("add", "tag-anchor.txt")
+	runGit("commit", "-m", "anchor")
+	runGit("tag", tag)
 }
 
 func writeFactStrictProjectionFixture(t *testing.T, root string, releaseRequiredGateVersion string) {
@@ -2237,7 +2298,7 @@ func TestRunInternalGovernanceCommands(t *testing.T) {
 	}{
 		{name: "version", args: []string{"version"}, wantStdout: `"command": "version"`},
 		{name: "doctor", args: []string{"doctor"}, wantStdout: `"status": "passed"`},
-		{name: "fact audit strict", args: []string{"fact", "audit", "--strict"}, wantStdout: `"command": "fact audit"`},
+		{name: "fact audit strict", args: []string{"fact", "audit", "--strict"}, wantCode: 1, wantStdout: `"command": "fact audit"`},
 		{name: "main guard", args: []string{"main-guard", "--context", "local_readonly"}, wantStdout: `"command": "main-guard"`},
 		{name: "worktree guard", args: []string{"worktree-guard", "--context", "local_readonly"}, wantStdout: `"command": "worktree-guard"`},
 		{name: "worktree check", args: []string{"worktree-check", "--context", "local_readonly"}, wantStdout: `"command": "worktree-check"`},
