@@ -5,6 +5,8 @@
 
 ---
 
+> **Current-status note (2026-06-07):** This strict `.config/` plan is historical planning material, not current authority to delete or migrate the live `.agent/**` runtime/adoption control plane. Current stable hardening keeps `.agent/**` protected under `CONSTITUTION.md`, `.agent/index.yaml`, `goalcli adoption-check`, Codex agent prompts, L2 templates, and release/adoption gates until an approved dual-read migration and compatibility test suite lands.
+
 ## 0. 最终结论
 
 最彻底方案不是简单把目录移动到 `.config/`，而是建立三套互斥的事实域：

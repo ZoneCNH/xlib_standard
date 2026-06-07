@@ -5,6 +5,8 @@
 
 ---
 
+> **Current-status note (2026-06-07):** This strict `.config/` plan is historical planning material, not current authority to delete or migrate the live `.agent/**` runtime/adoption control plane. Current stable hardening keeps `.agent/**` protected under `CONSTITUTION.md`, `.agent/index.yaml`, `goalcli adoption-check`, Codex agent prompts, L2 templates, and release/adoption gates until an approved dual-read migration and compatibility test suite lands.
+
 ## 0. 总结判断
 
 v2 方案方向正确，但必须补齐 6 个 P0 漏洞，否则 strict `.config/` 会在平台入口、下游校验、模板目录、release evidence、fingerprint、依赖自动化中重新长出第二套事实源。
