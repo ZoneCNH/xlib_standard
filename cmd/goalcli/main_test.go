@@ -3267,6 +3267,28 @@ func TestAgentPhysicalMigrationManifestGuardsNewPaths(t *testing.T) {
 	if !strings.Contains(index, "physical_migration: true") {
 		t.Fatalf(".agent/index.yaml missing physical_migration marker")
 	}
+	for _, want := range []struct {
+		path  string
+		layer string
+	}{
+		{path: ".devcontainer/devcontainer.json", layer: "machine_contract"},
+		{path: ".dockerignore", layer: "policy"},
+		{path: ".github/", layer: "policy"},
+		{path: ".githooks/", layer: "policy"},
+		{path: ".gitignore", layer: "policy"},
+		{path: "Makefile", layer: "machine_contract"},
+	} {
+		for _, needle := range []string{
+			"  - path: " + want.path,
+			"    layer: " + want.layer,
+			"    authority: source_of_truth",
+			"    mutability: hand_written",
+		} {
+			if !strings.Contains(manifest, needle) {
+				t.Fatalf("%s missing manifest classification %q for %s", manifestRel, needle, want.path)
+			}
+		}
+	}
 
 	type migration struct {
 		oldPath string
@@ -3727,6 +3749,41 @@ artifacts:
     classification: generated_artifact
     source_control: generated-only
     generated_by: "GOWORK=off make evidence"
+    validated_by: release-evidence-check
+  - path: release/standard-impact/latest.md
+    classification: generated_artifact
+    source_control: generated-only
+    generated_by: "GOWORK=off make p2-runtime-check"
+    validated_by: standard-impact-check
+  - path: release/downstream-sync/latest.md
+    classification: generated_artifact
+    source_control: generated-only
+    generated_by: "GOWORK=off make p2-runtime-check"
+    validated_by: standard-impact-check
+  - path: release/debt/latest.json
+    classification: generated_artifact
+    source_control: generated-only
+    generated_by: "GOWORK=off make p2-runtime-check"
+    validated_by: standard-impact-check
+  - path: release/debt/latest.md
+    classification: generated_artifact
+    source_control: generated-only
+    generated_by: "GOWORK=off make p2-runtime-check"
+    validated_by: standard-impact-check
+  - path: release/debt/latest.json.sha256
+    classification: generated_artifact
+    source_control: generated-only
+    generated_by: "GOWORK=off make p2-runtime-check"
+    validated_by: standard-impact-check
+  - path: github-rules-observed.json
+    classification: generated_artifact
+    source_control: generated-only
+    generated_by: "goalcli github-rules"
+    validated_by: release-evidence-check
+  - path: .github/github-rules-observed.json
+    classification: generated_artifact
+    source_control: generated-only
+    generated_by: "goalcli github-rules"
     validated_by: release-evidence-check
   - path: .agent/rules/registry.yaml
     classification: validated_mirror

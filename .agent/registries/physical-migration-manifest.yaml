@@ -430,6 +430,31 @@ classified_in_place:
     authority: source_of_truth
     mutability: append_only
     reason: "Current physical-classification path with no flat-root source alias."
+  - path: .devcontainer/devcontainer.json
+    layer: machine_contract
+    authority: source_of_truth
+    mutability: hand_written
+    reason: "Current physical-classification path with no flat-root source alias."
+  - path: .dockerignore
+    layer: policy
+    authority: source_of_truth
+    mutability: hand_written
+    reason: "Current physical-classification path with no flat-root source alias."
+  - path: .github/
+    layer: policy
+    authority: source_of_truth
+    mutability: hand_written
+    reason: "Current physical-classification path with no flat-root source alias."
+  - path: .githooks/
+    layer: policy
+    authority: source_of_truth
+    mutability: hand_written
+    reason: "Current physical-classification path with no flat-root source alias."
+  - path: .gitignore
+    layer: policy
+    authority: source_of_truth
+    mutability: hand_written
+    reason: "Current physical-classification path with no flat-root source alias."
   - path: .agent/evidence/README.md
     layer: evidence
     authority: source_of_truth
@@ -567,6 +592,11 @@ classified_in_place:
     reason: "Current physical-classification path with no flat-root source alias."
   - path: .agent/rules/worktree-rules.md
     layer: policy
+    authority: source_of_truth
+    mutability: hand_written
+    reason: "Current physical-classification path with no flat-root source alias."
+  - path: Makefile
+    layer: machine_contract
     authority: source_of_truth
     mutability: hand_written
     reason: "Current physical-classification path with no flat-root source alias."
