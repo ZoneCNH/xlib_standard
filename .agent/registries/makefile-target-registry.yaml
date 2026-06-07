@@ -60,6 +60,7 @@ targets:
   - makefile-baseline
   - audit-goal
   - fact-audit
+  - render-check
   - dashboard-generate
   - context-profile
   - context-profile-check
