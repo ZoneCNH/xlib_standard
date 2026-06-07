@@ -24,6 +24,7 @@ Aligned active release-version consumers from released `v0.6.1` to next locally 
 - `GOWORK=off make evidence-check` passed after this evidence file was checked.
 - `git diff --check` passed after this evidence file was checked.
 - `make -n render-check` was recorded only as dry-run target-shape evidence: it showed the new `render-check` target validates required `RENDER_CHECK_*` inputs before dispatching `goalcli render-check`, but it is not a runnable standalone proof.
+- `GOWORK=off RENDER_CHECK_DIR=/tmp/tmp.YDQxYrypq2/rendered-kernel RENDER_CHECK_MODULE_NAME=kernel RENDER_CHECK_MODULE_PATH=github.com/ZoneCNH/kernel RENDER_CHECK_PACKAGE_NAME=kernel make render-check` passed against a temporary rendered fixture, proving the live parameterized Make target path.
 - `GOWORK=off make makefile-baseline` passed after adding `render-check` to the Makefile baseline.
 - `GOWORK=off make integration` passed and executed rendered-template checks for `kernel`, `configx`, and `redisx`.
 - Stale-version scan outside historical/evidence paths found only the intentional `v0.6.1` regression sentinel in `cmd/goalcli/main_test.go`.
@@ -71,6 +72,7 @@ Passed:
 - `GOWORK=off make evidence-check`
 - `gofmt -w cmd/goalcli/governance.go cmd/goalcli/main.go cmd/goalcli/main_test.go`
 - `make -n render-check` (dry-run target-shape evidence only; runnable `make render-check` requires explicit `RENDER_CHECK_DIR`, `RENDER_CHECK_MODULE_NAME`, `RENDER_CHECK_MODULE_PATH`, and `RENDER_CHECK_PACKAGE_NAME` values)
+- `GOWORK=off RENDER_CHECK_DIR=/tmp/tmp.YDQxYrypq2/rendered-kernel RENDER_CHECK_MODULE_NAME=kernel RENDER_CHECK_MODULE_PATH=github.com/ZoneCNH/kernel RENDER_CHECK_PACKAGE_NAME=kernel make render-check`
 - `GOWORK=off go test ./cmd/goalcli -run 'TestRunDispatchesExternalCommands|TestMakefileBaseline|TestFactStrictProjectionGaps|TestFactAuditStrictPassesCanonicalFacts|TestVersionConstantsTrackChangelogRelease|TestVersionCommandReportsCurrentReleaseVersion'`
 - `GOWORK=off go test ./cmd/goalcli`
 - `GOWORK=off make fact-audit`
@@ -80,9 +82,17 @@ Passed:
 - `git ls-files release/manifest/latest.json release/manifest/latest.json.sha256 release/manifest/template.json`
 - `git check-ignore -v release/manifest/latest.json release/manifest/latest.json.sha256`
 
+Parameterized `render-check` proof output:
+
+```text
+fixture=/tmp/tmp.YDQxYrypq2/rendered-kernel
+go run ./cmd/goalcli render-check "/tmp/tmp.YDQxYrypq2/rendered-kernel" "kernel" "github.com/ZoneCNH/kernel" "kernel"
+rendered template check passed: kernel
+```
+
 Failed or unavailable:
 
-- `GOWORK=off make render-check` without `RENDER_CHECK_*` values is intentionally not a standalone gate; the target requires explicit rendered directory/module inputs. Functional rendered-template coverage was verified through `GOWORK=off make integration`.
+- `GOWORK=off make render-check` without `RENDER_CHECK_*` values is intentionally not a standalone gate; the target requires explicit rendered directory/module inputs. Functional rendered-template coverage was verified through the live parameterized temporary fixture proof above and `GOWORK=off make integration`.
 - `XLIB_CONTEXT=release_verify GOWORK=off make release-preflight VERSION=v0.6.6` failed because release preflight must run on `main`; current branch is `codex/release-version-alignment`.
 
 ## Changed Files
@@ -112,7 +122,7 @@ Failed or unavailable:
 ## Known Proof Boundaries and Risks
 
 - `release-preflight` was not passable on this branch because the gate requires `main`.
-- `render-check` now exists as a Make target, but direct use requires explicit `RENDER_CHECK_DIR`, `RENDER_CHECK_MODULE_NAME`, `RENDER_CHECK_MODULE_PATH`, and `RENDER_CHECK_PACKAGE_NAME` values; integration remains the higher-level reproducible proof path.
+- `render-check` now exists as a Make target, but direct use requires explicit `RENDER_CHECK_DIR`, `RENDER_CHECK_MODULE_NAME`, `RENDER_CHECK_MODULE_PATH`, and `RENDER_CHECK_PACKAGE_NAME` values; the live temporary fixture proof validates the parameterized path and integration remains the higher-level reproducible proof path.
 - There is no repo-wide stale-version denylist gate yet; the ad-hoc scan found only the intentional test sentinel outside historical/evidence docs.
 - `make security` evidence inside `release-check` covers secret scan; `govulncheck` was suspended unless `XLIB_ENABLE_VULNCHECK=1` is set, so dependency vulnerability safety is not claimed.
 - Traceability evidence remains partial: `traceability_status=partial_implemented`, `proof_depth=file_exists`, `proof_depth_level=D3`; this does not prove a complete lifecycle graph.
