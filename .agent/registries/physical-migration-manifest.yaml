@@ -4,9 +4,11 @@ generated_at: "2026-06-03T22:20:00Z"
 purpose: "Phase 3/4 physical migration manifest for .agent logical-first classification."
 status: physical_migration_applied
 status_semantics: "Lifecycle acceptance state for #59 Phase 3/4; path coverage is declared by migrations, root_exceptions, and classified_in_place."
+scope_note: "This manifest records .agent-internal physical classification only; it does not authorize broad .config migration, deletion, emptying, or tombstoning of the current .agent runtime/governance control plane."
+config_migration_boundary: "Only scoped release/config facts with approved target paths may move out of .agent; current runtime, harness, rule, registry, and evidence authority stays protected until superseded by governed contract."
 compatibility_strategy:
   old_paths: documented_compatibility_aliases
-  rule: "Repository consumers must reference new_path values; old_path values remain only in this manifest and release evidence compatibility records."
+  rule: "Repository consumers must reference new_path values inside the protected .agent control plane; old_path values remain only in this manifest and release evidence compatibility records."
   generated_artifacts: "Generated-only and validated-mirror artifacts keep stable semantics while their source registry paths move to physical classification directories."
 root_exceptions:
   - path: .agent/index.yaml
