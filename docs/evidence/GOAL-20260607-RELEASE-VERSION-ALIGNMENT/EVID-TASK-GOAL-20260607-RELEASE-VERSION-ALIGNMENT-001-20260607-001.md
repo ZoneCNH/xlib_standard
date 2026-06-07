@@ -23,7 +23,7 @@ Aligned active release-version consumers from released `v0.6.1` to next locally 
 - `GOWORK=off make docs-check` passed after this evidence file was checked.
 - `GOWORK=off make evidence-check` passed after this evidence file was checked.
 - `git diff --check` passed after this evidence file was checked.
-- `make -n render-check` passed and showed the new `render-check` target validates `RENDER_CHECK_*` inputs before dispatching `goalcli render-check`.
+- `make -n render-check` was recorded only as dry-run target-shape evidence: it showed the new `render-check` target validates required `RENDER_CHECK_*` inputs before dispatching `goalcli render-check`, but it is not a runnable standalone proof.
 - `GOWORK=off make makefile-baseline` passed after adding `render-check` to the Makefile baseline.
 - `GOWORK=off make integration` passed and executed rendered-template checks for `kernel`, `configx`, and `redisx`.
 - Stale-version scan outside historical/evidence paths found only the intentional `v0.6.1` regression sentinel in `cmd/goalcli/main_test.go`.
@@ -70,7 +70,7 @@ Passed:
 - `GOWORK=off make release-check`
 - `GOWORK=off make evidence-check`
 - `gofmt -w cmd/goalcli/governance.go cmd/goalcli/main.go cmd/goalcli/main_test.go`
-- `make -n render-check`
+- `make -n render-check` (dry-run target-shape evidence only; runnable `make render-check` requires explicit `RENDER_CHECK_DIR`, `RENDER_CHECK_MODULE_NAME`, `RENDER_CHECK_MODULE_PATH`, and `RENDER_CHECK_PACKAGE_NAME` values)
 - `GOWORK=off go test ./cmd/goalcli -run 'TestRunDispatchesExternalCommands|TestMakefileBaseline|TestFactStrictProjectionGaps|TestFactAuditStrictPassesCanonicalFacts|TestVersionConstantsTrackChangelogRelease|TestVersionCommandReportsCurrentReleaseVersion'`
 - `GOWORK=off go test ./cmd/goalcli`
 - `GOWORK=off make fact-audit`
