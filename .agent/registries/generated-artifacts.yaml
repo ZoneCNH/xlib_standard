@@ -20,6 +20,41 @@ artifacts:
     source_control: generated-only
     generated_by: "GOWORK=off make evidence"
     validated_by: release-evidence-check
+  - path: release/standard-impact/latest.md
+    classification: generated_artifact
+    source_control: generated-only
+    generated_by: "GOWORK=off make p2-runtime-check"
+    validated_by: standard-impact-check
+  - path: release/downstream-sync/latest.md
+    classification: generated_artifact
+    source_control: generated-only
+    generated_by: "GOWORK=off make p2-runtime-check"
+    validated_by: standard-impact-check
+  - path: release/debt/latest.json
+    classification: generated_artifact
+    source_control: generated-only
+    generated_by: "GOWORK=off make p2-runtime-check"
+    validated_by: standard-impact-check
+  - path: release/debt/latest.md
+    classification: generated_artifact
+    source_control: generated-only
+    generated_by: "GOWORK=off make p2-runtime-check"
+    validated_by: standard-impact-check
+  - path: release/debt/latest.json.sha256
+    classification: generated_artifact
+    source_control: generated-only
+    generated_by: "GOWORK=off make p2-runtime-check"
+    validated_by: standard-impact-check
+  - path: github-rules-observed.json
+    classification: generated_artifact
+    source_control: generated-only
+    generated_by: "goalcli github-rules"
+    validated_by: release-evidence-check
+  - path: .github/github-rules-observed.json
+    classification: generated_artifact
+    source_control: generated-only
+    generated_by: "goalcli github-rules"
+    validated_by: release-evidence-check
   - path: .agent/rules/registry.yaml
     classification: validated_mirror
     source_control: generated-only

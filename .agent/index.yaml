@@ -425,6 +425,20 @@ files:
     owner: governance
     validator: evidence-check
     purpose: Worker 3 downstream governance release manifest integration summary.
+  - path: .agent/evidence/stable-config-migration-worker-3-task-3.md
+    layer: evidence
+    authority: source_of_truth
+    mutability: hand_written
+    owner: governance
+    validator: evidence-check
+    purpose: Worker 3 stable config migration review and documentation slice summary.
+  - path: .agent/evidence/stable-config-migration-leader-reconciliation.md
+    layer: evidence
+    authority: source_of_truth
+    mutability: hand_written
+    owner: governance
+    validator: evidence-check
+    purpose: Leader reconciliation evidence for stable config migration gate omission closure.
   - path: .agent/metrics/docker-toolchain.json
     layer: evidence
     authority: validated_mirror
