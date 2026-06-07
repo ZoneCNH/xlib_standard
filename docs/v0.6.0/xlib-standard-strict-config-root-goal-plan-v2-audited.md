@@ -7,6 +7,8 @@
 
 ---
 
+> **Current-status note (2026-06-07):** This strict `.config/` plan is historical planning material, not current authority to delete or migrate the live `.agent/**` runtime/adoption control plane. Current stable hardening keeps `.agent/**` protected under `CONSTITUTION.md`, `.agent/index.yaml`, `goalcli adoption-check`, Codex agent prompts, L2 templates, and release/adoption gates until an approved dual-read migration and compatibility test suite lands.
+
 ## 0. 总结结论
 
 `xlib-standard` 不应继续作为“模板仓库 + 若干脚本 + 若干文档”的组合存在，而应被重构为：
