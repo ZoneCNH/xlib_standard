@@ -101,6 +101,35 @@ func TestStandardImpactRequiresDownstreamSyncForContextRuntimeV4Categories(t *te
 	)
 }
 
+func TestStandardImpactRequiresDownstreamSyncForMigrationInventoryAndRepositoryRules(t *testing.T) {
+	report := runStandardImpact(t, []string{
+		".agent/index.yaml",
+		".agent/registries/generated-artifacts.yaml",
+		".agent/registries/physical-migration-manifest.yaml",
+		".githooks/pre-commit",
+		".devcontainer/devcontainer.json",
+		".gitignore",
+		".dockerignore",
+	})
+
+	assertReportContains(t, report,
+		"- downstream_sync_required: `true`",
+		"- migration_inventory_change: `true`",
+		"- repository_rules_release_decision: `audit_required`",
+		"- changed_file_count: `7`",
+		"## migration_inventory",
+		"- `.agent/index.yaml`",
+		"- `.agent/registries/generated-artifacts.yaml`",
+		"- `.agent/registries/physical-migration-manifest.yaml`",
+		"## repository_rules",
+		"- `.devcontainer/devcontainer.json`",
+		"- `.dockerignore`",
+		"- `.gitignore`",
+		"- `.githooks/pre-commit`",
+		"migration_inventory",
+	)
+}
+
 func TestStandardImpactRequiresDownstreamSyncForDeletedImpactFiles(t *testing.T) {
 	scriptsDir, err := os.Getwd()
 	if err != nil {
@@ -388,6 +417,7 @@ func TestStandardImpactSortsCommittedAndWorktreeChanges(t *testing.T) {
 		"- changed_file_count: `4`",
 		"## repository_rules",
 		"- `.github/dependabot.yml`",
+		"- `.gitignore`",
 		"## other",
 	)
 	assertReportOrder(t, report,
