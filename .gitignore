@@ -86,6 +86,12 @@ override.tf.json
 .omx/
 .worktree/
 
+# Project-level Codex native subagents are source-controlled configuration.
+!.codex/
+!.codex/agents/
+!.codex/agents/README.md
+!.codex/agents/*.toml
+
 # Docker tool prefetch cache
 .cache/
 .claude/settings.local.json

@@ -214,6 +214,7 @@ collect_text_files() {
     -name '*.json' -o \
     -name '*.py' -o \
     -name '*.sh' -o \
+    -name '*.toml' -o \
     -name '*.yml' -o \
     -name '*.yaml' -o \
     -name 'Makefile' -o \

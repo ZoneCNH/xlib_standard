@@ -35,6 +35,10 @@ release_policy:
     scheme: semver
     pre_release_tag: "-rc"
     require_changelog: true
+    merge_to_main_increment: patch_plus_one
+    merge_to_main_workflow: ".github/workflows/release-auto-patch.yml"
+    duplicate_commit_policy: reuse_existing_stable_tag
+    concurrency_group: release-auto-patch-main
 
   # 发布产物要求
   artifacts:
@@ -44,6 +48,7 @@ release_policy:
 
 source_rules:
   - RULE-RELEASE-001
+  - RULE-RELEASE-004
   - RULE-REL-ARTIFACT-001
   - RULE-CORE-001
   - RULE-CORE-004
