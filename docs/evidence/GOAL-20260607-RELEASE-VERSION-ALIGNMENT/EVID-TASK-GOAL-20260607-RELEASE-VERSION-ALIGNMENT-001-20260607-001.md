@@ -66,6 +66,7 @@ Passed:
 - `git branch --show-current`
 - `git status --short --branch`
 - `git worktree list`
+- `git diff --name-status origin/main..HEAD`
 - `git rev-parse --short HEAD`
 - `git log --oneline -n 8`
 - `git tag --list 'v0.6.6'`
@@ -120,6 +121,8 @@ Failed or unavailable:
 ## Changed Files
 
 - `.agent/harness/harness.yaml`
+- `.agent/harness/gates.md`
+- `.agent/registries/command-implementation-status.yaml`
 - `.agent/registries/makefile-baseline.yaml`
 - `.agent/registries/makefile-target-registry.yaml`
 - `.agent/release/release-required-gates.yaml`
@@ -131,12 +134,15 @@ Failed or unavailable:
 - `cmd/goalcli/governance.go`
 - `cmd/goalcli/main.go`
 - `cmd/goalcli/main_test.go`
+- `docs/evidence/GOAL-20260606-002/PLAN-GOAL-20260606-002-v0.1.md`
 - `docs/generation.md`
 - `docs/release.md`
+- `docs/standard/goalcli-cli-contract.md`
 - `internal/tools/releasemanifest/main.go`
 - `internal/xlibfacts/facts.go`
 - `internal/xlibfacts/facts_test.go`
 - `pkg/templatex/version.go`
+- `release/manifest/template.json`
 - `scripts/check_docs.sh`
 - `scripts/render_template_test.go`
 - `docs/evidence/GOAL-20260607-RELEASE-VERSION-ALIGNMENT/EVID-TASK-GOAL-20260607-RELEASE-VERSION-ALIGNMENT-001-20260607-001.md`
