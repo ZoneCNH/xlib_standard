@@ -73,7 +73,10 @@ add_file() {
 
   [[ -n "$file" ]] || return 0
   [[ "$file" == .git/* ]] && return 0
-  [[ "$file" == .omc/* || "$file" == .omx/* || "$file" == .worktree/* ]] && return 0
+  [[ "$file" == .omc/* || "$file" == .worktree/* ]] && return 0
+  if [[ "$file" == .omx/* && "$file" != .omx/context/*.md ]]; then
+    return 0
+  fi
 
   # 未暂存的重命名会同时表现为删除旧路径和新增新路径；报告必须只保留当前权威路径。
   file="$(canonical_changed_file "$file")"
@@ -165,6 +168,7 @@ docs_files=()
 contracts_files=()
 context_runtime_files=()
 governance_registry_files=()
+migration_inventory_files=()
 harness_files=()
 repository_rules_files=()
 generator_files=()
@@ -181,6 +185,7 @@ add_category_file() {
     contracts) contracts_files+=("$file") ;;
     context_runtime) context_runtime_files+=("$file") ;;
     governance_registry) governance_registry_files+=("$file") ;;
+    migration_inventory) migration_inventory_files+=("$file") ;;
     harness) harness_files+=("$file") ;;
     repository_rules) repository_rules_files+=("$file") ;;
     generator) generator_files+=("$file") ;;
@@ -194,13 +199,16 @@ classify_file() {
   local file="$1"
 
   case "$file" in
-    .agent/registries/command-registry.yaml|.agent/registries/issue-registry.yaml|.agent/registries/makefile-baseline.yaml|.agent/registries/makefile-target-registry.yaml)
+    .agent/index.yaml|.agent/contracts/scope-locks.yaml|.agent/registries/generated-artifacts.yaml|.agent/registries/physical-migration-manifest.yaml|.omx/context/*.md)
+      add_category_file "migration_inventory" "$file"
+      ;;
+    .agent/registries/*.yaml)
       add_category_file "governance_registry" "$file"
       ;;
-    templates/context-consumer/*)
+    templates/context-consumer/*|templates/l2/*|scripts/verify_l2_standard.py)
       add_category_file "downstream_context" "$file"
       ;;
-    AGENTS.md|Makefile|.github/workflows/*|.github/CODEOWNERS|.github/dependabot.yml|.github/rulesets/*|infra/github-rules/*|.agent/harness/gates.md)
+    AGENTS.md|Makefile|.githooks/*|.devcontainer/devcontainer.json|.dockerignore|.gitignore|.github/workflows/*|.github/CODEOWNERS|.github/dependabot.yml|.github/ISSUE_TEMPLATE/*|.github/pull_request_template.md|.github/rulesets/*|infra/github-rules/*|.agent/harness/gates.md)
       add_category_file "repository_rules" "$file"
       ;;
     cmd/goalcli/*|.agent/context/*|docs/standard/goalcli-cli-contract.md|docs/standard/release-standard.md|docs/standard/harness-gates.md|docs/standard/evidence-protocol.md)
@@ -231,8 +239,12 @@ for file in "${changed_files[@]}"; do
   classify_file "$file"
 done
 
+migration_inventory_change="false"
+if (( ${#migration_inventory_files[@]} > 0 )); then
+  migration_inventory_change="true"
+fi
 downstream_sync_required="false"
-if (( ${#contracts_files[@]} > 0 || ${#context_runtime_files[@]} > 0 || ${#governance_registry_files[@]} > 0 || ${#harness_files[@]} > 0 || ${#repository_rules_files[@]} > 0 || ${#generator_files[@]} > 0 || ${#downstream_context_files[@]} > 0 || ${#evidence_files[@]} > 0 )); then
+if (( ${#contracts_files[@]} > 0 || ${#context_runtime_files[@]} > 0 || ${#governance_registry_files[@]} > 0 || ${#migration_inventory_files[@]} > 0 || ${#harness_files[@]} > 0 || ${#repository_rules_files[@]} > 0 || ${#generator_files[@]} > 0 || ${#downstream_context_files[@]} > 0 || ${#evidence_files[@]} > 0 )); then
   downstream_sync_required="true"
 fi
 context_runtime_change="false"
@@ -278,6 +290,7 @@ write_file_list() {
   printf -- '- downstream_sync_required: `%s`\n' "$downstream_sync_required"
   printf -- '- context_runtime_change: `%s`\n' "$context_runtime_change"
   printf -- '- governance_registry_change: `%s`\n' "$governance_registry_change"
+  printf -- '- migration_inventory_change: `%s`\n' "$migration_inventory_change"
   printf -- '- downstream_release_decision: `%s`\n' "$downstream_release_decision"
   printf -- '- repository_rules_release_decision: `%s`\n' "$repository_rules_release_decision"
   printf -- '- primary_downstream: `%s`\n' "github.com/ZoneCNH/kernel"
@@ -293,6 +306,7 @@ write_file_list() {
   write_file_list "contracts" "${contracts_files[@]}"
   write_file_list "context_runtime" "${context_runtime_files[@]}"
   write_file_list "governance_registry" "${governance_registry_files[@]}"
+  write_file_list "migration_inventory" "${migration_inventory_files[@]}"
   write_file_list "harness" "${harness_files[@]}"
   write_file_list "repository_rules" "${repository_rules_files[@]}"
   write_file_list "generator" "${generator_files[@]}"
@@ -303,10 +317,10 @@ write_file_list() {
   printf '## Sync Decision\n\n'
   if [[ "$downstream_sync_required" == "true" ]]; then
     printf -- '- `%s`\n' "$downstream_release_decision"
-    printf -- '- 原因：contracts、context_runtime、governance_registry、harness、repository_rules、generator、downstream_context 或 evidence 影响面发生变化。\n'
+    printf -- '- 原因：contracts、context_runtime、governance_registry、migration_inventory、harness、repository_rules、generator、downstream_context 或 evidence 影响面发生变化。\n'
   else
     printf -- '- `%s`\n' "$downstream_release_decision"
-    printf -- '- 原因：未发现 contracts、context_runtime、governance_registry、harness、repository_rules、generator、downstream_context 或 evidence 影响面变化。\n'
+    printf -- '- 原因：未发现 contracts、context_runtime、governance_registry、migration_inventory、harness、repository_rules、generator、downstream_context 或 evidence 影响面变化。\n'
   fi
   if (( ${#repository_rules_files[@]} > 0 )); then
     printf -- '- repository_rules: `%s`\n' "$repository_rules_release_decision"
