@@ -44,8 +44,18 @@ Parent commit: `8084a09`
 | `GOWORK=off make security` | passed | Secret check passed. Output also stated `govulncheck suspended; set XLIB_ENABLE_VULNCHECK=1 to run vulnerability scan`. |
 | `XLIB_CONTEXT=local_write GOWORK=off make governance-check` | passed | Passed main guard, worktree guard, evidence-check, adoption-check, boundary, security, contracts, docs-check, CLI/issue/command registry, makefile baseline, audit-goal, rules-consistency-check, debt checks, and traceability-check. |
 
+## Post-Commit Push and Release Check
+
+| Command | Result | Summary |
+| --- | --- | --- |
+| `git push -u origin codex/project-subagents` | passed | Pushed branch `codex/project-subagents` to origin and set upstream tracking. GitHub reported PR creation URL `https://github.com/ZoneCNH/xlib-standard/pull/new/codex/project-subagents`. |
+| `XLIB_CONTEXT=release_verify GOWORK=off make release-preflight VERSION=v0.6.0` | blocked | Release preflight refused to run from feature branch: `ERROR: release preflight must run on main; current branch is codex/project-subagents`. No release tag was created or pushed by this task. |
+| `git ls-remote --tags origin refs/tags/v0.6.0` | passed | Confirmed remote tag `v0.6.0` already exists at `726db7d5257df507593a8a74d3f66ba89f8d6194`. |
+| `gh release view v0.6.0 --repo ZoneCNH/xlib-standard --json tagName,name,url,isDraft,isPrerelease,publishedAt,targetCommitish` | passed | Confirmed GitHub Release `v0.6.0` already exists, is not draft, is not prerelease, targets `726db7d5257df507593a8a74d3f66ba89f8d6194`, and was published at `2026-06-07T02:07:30Z`. |
+
 ## Risks and Gaps
 
 - This task configures Codex native subagent definitions only; it does not prove runtime reload pickup inside the already-running Codex session.
 - `make security` default behavior proves secret scanning unless vulnerability scanning is forced by repository environment.
 - `traceability-check` may pass with the repository's known D3 file-existence proof boundary rather than full lifecycle graph proof.
+- Official release execution was not repeated from this feature branch. Repository preflight requires `main`, and remote tag / GitHub Release `v0.6.0` already exist.
