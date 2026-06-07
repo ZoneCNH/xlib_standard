@@ -2,6 +2,17 @@
 
 ## 未发布
 
+## v0.6.0 - 2026-06-07
+
+### 治理
+
+- 完成无人值守分支治理收敛：将可验证的 `codex/v060-docs-analysis` 内容纳入 `main`，并清理非 `main` 分支。
+- 将项目发布版本、release manifest 默认版本、facts、template version、harness release preflight 和文档示例同步到 `v0.6.0`。
+
+### 兼容性
+
+- 本版本不改变 `pkg/templatex` 公共 API 形状；`Version` 元数据同步到 `v0.6.0`。
+
 ## v0.5.0 - 2026-06-06
 
 ### 治理
