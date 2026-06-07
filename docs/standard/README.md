@@ -27,7 +27,7 @@
 - [x.go 集成边界](../xgo-integration-boundary.md)：调用方密钥路径和组合边界。
 - [测试策略](../testing.md)：单元、示例 smoke、release quality 和 release manifest fixture 隔离要求。
 - [供应链与 Evidence](../supply-chain.md)：workflow Action SHA pinning、每周窗口 `govulncheck` 固定版本、manifest 校验和 CI artifact 对齐。
-- [AI review 自动化](ai-review-automation.md)：Copilot ruleset review 与 Claude PR review workflow 的控制面、权限、secret 和合并边界。
+- [AI review 自动化](ai-review-automation.md)：Copilot ruleset review 与本地 Claude PR review 的控制面、权限、secret 和合并边界。
 - [Release Scorecard](../scorecard.md)：`goalcli score --min 9.8` 的评分维度、阈值和语义边界。
 - [独立审计 2026-06-02](../independent-audit-20260602.md)：审计发现、修复状态和剩余远端验证缺口。
 - [迁移指南](../migration/baselib-template-to-xlib-standard.md)：旧名迁移规则。
