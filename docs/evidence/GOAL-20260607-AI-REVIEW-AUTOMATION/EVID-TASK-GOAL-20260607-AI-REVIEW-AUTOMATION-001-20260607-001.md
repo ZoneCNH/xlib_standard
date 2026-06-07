@@ -47,8 +47,16 @@ settings under repository governance.
   integration for Claude Code.
 - The `anthropics/claude-code-action` `v1` tag was resolved to commit
   `fbda2eb1bdc90d319b8d853f5deb53bca199a7c1`.
+- PR #101 triggered the `claude-review` workflow automatically on push. Its
+  first run failed before review execution because the action could not fetch an
+  OIDC token and explicitly requested `id-token: write`.
+- The follow-up workflow patch grants `id-token: write` while preserving the
+  existing read/review-only repository permissions.
 
 ## Command Results
+
+The following checks were run again after adding `id-token: write` to the
+Claude review workflow permissions:
 
 - `git diff --check`: passed.
 - `ruby -e 'require "json"; JSON.parse(File.read(".github/rulesets/protect-main.json")); puts "json ok"'`: passed (`json ok`).
@@ -72,6 +80,9 @@ contains the desired ruleset-as-code change and rollout documentation.
 
 - `ANTHROPIC_API_KEY` must exist as a repository or organization secret before
   Claude review can run successfully.
+- The failed PR #101 `claude-review` run showed `ANTHROPIC_API_KEY` was not
+  present in the action environment. This repository code change cannot create
+  that external secret.
 - Copilot automatic review requires the live GitHub ruleset to be reconciled and
   applied after the configuration PR is accepted.
 - `claude-review` is not added as a required status check in this task; making

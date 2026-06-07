@@ -33,6 +33,8 @@ The workflow uses:
 - `ANTHROPIC_API_KEY` from repository or organization secrets;
 - minimal repository permissions: `contents: read`, `pull-requests: write`, and
   `issues: write`;
+- `id-token: write` so the pinned Claude action can mint the OIDC token it uses
+  while setting up its GitHub token flow;
 - an explicit review-only prompt that forbids pushing commits, creating
   branches, merging pull requests, closing pull requests, deleting branches,
   modifying repository settings, or weakening branch protection.
