@@ -15,8 +15,8 @@ import (
 	"time"
 
 	"github.com/ZoneCNH/xlib-standard/internal/goalruntime"
-	"github.com/ZoneCNH/xlib-standard/internal/xlibfacts"
 	"github.com/ZoneCNH/xlib-standard/internal/releasequality"
+	"github.com/ZoneCNH/xlib-standard/internal/xlibfacts"
 	"github.com/ZoneCNH/xlib-standard/pkg/templatex"
 )
 
@@ -1670,14 +1670,14 @@ func TestFactStrictProjectionGapsReportsReleaseRequiredGateDrift(t *testing.T) {
 func writeFactStrictProjectionFixture(t *testing.T, root string, releaseRequiredGateVersion string) {
 	t.Helper()
 	writeTestFiles(t, root, map[string]string{
-		"cmd/goalcli/governance.go":                         "xlibfacts.CurrentReleaseVersion\nxlibfacts.GovernanceRuntimeVersion\n\"fact\"\n",
-		"internal/tools/releasemanifest/main.go":             "xlibfacts.CurrentReleaseVersion\n",
-		".agent/harness/harness.yaml":                        "release-preflight VERSION=" + xlibfacts.CurrentReleaseVersion + "\n",
-		".agent/release/release-required-gates.yaml":         "release-preflight VERSION=" + releaseRequiredGateVersion + "\n",
-		".agent/registries/makefile-baseline.yaml":          "fact-audit: \"$(GOALCLI) fact audit --strict\"\n",
-		".agent/registries/makefile-target-registry.yaml":   "- fact-audit\n",
-		".agent/registries/command-registry.yaml":           "name: fact\n",
-		"docs/standard/goalcli-cli-contract.md":             "fact audit\n",
+		"cmd/goalcli/governance.go":                       "xlibfacts.CurrentReleaseVersion\nxlibfacts.GovernanceRuntimeVersion\n\"fact\"\n",
+		"internal/tools/releasemanifest/main.go":          "xlibfacts.CurrentReleaseVersion\n",
+		".agent/harness/harness.yaml":                     "release-preflight VERSION=" + xlibfacts.CurrentReleaseVersion + "\n",
+		".agent/release/release-required-gates.yaml":      "release-preflight VERSION=" + releaseRequiredGateVersion + "\n",
+		".agent/registries/makefile-baseline.yaml":        "fact-audit: \"$(GOALCLI) fact audit --strict\"\n",
+		".agent/registries/makefile-target-registry.yaml": "- fact-audit\n",
+		".agent/registries/command-registry.yaml":         "name: fact\n",
+		"docs/standard/goalcli-cli-contract.md":           "fact audit\n",
 		"Makefile": ".PHONY: fact-audit\nfact-audit:\n\t$(GOALCLI) fact audit --strict\n\n" +
 			"context-release: fact-audit\nrelease-check: fact-audit\nrelease-check-extended: fact-audit\n",
 	})
