@@ -24,18 +24,19 @@ requirements.
 
 Claude review runs through `.github/workflows/claude-pr-review.yml` on
 non-draft pull requests when they are opened, synchronized, reopened, or marked
-ready for review.
+ready for review. The workflow is limited to same-repository pull requests so
+untrusted fork code is not executed on the self-hosted review runner.
 
 The workflow uses:
 
-- `anthropics/claude-code-action` pinned to a 40-character commit SHA with a tag
-  comment;
-- `ANTHROPIC_API_KEY` from repository or organization secrets;
-- the Claude Code GitHub App installed for the repository;
+- a self-hosted GitHub Actions runner with the `claude-review` label;
+- the local `claude` CLI installed and already authenticated for the runner
+  user;
+- local Claude invocation through `claude --print`, without `--bare`, repository
+  secrets, API keys, or the Claude Code GitHub App;
+- disabled Claude tool access for the review invocation;
 - minimal repository permissions: `contents: read`, `pull-requests: write`, and
   `issues: write`;
-- `id-token: write` so the pinned Claude action can mint the OIDC token it uses
-  while setting up its GitHub token flow;
 - an explicit review-only prompt that forbids pushing commits, creating
   branches, merging pull requests, closing pull requests, deleting branches,
   modifying repository settings, or weakening branch protection.
@@ -51,16 +52,19 @@ or branch deletion actor in this repository.
 ## Rollout Checklist
 
 1. Merge the configuration PR after normal project gates pass.
-2. Install the Claude Code GitHub App for this repository.
-3. Configure `ANTHROPIC_API_KEY` as a repository or organization secret. Do not
-   store the key in repository files, PR comments, evidence logs, or release
-   manifests.
-4. Reconcile the live `protect-main` ruleset with
+2. Register a trusted self-hosted GitHub Actions runner for this repository or
+   organization with the `claude-review` label.
+3. Install the local `claude` CLI on that runner and authenticate it for the
+   runner user. Do not use repository secrets, `ANTHROPIC_API_KEY`, `--bare`, or
+   a committed token for Claude access.
+4. Ensure the runner has `gh` available so the workflow can fetch the PR diff
+   and publish the review comment through the workflow-provided GitHub token.
+5. Reconcile the live `protect-main` ruleset with
    `.github/rulesets/protect-main.json` before applying it through GitHub's
    ruleset API or UI. Do not blindly replace the live ruleset if required status
    checks or bypass actors differ.
-5. Confirm Copilot automatic code review is enabled for the branch ruleset.
-6. After the first successful Claude run, decide whether `claude-review` should
+6. Confirm Copilot automatic code review is enabled for the branch ruleset.
+7. After the first successful local Claude run, decide whether `claude-review` should
    become a required status check. If it becomes required, update the ruleset,
    Evidence, and release notes together.
 
@@ -71,6 +75,9 @@ For every change to this automation, record:
 - the changed workflow, ruleset, and instruction files;
 - the exact validation commands and results;
 - whether live GitHub settings were changed;
-- whether the Claude Code GitHub App was installed for the repository;
-- whether `ANTHROPIC_API_KEY` was present;
+- whether a trusted self-hosted runner with the `claude-review` label was
+  available;
+- whether the runner's local `claude` CLI was installed and authenticated;
+- confirmation that no repository Claude API key, `--bare` mode, or Claude Code
+  GitHub App was used;
 - any gap between ruleset-as-code and the live repository ruleset.

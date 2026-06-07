@@ -18,11 +18,11 @@ settings under repository governance.
 - Copilot repository instructions align review findings with xlib-standard
   constitution, harness, evidence, generated-artifact, and layer-boundary rules.
 - Claude runs automatically on non-draft pull request updates as an advisory
-  reviewer.
+  reviewer for same-repository pull requests.
 - Claude cannot merge, close, delete branches, push commits, or modify
   repository settings by workflow design or prompt.
-- Documentation records the required secret, live ruleset rollout, and residual
-  risk.
+- Documentation records the local Claude runner prerequisite, live ruleset
+  rollout, and residual risk.
 - Matching documentation and governance gates are run or explicitly recorded as
   gaps.
 
@@ -43,29 +43,27 @@ settings under repository governance.
   `review_on_push` and `review_draft_pull_requests`.
 - GitHub documents `.github/copilot-instructions.md` as a repository custom
   instructions surface for Copilot.
-- Anthropic documents `anthropics/claude-code-action` as the GitHub Actions
-  integration for Claude Code.
-- The `anthropics/claude-code-action` `v1` tag was resolved to commit
-  `fbda2eb1bdc90d319b8d853f5deb53bca199a7c1`.
-- PR #101 triggered the `claude-review` workflow automatically on push. Its
-  first run failed before review execution because the action could not fetch an
-  OIDC token and explicitly requested `id-token: write`.
-- The follow-up workflow patch grants `id-token: write` while preserving the
-  existing read/review-only repository permissions.
-- The next PR #101 `claude-review` run (`27085899110`) auto-triggered on the
-  follow-up push and reached `anthropics/claude-code-action`, then failed with:
-  `Claude Code is not installed on this repository`. This identifies Claude Code
-  GitHub App installation as an external activation gate.
+- PR #101 previously proved that the `claude-review` workflow auto-triggers on
+  PR branch pushes.
+- The first attempted Claude integration used the hosted Anthropic action and
+  failed because repository/API-key/App activation was not present. The workflow
+  was changed after user direction to use local Claude instead of key-based
+  Anthropic Action authentication.
+- Local CLI inspection on this machine found `claude` at
+  `/home/zone/.npm-global/bin/claude`; `claude --help` documents `--print` as a
+  non-interactive output mode and documents `--bare` as API-key mode. The
+  workflow intentionally uses `claude --print` and does not use `--bare`.
 
 ## Command Results
 
-The following checks were run again after adding `id-token: write` to the
-Claude review workflow permissions and recording the live Claude App activation
-gate:
+The following checks were run after switching Claude review to a local
+self-hosted runner and recording the local activation gate:
 
 - `git diff --check`: passed.
 - `ruby -e 'require "json"; JSON.parse(File.read(".github/rulesets/protect-main.json")); puts "json ok"'`: passed (`json ok`).
 - `ruby -e 'require "yaml"; YAML.load_file(".github/workflows/claude-pr-review.yml"); puts "yaml ok"'`: passed (`yaml ok`).
+- `command -v claude`: passed (`/home/zone/.npm-global/bin/claude`).
+- `claude --version`: passed (`2.1.157 (Claude Code)`).
 - `GOWORK=off make docs-check`: passed (`docs-check passed`).
 - `GOWORK=off make rules-verify`: passed (`all active rules have valid enforced_by commands`).
 - `XLIB_CONTEXT=local_write GOWORK=off make governance-check`: passed. Key gates passed:
@@ -73,10 +71,9 @@ gate:
   `boundary`, `security` secret check, `contracts`, `docs-check`,
   `cli-contract`, `issue-registry`, `command-registry`, `makefile-baseline`,
   `audit-goal`, `rules-consistency-check`, and `traceability-check`.
-- `gh run watch 27085899110 --repo ZoneCNH/xlib-standard --exit-status`:
-  failed because the Claude Code GitHub App is not installed for the repository.
-  The failure occurred after the workflow auto-triggered and reached the pinned
-  Claude action.
+- The pushed PR workflow state must be checked after this evidence update is
+  committed and pushed. If a `claude-review` self-hosted runner is not online,
+  GitHub will leave that job queued or pending until the external runner exists.
 
 ## Live GitHub Settings
 
@@ -87,14 +84,13 @@ contains the desired ruleset-as-code change and rollout documentation.
 
 ## Risks and Gaps
 
-- `ANTHROPIC_API_KEY` must exist as a repository or organization secret before
-  Claude review can run successfully.
-- The failed PR #101 `claude-review` run showed `ANTHROPIC_API_KEY` was not
-  present in the action environment. This repository code change cannot create
-  that external secret.
-- The follow-up PR #101 `claude-review` run showed the Claude Code GitHub App is
-  not installed for this repository. This repository code change cannot install
-  GitHub Apps or grant external app access.
+- A trusted self-hosted GitHub Actions runner with the `claude-review` label
+  must be online before Claude review can run successfully.
+- The runner must have the local `claude` CLI installed and authenticated for the
+  runner user. This repository code change cannot provision or log in that local
+  account.
+- The workflow intentionally skips fork pull requests to avoid executing
+  untrusted fork code on a self-hosted runner.
 - Copilot automatic review requires the live GitHub ruleset to be reconciled and
   applied after the configuration PR is accepted.
 - `claude-review` is not added as a required status check in this task; making

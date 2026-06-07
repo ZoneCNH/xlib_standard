@@ -10,7 +10,6 @@ on:
 
 permissions:
   contents: read
-  id-token: write
   pull-requests: write
   issues: write
 
@@ -21,9 +20,11 @@ concurrency:
 jobs:
   claude-review:
     name: claude-review
-    runs-on: ubuntu-latest
+    runs-on:
+      - self-hosted
+      - claude-review
     timeout-minutes: 20
-    if: ${{ !github.event.pull_request.draft }}
+    if: ${{ !github.event.pull_request.draft && github.event.pull_request.head.repo.full_name == github.repository }}
 
     steps:
       - name: Checkout repository
@@ -31,13 +32,37 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Review pull request
-        uses: anthropics/claude-code-action@fbda2eb1bdc90d319b8d853f5deb53bca199a7c1 # tag v1
-        with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          use_sticky_comment: "true"
-          include_fix_links: "false"
-          prompt: |
+      - name: Verify local Claude
+        run: |
+          set -euo pipefail
+          if ! command -v claude >/dev/null 2>&1; then
+            echo "::error::local claude CLI is required on the self-hosted claude-review runner"
+            exit 1
+          fi
+          claude --version || true
+
+      - name: Prepare pull request diff
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          gh pr diff "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" > "$RUNNER_TEMP/pr.diff"
+          if [ ! -s "$RUNNER_TEMP/pr.diff" ]; then
+            echo "::error::pull request diff is empty"
+            exit 1
+          fi
+
+      - name: Review pull request with local Claude
+        env:
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          set -euo pipefail
+          {
+            cat <<'PROMPT'
             You are reviewing this pull request for xlib-standard.
             Treat CONSTITUTION.md, .agent/rules/, .agent/harness/, contracts/,
             docs/architecture/, and AGENTS.md as the authority chain.
@@ -63,3 +88,48 @@ jobs:
             project rule, and the minimal corrective action. If no blocker is
             found, summarize residual verification gaps without claiming gates
             passed unless the workflow logs prove them.
+          PROMPT
+            printf '\nPR #%s: %s\n' "$PR_NUMBER" "$PR_TITLE"
+            printf 'Author: %s\n\n' "$PR_AUTHOR"
+            printf 'Body:\n%s\n\n' "${PR_BODY:-}"
+            printf 'Diff:\n'
+            cat "$RUNNER_TEMP/pr.diff"
+          } > "$RUNNER_TEMP/claude-review-prompt.md"
+
+          claude --print --input-format text --output-format text --tools "" \
+            < "$RUNNER_TEMP/claude-review-prompt.md" \
+            > "$RUNNER_TEMP/claude-review.md"
+
+          if [ ! -s "$RUNNER_TEMP/claude-review.md" ]; then
+            echo "::error::local Claude produced no review output"
+            exit 1
+          fi
+
+      - name: Publish review comment
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          marker='<!-- xlib-standard-local-claude-review -->'
+          body="$RUNNER_TEMP/claude-review-comment.md"
+          {
+            printf '%s\n' "$marker"
+            printf '## Local Claude Review\n\n'
+            if [ -s "$RUNNER_TEMP/claude-review.md" ]; then
+              cat "$RUNNER_TEMP/claude-review.md"
+            else
+              printf 'Local Claude did not produce review output. Check workflow logs for runner availability, local Claude installation, and local Claude authentication.\n'
+            fi
+          } > "$body"
+
+          comment_id="$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json comments --jq '.comments[] | select(.body | contains("<!-- xlib-standard-local-claude-review -->")) | .id' | tail -n 1)"
+          if [ -n "$comment_id" ]; then
+            gh api graphql \
+              -f query='mutation($id:ID!,$body:String!){updateIssueComment(input:{id:$id,body:$body}){issueComment{id}}}' \
+              -f id="$comment_id" \
+              -f body="$(cat "$body")"
+          else
+            gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file "$body"
+          fi
