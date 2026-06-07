@@ -131,6 +131,7 @@ Failed or unavailable:
 - `CHANGELOG.md`
 - `Makefile`
 - `README.md`
+- `cmd/goalcli/fact.go`
 - `cmd/goalcli/governance.go`
 - `cmd/goalcli/main.go`
 - `cmd/goalcli/main_test.go`
