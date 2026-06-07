@@ -52,11 +52,16 @@ settings under repository governance.
   OIDC token and explicitly requested `id-token: write`.
 - The follow-up workflow patch grants `id-token: write` while preserving the
   existing read/review-only repository permissions.
+- The next PR #101 `claude-review` run (`27085899110`) auto-triggered on the
+  follow-up push and reached `anthropics/claude-code-action`, then failed with:
+  `Claude Code is not installed on this repository`. This identifies Claude Code
+  GitHub App installation as an external activation gate.
 
 ## Command Results
 
 The following checks were run again after adding `id-token: write` to the
-Claude review workflow permissions:
+Claude review workflow permissions and recording the live Claude App activation
+gate:
 
 - `git diff --check`: passed.
 - `ruby -e 'require "json"; JSON.parse(File.read(".github/rulesets/protect-main.json")); puts "json ok"'`: passed (`json ok`).
@@ -68,6 +73,10 @@ Claude review workflow permissions:
   `boundary`, `security` secret check, `contracts`, `docs-check`,
   `cli-contract`, `issue-registry`, `command-registry`, `makefile-baseline`,
   `audit-goal`, `rules-consistency-check`, and `traceability-check`.
+- `gh run watch 27085899110 --repo ZoneCNH/xlib-standard --exit-status`:
+  failed because the Claude Code GitHub App is not installed for the repository.
+  The failure occurred after the workflow auto-triggered and reached the pinned
+  Claude action.
 
 ## Live GitHub Settings
 
@@ -83,6 +92,9 @@ contains the desired ruleset-as-code change and rollout documentation.
 - The failed PR #101 `claude-review` run showed `ANTHROPIC_API_KEY` was not
   present in the action environment. This repository code change cannot create
   that external secret.
+- The follow-up PR #101 `claude-review` run showed the Claude Code GitHub App is
+  not installed for this repository. This repository code change cannot install
+  GitHub Apps or grant external app access.
 - Copilot automatic review requires the live GitHub ruleset to be reconciled and
   applied after the configuration PR is accepted.
 - `claude-review` is not added as a required status check in this task; making

@@ -31,6 +31,7 @@ The workflow uses:
 - `anthropics/claude-code-action` pinned to a 40-character commit SHA with a tag
   comment;
 - `ANTHROPIC_API_KEY` from repository or organization secrets;
+- the Claude Code GitHub App installed for the repository;
 - minimal repository permissions: `contents: read`, `pull-requests: write`, and
   `issues: write`;
 - `id-token: write` so the pinned Claude action can mint the OIDC token it uses
@@ -50,13 +51,16 @@ or branch deletion actor in this repository.
 ## Rollout Checklist
 
 1. Merge the configuration PR after normal project gates pass.
-2. Configure `ANTHROPIC_API_KEY` as a repository or organization secret.
-3. Reconcile the live `protect-main` ruleset with
+2. Install the Claude Code GitHub App for this repository.
+3. Configure `ANTHROPIC_API_KEY` as a repository or organization secret. Do not
+   store the key in repository files, PR comments, evidence logs, or release
+   manifests.
+4. Reconcile the live `protect-main` ruleset with
    `.github/rulesets/protect-main.json` before applying it through GitHub's
    ruleset API or UI. Do not blindly replace the live ruleset if required status
    checks or bypass actors differ.
-4. Confirm Copilot automatic code review is enabled for the branch ruleset.
-5. After the first successful Claude run, decide whether `claude-review` should
+5. Confirm Copilot automatic code review is enabled for the branch ruleset.
+6. After the first successful Claude run, decide whether `claude-review` should
    become a required status check. If it becomes required, update the ruleset,
    Evidence, and release notes together.
 
@@ -67,5 +71,6 @@ For every change to this automation, record:
 - the changed workflow, ruleset, and instruction files;
 - the exact validation commands and results;
 - whether live GitHub settings were changed;
+- whether the Claude Code GitHub App was installed for the repository;
 - whether `ANTHROPIC_API_KEY` was present;
 - any gap between ruleset-as-code and the live repository ruleset.
