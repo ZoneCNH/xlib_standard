@@ -77,6 +77,7 @@ func factStrictProjectionGaps(root string) []string {
 		{path: "cmd/goalcli/governance.go", needles: []string{"xlibfacts.CurrentReleaseVersion", "xlibfacts.GovernanceRuntimeVersion", "\"fact\""}},
 		{path: "internal/tools/releasemanifest/main.go", needles: []string{"xlibfacts.CurrentReleaseVersion"}},
 		{path: ".agent/harness/harness.yaml", needles: []string{"release-preflight VERSION=" + xlibfacts.CurrentReleaseVersion}},
+		{path: ".agent/release/release-required-gates.yaml", needles: []string{"release-preflight VERSION=" + xlibfacts.CurrentReleaseVersion}},
 		{path: ".agent/registries/makefile-baseline.yaml", needles: []string{"fact-audit: \"$(GOALCLI) fact audit --strict\""}},
 		{path: ".agent/registries/makefile-target-registry.yaml", needles: []string{"- fact-audit"}},
 		{path: ".agent/registries/command-registry.yaml", needles: []string{"name: fact"}},
