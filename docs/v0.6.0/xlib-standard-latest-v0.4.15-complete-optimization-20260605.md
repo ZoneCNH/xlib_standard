@@ -340,11 +340,11 @@ debt-lifecycle-check
 | 债务类型 | 当前检测方式 | 问题 |
 |---|---|---|
 | 结构债 | 只扫描 legacy `x.go` import | 不检测 layer graph、L2↔L2、循环依赖、internal/public 边界、god module。 |
-| 实现债 | marker 文本 `xlib-implementation-debt` | 不检测重复代码、复杂度、补丁热点、过时模式。 |
-| 测试债 | marker 文本 `xlib-testing-debt` | 不检测覆盖率、风险覆盖、脆弱测试、mutation、flaky、金字塔倒置。 |
+| 实现债 | marker 文本（implementation debt marker） | 不检测重复代码、复杂度、补丁热点、过时模式。 |
+| 测试债 | marker 文本（testing debt marker） | 不检测覆盖率、风险覆盖、脆弱测试、mutation、flaky、金字塔倒置。 |
 | 文档债 | marker + docs-check grep | 不检测 ADR 缺失、API 文档漂移、版本事实漂移、历史快照混读。 |
-| 依赖债 | `@latest` 和 `curl | bash` | 不检测 CVE evidence、新依赖 owner、license、deprecated、SBOM、runtime purpose expiry。 |
-| 领域债 | marker 文本 `xlib-domain-forbidden` | 不检测 ubiquitous language、bounded context、旧术语、DDD 模型偏移。 |
+| 依赖债 | `@latest` 和 curl-to-shell 安装模式 | 不检测 CVE evidence、新依赖 owner、license、deprecated、SBOM、runtime purpose expiry。 |
+| 领域债 | marker 文本（domain forbidden marker） | 不检测 ubiquitous language、bounded context、旧术语、DDD 模型偏移。 |
 | Downstream 债 | required token / status file | 更像 registry completeness，不是实际 downstream conformance proof。 |
 
 ### 更深的问题
