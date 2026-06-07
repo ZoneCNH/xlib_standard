@@ -2,6 +2,8 @@ schema_version: "1.0"
 module: xlib-standard
 control_plane:
   purpose: ".agent 逻辑分类索引，用于约束 Goal Runtime v3.1 控制面边界；不替代 CONSTITUTION.md 与 .agent/rules/ / .agent/harness/ 的全局权威顺序。"
+  runtime_control_plane: true
+  migration_boundary: ".agent 是当前治理/运行时控制平面；physical_migration 仅表示 .agent 内部逻辑分类已落地，不授权整体清空、删除或 tombstone。只有具备批准目标路径的 scoped release/config facts 可被迁移。"
   authority_order:
     - CONSTITUTION.md
     - .agent/rules/ and .agent/harness/
@@ -11,6 +13,7 @@ control_plane:
     - .agent/index.yaml and cmd/goalcli
     - release/manifest/ and release/evidence/
   physical_migration: true
+  physical_migration_scope: .agent-internal-classification
 files:
   - path: .agent/runtime/goal-runtime.md
     layer: runtime_contract
