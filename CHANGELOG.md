@@ -2,6 +2,18 @@
 
 ## 未发布
 
+## v0.6.1 - 2026-06-07
+
+### 治理
+
+- 记录 `main` 合入后的自动 patch 发布，锁定 stable config migration gate 覆盖已经进入 `v0.6.1` 基线。
+- 将 Agent release marker、release preflight 示例和 governance pack 标准版本示例对齐到 `v0.6.1`。
+- 将项目发布事实、template version、release manifest 模板版本和相关回归期望同步到已发布的 `v0.6.1`。
+
+### 兼容性
+
+- 本版本不改变 `pkg/templatex` 公共 API 形状；`Version` 元数据同步到 `v0.6.1`。
+
 ## v0.6.0 - 2026-06-07
 
 ### 治理

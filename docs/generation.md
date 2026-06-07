@@ -27,7 +27,7 @@ scripts/render_template.sh \
   --package-name kernel \
   --layer L0 \
   --enable-governance \
-  --standard-version v0.6.0 \
+  --standard-version v0.6.1 \
   --standard-commit "$(git rev-parse HEAD)" \
   --out ../kernel
 ```

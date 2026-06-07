@@ -1,5 +1,5 @@
 ---
-Release version: v0.6.0
+Release version: v0.6.1
 
 agent_protocol_version: v1.0.0
 status: normative
