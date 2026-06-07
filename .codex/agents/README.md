@@ -10,12 +10,18 @@
 | `xlib-executor` | 有界实现、重构、配置修改 | 最小变更 + Gate |
 | `xlib-verifier` | 完成声明、Evidence、Gate 与分层边界核验 | 只读优先 |
 | `xlib-release-reviewer` | Release、manifest、checksum、downstream adoption 就绪性审查 | 只读 |
+| `xlib-harness-selector` | 根据变更类型选择必须运行的 Harness Gate | 只读 |
+| `xlib-harness-runner` | 执行已选本地 Gate 并整理 exact command / result 证据 | Gate 执行，不改源码 |
+| `xlib-harness-auditor` | 审计 Harness、Makefile、registry 与规则之间的一致性 | 只读优先 |
 
 ## Routing Notes
 
 - 简单仓库查找优先交给 `xlib-explore`。
 - 代码或配置实现交给 `xlib-executor`，但必须在非 `main` / `master` 的独立 worktree 中执行。
 - 完成前交给 `xlib-verifier` 检查证据、Gate 和未验证风险。
+- 不确定 Gate 覆盖面时先交给 `xlib-harness-selector`，输出必须区分 required、recommended、not applicable、not run。
+- 需要执行本地 Gate 时交给 `xlib-harness-runner`；它只运行已批准范围内的非破坏性本地命令，并报告 exact command、exit status 和关键输出。
+- 修改 `.agent/harness/`、`.agent/rules/`、`.agent/registries/`、`Makefile` 或命令入口时，交给 `xlib-harness-auditor` 检查 Harness 契约、registry、Makefile target 和 Evidence 要求是否同步。
 - Release 或发布声明相关工作交给 `xlib-release-reviewer`；没有 release manifest、checksum、score、context release 和 final gate 证据时，不得声明 release-ready。
 - `worker` 仍只用于 OMX team/swarm 运行时，不作为普通 subagent 使用。
 
