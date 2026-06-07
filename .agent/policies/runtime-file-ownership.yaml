@@ -54,11 +54,21 @@ owners:
     review_required: true
     review_rule: SECURITY-CHANGE
     rationale: pre-commit/pre-push 阻断；弱化等于关闭本地 P0 防线
+  ".github/":
+    owner: ci
+    review_required: true
+    review_rule: CI-CHANGE
+    rationale: GitHub 平台治理入口；workflow、rules export 和 PR 模板必须保持 gate parity，不能作为配置 SSOT
   ".github/workflows/":
     owner: ci
     review_required: true
     review_rule: CI-CHANGE
     rationale: CI 阻断流水线；与本地 make ci 必须 parity
+  ".devcontainer/":
+    owner: ci
+    review_required: true
+    review_rule: CI-CHANGE
+    rationale: 开发容器入口会影响本地 gate 环境；配置根迁移前必须保持显式分类
   ".github/CODEOWNERS":
     owner: governance
     review_required: true
@@ -69,6 +79,16 @@ owners:
     review_required: true
     review_rule: CI-CHANGE
     rationale: 本地 Gate 入口，本地与 CI 必须 parity (RULE-PARITY-001)
+  ".gitignore":
+    owner: ci
+    review_required: true
+    review_rule: CI-CHANGE
+    rationale: 保护 generated/runtime artifacts 不被误提交；分类漂移会污染 release evidence
+  ".dockerignore":
+    owner: ci
+    review_required: true
+    review_rule: CI-CHANGE
+    rationale: Docker build context 边界；必须排除本地运行态和 generated release 输出
   "pkg/templatex/":
     owner: standard
     review_required: true
