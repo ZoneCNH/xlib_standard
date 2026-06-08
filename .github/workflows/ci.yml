@@ -1,3 +1,10 @@
+# 合并 CI — 将 6 个 push/PR workflow 合并为 1 个，减少重复 checkout/setup-go
+#
+# 合并来源：ci.yml, security.yml, integration.yml, adoption-check.yml,
+#           docker-contract.yml, worktree-guard.yml
+#
+# 保留独立：goal-gates.yml (手动), release.yml (tag), release-auto-patch.yml (main)
+
 name: CI
 
 on:
@@ -5,12 +12,16 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * 1"  # 每周一 03:17 UTC（安全扫描）
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  # ── 1. Lint + Test + Release Check ──────────────────────────────
   ci:
     runs-on: ubuntu-latest
     env:
@@ -79,6 +90,7 @@ jobs:
             release/debt/latest.json.sha256
           if-no-files-found: warn
 
+  # ── 2. Docker Contract ──────────────────────────────────────────
   docker-contract:
     runs-on: ubuntu-latest
     env:
@@ -126,3 +138,82 @@ jobs:
             release/evidence/docker-toolchain-summary.json
             release/docker/*.md
           if-no-files-found: warn
+
+  # ── 3. Security (含周度 vulncheck) ─────────────────────────────
+  security:
+    runs-on: ubuntu-latest
+    env:
+      XLIB_ENABLE_VULNCHECK: ${{ github.event_name == 'schedule' && '1' || vars.XLIB_ENABLE_VULNCHECK }}
+      XLIB_VULNCHECK_INTERVAL_HOURS: "168"
+
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # tag v6.0.3
+
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # tag v5
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: go.sum
+
+      - name: Install govulncheck (optional)
+        if: ${{ env.XLIB_ENABLE_VULNCHECK == '1' }}
+        run: go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
+
+      - name: Security
+        env:
+          XLIB_ENABLE_VULNCHECK: ${{ github.event_name == 'schedule' && '1' || vars.XLIB_ENABLE_VULNCHECK }}
+          XLIB_FORCE_VULNCHECK: ${{ github.event_name == 'schedule' && '1' || '' }}
+          XLIB_VULNCHECK_INTERVAL_HOURS: "168"
+        run: GOWORK=off make security
+
+  # ── 4. Integration ──────────────────────────────────────────────
+  integration:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # tag v6.0.3
+
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # tag v5
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: go.sum
+
+      - name: Integration
+        run: GOWORK=off make integration
+
+  # ── 5. Adoption Check ───────────────────────────────────────────
+  adoption-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Skip source-template repository
+        if: ${{ github.event.repository.name == format('{0}{1}', 'xlib-', 'standard') }}
+        run: echo "adoption-check is a rendered downstream gate; source template has no downstream lock"
+      - name: Run downstream adoption gate
+        if: ${{ github.event.repository.name != format('{0}{1}', 'xlib-', 'standard') }}
+        run: GOWORK=off make adoption-check
+
+  # ── 6. Worktree Guard ───────────────────────────────────────────
+  worktree-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # tag v6.0.3
+        with:
+          fetch-depth: 0
+
+      - name: 检查 PR 来源分支
+        run: |
+          HEAD_REF="${{ github.head_ref }}"
+          if [ "$HEAD_REF" = "main" ] || [ "$HEAD_REF" = "master" ]; then
+            echo "ERROR: PR 来源分支不能是 main/master。"
+            echo "请使用 worktree 分支提交 PR。"
+            exit 1
+          fi
+          echo "worktree-guard: 来源分支 $HEAD_REF，通过。"
