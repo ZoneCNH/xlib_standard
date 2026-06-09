@@ -321,6 +321,9 @@ require_text "Makefile" '$(GOALCLI) standard-impact-check'
 require_text "Makefile" '$(GOALCLI) boundary'
 require_text "Makefile" '$(GOALCLI) contracts'
 require_text "Makefile" '$(GOALCLI) integration'
+require_text "Makefile" '$(GOALCLI) render-check'
+require_text ".agent/registries/makefile-target-registry.yaml" "render-check"
+require_text ".agent/registries/makefile-baseline.yaml" "render-check"
 require_text "Makefile" '$(GOALCLI) score --min 9.8'
 require_text "Makefile" '$(GOALCLI) release-evidence-checksum-check'
 require_text "scripts/run_fuzz_smoke.sh" 'fuzz_time="${FUZZ_SMOKE_TIME:-10s}"'

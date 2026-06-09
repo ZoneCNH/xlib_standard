@@ -62,6 +62,7 @@ baseline_targets:
   makefile-baseline: "$(GOALCLI) makefile-baseline"
   audit-goal: "$(GOALCLI) audit-goal"
   fact-audit: "$(GOALCLI) fact audit --strict"
+  render-check: "$(GOALCLI) render-check $(RENDER_CHECK_DIR) $(RENDER_CHECK_MODULE_NAME) $(RENDER_CHECK_MODULE_PATH) $(RENDER_CHECK_PACKAGE_NAME)"
   dashboard-generate: "$(GOALCLI) dashboard-generate"
   context-profile: "$(GOALCLI) context-profile --profile $${PROFILE:-standard}"
   context-profile-check: "$(GOALCLI) context-profile-check"

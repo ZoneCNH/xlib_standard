@@ -87,6 +87,8 @@
 - `docker-drift-check`
 - `docker-contract`
 
+`render-check` 是参数化 helper command，而不是 standalone release gate；调用方必须提供 rendered dir、module name、module path 和 package name。Live proof 由 `make integration` 或显式 fixture-backed `make render-check` 调用提供。
+
 ## Canonical xlib facts
 
 `goalcli fact audit --strict` reads `.xlib/facts/xlib.yaml` as the local single source of truth for the current xlib release, runtime versions, and toolchain versions. Strict mode compares those canonical facts with local release consumers (goalcli governance, release manifest defaults, harness preflight, registries, docs, and Makefile gates) without network access. `fact-audit` is release-blocking through `context-release`, `release-check`, and `release-check-extended`; `release-final-check` reaches it through `context-release`.

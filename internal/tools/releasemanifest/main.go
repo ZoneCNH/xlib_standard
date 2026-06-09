@@ -14,7 +14,7 @@ import (
 var exit = os.Exit
 
 // Release manifest CLI 的 gate 以 main.go 作为契约锚点。
-// Canonical release version is v0.6.1; the executable reads it from xlibfacts.
+// Canonical release version is sourced from xlibfacts.CurrentReleaseVersion.
 const (
 	defaultReleaseVersion       = xlibfacts.CurrentReleaseVersion
 	defaultManifestOutputPath   = "release/manifest/latest.json"

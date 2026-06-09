@@ -12,6 +12,7 @@
 - Contract Gate：`GOWORK=off make contracts`
 - Docs Gate：`GOWORK=off make docs-check`
 - Integration Gate：`GOWORK=off make integration`，默认下游为 `kernel`
+- Render Check Helper：`GOWORK=off make render-check` 不是 standalone required gate；它必须提供 `RENDER_CHECK_DIR`、`RENDER_CHECK_MODULE_NAME`、`RENDER_CHECK_MODULE_PATH` 和 `RENDER_CHECK_PACKAGE_NAME`，live proof 由 `make integration` 或显式 fixture-backed invocation 提供。
 - Evidence Gate：`CHECK_STATUS=passed GOWORK=off make evidence`
 - Release Gate：`GOWORK=off make release-check`
 - Adoption Gate：`GOWORK=off make adoption-check`，在渲染 downstream 仓库内验证 Repository Governance Pack、`xlib-standard.lock`、本地 hooks、GitHub workflow、main ruleset、`mk/governance.mk` 和 harness gate 已被保留；在标准源仓库内不要求 downstream lock，但仍验证 main ruleset 禁止 bypass 且要求 `adoption-check`、`governance-check` 和 `release-check`。
