@@ -1,2 +1,0 @@
-schema_version: "2.9.3"
-formula: "release-check && release-final-check evidence"
