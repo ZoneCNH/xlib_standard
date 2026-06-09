@@ -78,11 +78,20 @@ FORBIDDEN_TERMS=(
   "RiskGate"
 )
 
-for term in "${FORBIDDEN_TERMS[@]}"; do
-  if grep -R --line-number --fixed-strings "$term" ./pkg ./internal --exclude-dir=.git; then
-    echo "ERROR: forbidden business term found: $term"
-    exit 1
+search_dirs=()
+for dir in ./pkg ./internal; do
+  if [[ -d "$dir" ]]; then
+    search_dirs+=("$dir")
   fi
 done
+
+if [[ ${#search_dirs[@]} -gt 0 ]]; then
+  for term in "${FORBIDDEN_TERMS[@]}"; do
+    if grep -R --line-number --fixed-strings "$term" "${search_dirs[@]}" --exclude-dir=.git; then
+      echo "ERROR: forbidden business term found: $term"
+      exit 1
+    fi
+  done
+fi
 
 echo "boundary check passed"

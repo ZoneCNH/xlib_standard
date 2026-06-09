@@ -18,7 +18,7 @@ type recordingMetrics struct {
 	gauges     []metricCall
 }
 
-func (m *recordingMetrics) IncCounter(name string, labels map[string]string) {
+func (m *recordingMetrics) IncrCounter(name string, labels map[string]string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.counters = append(m.counters, metricCall{name: name, labels: cloneLabels(labels)})
@@ -128,7 +128,7 @@ func cloneLabels(labels map[string]string) map[string]string {
 func TestNoopMetricsAcceptsCalls(t *testing.T) {
 	metrics := NoopMetrics{}
 
-	metrics.IncCounter(MetricClientCreatedTotal, map[string]string{"name": "templatex"})
+	metrics.IncrCounter(MetricClientCreatedTotal, map[string]string{"name": "templatex"})
 	metrics.ObserveHistogram(MetricClientHealthLatencyMS, 1, nil)
 	metrics.SetGauge(MetricClientHealthStatus, 1, map[string]string{"status": string(HealthHealthy)})
 }

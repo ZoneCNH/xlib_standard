@@ -14,10 +14,10 @@ func TestNewRejectsInvalidConfig(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected invalid config to fail")
 	}
-	if !IsKind(err, ErrorKindValidation) {
+	if !IsKind(err, KindValidation) {
 		t.Fatalf("expected validation error, got %T %[1]v", err)
 	}
-	if !metrics.counterWithLabel(MetricClientErrorsTotal, "kind", string(ErrorKindValidation)) {
+	if !metrics.counterWithLabel(MetricClientErrorsTotal, "kind", string(KindValidation)) {
 		t.Fatalf("expected validation error metric, got %#v", metrics.counters)
 	}
 }
@@ -29,10 +29,10 @@ func TestNewRejectsNilContext(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected nil context to fail")
 	}
-	if !IsKind(err, ErrorKindValidation) {
+	if !IsKind(err, KindValidation) {
 		t.Fatalf("expected validation error, got %T %[1]v", err)
 	}
-	if !metrics.counterWithLabel(MetricClientErrorsTotal, "kind", string(ErrorKindValidation)) {
+	if !metrics.counterWithLabel(MetricClientErrorsTotal, "kind", string(KindValidation)) {
 		t.Fatalf("expected validation error metric, got %#v", metrics.counters)
 	}
 }
@@ -45,7 +45,7 @@ func TestNewRejectsCanceledContext(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected canceled context to fail")
 	}
-	if !IsKind(err, ErrorKindUnavailable) {
+	if !IsKind(err, KindUnavailable) {
 		t.Fatalf("expected unavailable error, got %T %[1]v", err)
 	}
 	if !errors.Is(err, context.Canceled) {
@@ -61,7 +61,7 @@ func TestNewRejectsExpiredContext(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected expired context to fail")
 	}
-	if !IsKind(err, ErrorKindTimeout) {
+	if !IsKind(err, KindTimeout) {
 		t.Fatalf("expected timeout error, got %T %[1]v", err)
 	}
 	if !errors.Is(err, context.DeadlineExceeded) {
@@ -97,7 +97,7 @@ func TestCloseRejectsNilClient(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected nil client to fail")
 	}
-	if !IsKind(err, ErrorKindValidation) {
+	if !IsKind(err, KindValidation) {
 		t.Fatalf("expected validation error, got %T %[1]v", err)
 	}
 }
@@ -113,10 +113,10 @@ func TestCloseRejectsNilContext(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected nil close context to fail")
 	}
-	if !IsKind(err, ErrorKindValidation) {
+	if !IsKind(err, KindValidation) {
 		t.Fatalf("expected validation error, got %T %[1]v", err)
 	}
-	if !metrics.counterWithLabel(MetricClientErrorsTotal, "kind", string(ErrorKindValidation)) {
+	if !metrics.counterWithLabel(MetricClientErrorsTotal, "kind", string(KindValidation)) {
 		t.Fatalf("expected validation error metric, got %#v", metrics.counters)
 	}
 }
@@ -133,7 +133,7 @@ func TestCloseRejectsCanceledContext(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected canceled close context to fail")
 	}
-	if !IsKind(err, ErrorKindUnavailable) {
+	if !IsKind(err, KindUnavailable) {
 		t.Fatalf("expected unavailable error, got %T %[1]v", err)
 	}
 	if !errors.Is(err, context.Canceled) {
@@ -154,13 +154,13 @@ func TestCloseRejectsExpiredContext(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected expired close context to fail")
 	}
-	if !IsKind(err, ErrorKindTimeout) {
+	if !IsKind(err, KindTimeout) {
 		t.Fatalf("expected timeout error, got %T %[1]v", err)
 	}
 	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("expected context deadline cause, got %v", err)
 	}
-	if !metrics.counterWithLabel(MetricClientErrorsTotal, "kind", string(ErrorKindTimeout)) {
+	if !metrics.counterWithLabel(MetricClientErrorsTotal, "kind", string(KindTimeout)) {
 		t.Fatalf("expected timeout error metric, got %#v", metrics.counters)
 	}
 }
@@ -172,7 +172,7 @@ func TestCloseRejectsZeroValueClient(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected zero-value client to fail")
 	}
-	if !IsKind(err, ErrorKindValidation) {
+	if !IsKind(err, KindValidation) {
 		t.Fatalf("expected validation error, got %T %[1]v", err)
 	}
 }

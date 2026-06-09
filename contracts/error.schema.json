@@ -6,14 +6,13 @@
   "properties": {
     "kind": {
       "enum": [
-        "config",
         "validation",
+        "config",
         "connection",
-        "unavailable",
-        "timeout",
         "auth",
-        "conflict",
-        "rate_limit",
+        "timeout",
+        "unavailable",
+        "closed",
         "internal"
       ]
     },

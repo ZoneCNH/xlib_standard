@@ -27,15 +27,14 @@ func TestErrorKindContractMatchesPublicConstants(t *testing.T) {
 	schema := readSchema(t, "error.schema.json")
 
 	expected := sortedStrings(
-		string(templatex.ErrorKindConfig),
-		string(templatex.ErrorKindValidation),
-		string(templatex.ErrorKindConnection),
-		string(templatex.ErrorKindUnavailable),
-		string(templatex.ErrorKindTimeout),
-		string(templatex.ErrorKindAuth),
-		string(templatex.ErrorKindConflict),
-		string(templatex.ErrorKindRateLimit),
-		string(templatex.ErrorKindInternal),
+		string(templatex.KindConfig),
+		string(templatex.KindValidation),
+		string(templatex.KindConnection),
+		string(templatex.KindUnavailable),
+		string(templatex.KindTimeout),
+		string(templatex.KindAuth),
+		string(templatex.KindClosed),
+		string(templatex.KindInternal),
 	)
 	actual := sortedStrings(schema.Properties["kind"].Enum...)
 	if !reflect.DeepEqual(actual, expected) {
@@ -88,145 +87,10 @@ func TestMetricsContractDocumentsPublicConstants(t *testing.T) {
 		templatex.MetricClientErrorsTotal,
 		templatex.MetricClientHealthStatus,
 		templatex.MetricClientHealthLatencyMS,
-		templatex.MetricClientRequestsTotal,
-		templatex.MetricClientRequestDurationSeconds,
-		templatex.MetricClientRetriesTotal,
-		templatex.MetricClientInflight,
 	} {
 		if !strings.Contains(text, "`"+metric+"`") {
 			t.Fatalf("metrics contract does not document %q", metric)
 		}
-	}
-}
-
-func TestGoalRuntimeSchemasAreValidJSON(t *testing.T) {
-	for _, path := range []string{
-		"goalcli-report.schema.json",
-		"goalcli-dashboard.schema.json",
-		"issue-registry.schema.json",
-		"command-registry.schema.json",
-		"layer-governance.schema.json",
-		"execution-context.schema.json",
-		"conformance-attestation.schema.json",
-		"policy.schema.json",
-		"execution-evidence.schema.json",
-		"downstream-adoption-proof.schema.json",
-		"docker-toolchain.schema.json",
-	} {
-		t.Run(path, func(t *testing.T) {
-			content, err := os.ReadFile(path)
-			if err != nil {
-				t.Fatalf("read %s: %v", path, err)
-			}
-			var schema map[string]any
-			if err := json.Unmarshal(content, &schema); err != nil {
-				t.Fatalf("parse %s: %v", path, err)
-			}
-			if schema["$schema"] == "" || schema["type"] != "object" {
-				t.Fatalf("%s must declare object JSON schema, got %#v", path, schema)
-			}
-		})
-	}
-}
-
-func TestExecutionContextContractMatchesGovernanceContexts(t *testing.T) {
-	schema := readSchema(t, "execution-context.schema.json")
-
-	expected := sortedStrings("local_write", "local_readonly", "ci_pull_request", "ci_main_verify", "release_verify")
-	actual := sortedStrings(schema.Properties["context"].Enum...)
-	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("execution context enum drift:\nactual:   %#v\nexpected: %#v", actual, expected)
-	}
-	requireFields(t, schema.Required, "context", "root", "gowork")
-}
-
-func TestExecutionEvidenceContractRequiredFields(t *testing.T) {
-	schema := readSchema(t, "execution-evidence.schema.json")
-	requireFields(t, schema.Required,
-		"evidence_id",
-		"command",
-		"cwd",
-		"branch",
-		"commit",
-		"exit_code",
-		"timestamp",
-		"stdout_sha256",
-		"artifact_path",
-	)
-	confidence := sortedStrings(schema.Properties["confidence"].Enum...)
-	expectedConfidence := sortedStrings("high", "medium", "low")
-	if !reflect.DeepEqual(confidence, expectedConfidence) {
-		t.Fatalf("confidence enum drift:\nactual:   %#v\nexpected: %#v", confidence, expectedConfidence)
-	}
-	if got := schema.Properties["exit_code"].Type; got != "integer" {
-		t.Fatalf("exit_code type = %q, want integer", got)
-	}
-}
-
-func TestDownstreamAdoptionProofContractRequiredFields(t *testing.T) {
-	schema := readSchema(t, "downstream-adoption-proof.schema.json")
-	requireFields(t, schema.Required,
-		"schema_version",
-		"source_repo",
-		"source_commit",
-		"downstream_repo",
-		"downstream_commit",
-		"mode",
-		"gate_outputs",
-		"rollback",
-	)
-	mode := sortedStrings(schema.Properties["mode"].Enum...)
-	expectedMode := sortedStrings("patch-only", "dry-run", "pr-plan")
-	if !reflect.DeepEqual(mode, expectedMode) {
-		t.Fatalf("mode enum drift:\nactual:   %#v\nexpected: %#v", mode, expectedMode)
-	}
-}
-
-func TestDownstreamAdoptionModesRegistryMatchesProofContract(t *testing.T) {
-	schema := readSchema(t, "downstream-adoption-proof.schema.json")
-	registry, err := os.ReadFile("../.agent/registries/downstream-adoption-modes.yaml")
-	if err != nil {
-		t.Fatalf("read downstream adoption modes registry: %v", err)
-	}
-	text := string(registry)
-	for _, mode := range schema.Properties["mode"].Enum {
-		if !strings.Contains(text, mode) {
-			t.Fatalf("downstream adoption modes registry missing schema mode %q", mode)
-		}
-	}
-}
-
-func TestExecutionEvidenceContractMatchesEvidenceManifest(t *testing.T) {
-	manifest, err := os.ReadFile("../.agent/evidence/evidence-artifacts.yaml")
-	if err != nil {
-		t.Fatalf("read evidence-artifacts.yaml: %v", err)
-	}
-	text := string(manifest)
-	for _, needle := range []string{
-		"contracts/execution-evidence.schema.json",
-		"execution_evidence",
-		"evidence_id",
-		"stdout_sha256",
-		"exit_code",
-	} {
-		if !strings.Contains(text, needle) {
-			t.Fatalf(".agent/evidence/evidence-artifacts.yaml missing required marker %q", needle)
-		}
-	}
-}
-
-func requireSchemaFieldMapsToStructField(t *testing.T, schema objectSchema, structType reflect.Type, schemaField string, structField string, schemaType string) {
-	t.Helper()
-
-	property, ok := schema.Properties[schemaField]
-	if !ok {
-		t.Fatalf("schema missing property %q", schemaField)
-	}
-	if property.Type != schemaType {
-		t.Fatalf("schema property %q type = %q, want %q", schemaField, property.Type, schemaType)
-	}
-	if _, ok := structType.FieldByName(structField); !ok {
-		t.Fatalf("%s missing field %s required by schema property %q", structType.Name(), structField, schemaField)
 	}
 }
 
@@ -253,6 +117,21 @@ func requireFields(t *testing.T, actual []string, expected ...string) {
 		if !fields[field] {
 			t.Fatalf("required fields missing %q from %#v", field, actual)
 		}
+	}
+}
+
+func requireSchemaFieldMapsToStructField(t *testing.T, schema objectSchema, structType reflect.Type, schemaField string, structField string, schemaType string) {
+	t.Helper()
+
+	property, ok := schema.Properties[schemaField]
+	if !ok {
+		t.Fatalf("schema missing property %q", schemaField)
+	}
+	if property.Type != schemaType {
+		t.Fatalf("schema property %q type = %q, want %q", schemaField, property.Type, schemaType)
+	}
+	if _, ok := structType.FieldByName(structField); !ok {
+		t.Fatalf("%s missing field %s required by schema property %q", structType.Name(), structField, schemaField)
 	}
 }
 

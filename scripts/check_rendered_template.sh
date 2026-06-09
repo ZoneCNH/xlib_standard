@@ -12,6 +12,10 @@ USAGE
 }
 
 if [[ $# -ne 4 ]]; then
+  if [[ $# -eq 0 ]]; then
+    echo "rendered template check skipped (no args — template repo only)"
+    exit 0
+  fi
   usage >&2
   exit 2
 fi

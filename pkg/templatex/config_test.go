@@ -10,7 +10,7 @@ func TestConfigValidateRequiresName(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected missing name to fail validation")
 	}
-	if !IsKind(err, ErrorKindValidation) {
+	if !IsKind(err, KindValidation) {
 		t.Fatalf("expected validation error, got %T %[1]v", err)
 	}
 }
@@ -20,7 +20,7 @@ func TestConfigValidateRejectsNegativeTimeout(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected negative timeout to fail validation")
 	}
-	if !IsKind(err, ErrorKindValidation) {
+	if !IsKind(err, KindValidation) {
 		t.Fatalf("expected validation error, got %T %[1]v", err)
 	}
 }

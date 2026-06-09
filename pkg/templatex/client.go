@@ -35,7 +35,7 @@ func New(ctx context.Context, cfg Config, opts ...Option) (*Client, error) {
 		return nil, err
 	}
 
-	options.metrics.IncCounter(MetricClientCreatedTotal, map[string]string{"name": cfg.Name})
+	options.metrics.IncrCounter(MetricClientCreatedTotal, map[string]string{"name": cfg.Name})
 	return &Client{cfg: cfg, metrics: options.metrics, initialized: true}, nil
 }
 
@@ -72,7 +72,7 @@ func (c *Client) Close(ctx context.Context) error {
 	c.mu.Unlock()
 
 	if metrics != nil {
-		metrics.IncCounter(MetricClientClosedTotal, map[string]string{"name": name})
+		metrics.IncrCounter(MetricClientClosedTotal, map[string]string{"name": name})
 	}
 	return nil
 }
@@ -81,7 +81,7 @@ func recordErrorMetric(metrics Metrics, op string, err error) {
 	if metrics == nil {
 		return
 	}
-	metrics.IncCounter(MetricClientErrorsTotal, map[string]string{
+	metrics.IncrCounter(MetricClientErrorsTotal, map[string]string{
 		"op":   op,
 		"kind": string(errorKind(err)),
 	})

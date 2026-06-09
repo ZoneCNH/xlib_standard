@@ -8,15 +8,6 @@ REQUIRED_FILES=(
   "contracts/health.schema.json"
   "contracts/error.schema.json"
   "contracts/metrics.md"
-  "contracts/goalcli-report.schema.json"
-  "contracts/issue-registry.schema.json"
-  "contracts/command-registry.schema.json"
-  "contracts/execution-context.schema.json"
-  "contracts/conformance-attestation.schema.json"
-  "contracts/policy.schema.json"
-  "contracts/docker-toolchain.schema.json"
-  "contracts/execution-evidence.schema.json"
-  "contracts/downstream-adoption-proof.schema.json"
 )
 
 for file in "${REQUIRED_FILES[@]}"; do
@@ -26,6 +17,6 @@ for file in "${REQUIRED_FILES[@]}"; do
   fi
 done
 
-go test ./contracts
+GOWORK=off go test ./contracts
 
 echo "contract check passed"

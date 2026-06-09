@@ -32,7 +32,7 @@ func TestConfigSanitizeSecretProperty(t *testing.T) {
 func TestConfigNegativeTimeoutInvariant(t *testing.T) {
 	for _, timeout := range []time.Duration{-1, -time.Nanosecond, -time.Second} {
 		err := Config{Name: "templatex", Timeout: timeout}.Validate()
-		if err == nil || !IsKind(err, ErrorKindValidation) {
+		if err == nil || !IsKind(err, KindValidation) {
 			t.Fatalf("negative timeout must return validation error, got %v", err)
 		}
 	}
