@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"sort"
@@ -406,7 +407,7 @@ func TestRunDispatchesExternalCommands(t *testing.T) {
 		{name: "release-evidence-checksum-check", args: []string{"release-evidence-checksum-check"}, wantStdout: "hash_release_evidence.sh --check"},
 		{name: "release-evidence-hash", args: []string{"release-evidence-hash"}, wantStdout: "hash_release_evidence.sh"},
 		{name: "release-final-check", args: []string{"release-final-check"}, wantStdout: "make release-final-check"},
-		{name: "render-check", args: []string{"render-check", "rendered"}, wantStdout: "check_rendered_template.sh rendered"},
+		{name: "render-check", args: []string{"render-check", "rendered", "kernel", "github.com/ZoneCNH/kernel", "kernel"}, wantStdout: "check_rendered_template.sh rendered kernel github.com/ZoneCNH/kernel kernel"},
 		{name: "rules-verify", args: []string{"rules-verify"}, wantStdout: "python3 scripts/verify_rules.py"},
 		{name: "legacy secrets", args: []string{"secrets", "fixture-root"}, wantStdout: "check_secrets.sh fixture-root"},
 		{name: "secret-check", args: []string{"secret-check", "fixture-root"}, wantStdout: "check_secrets.sh fixture-root"},
@@ -1519,6 +1520,26 @@ func TestRunScore(t *testing.T) {
 	})
 }
 
+func TestVersionCommandReportsCurrentReleaseVersion(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	got := run([]string{"version", "--json"}, strings.NewReader(""), &stdout, &stderr)
+	if got != 0 {
+		t.Fatalf("version exit = %d, stderr %q; want 0", got, stderr.String())
+	}
+	var report gateReport
+	if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
+		t.Fatalf("stdout is not gateReport JSON: %v; stdout %q", err, stdout.String())
+	}
+	want := "xlib-standard release " + xlibfacts.CurrentReleaseVersion
+	if !slicesContain(report.Details, want) {
+		t.Fatalf("report details = %v; want %q", report.Details, want)
+	}
+	stale := "xlib-standard release v0.6.1"
+	if xlibfacts.CurrentReleaseVersion != "v0.6.1" && strings.Contains(stdout.String(), stale) {
+		t.Fatalf("stdout = %q; contains stale release detail %q", stdout.String(), stale)
+	}
+}
+
 func TestRunGovernanceCommands(t *testing.T) {
 	t.Run("version json", func(t *testing.T) {
 		var stdout, stderr bytes.Buffer
@@ -1532,7 +1553,7 @@ func TestRunGovernanceCommands(t *testing.T) {
 		}
 		if report.Command != "version" ||
 			report.Status != "passed" ||
-			!slicesContain(report.Details, "xlib-standard release v0.6.1") ||
+			!slicesContain(report.Details, "xlib-standard release "+xlibfacts.CurrentReleaseVersion) ||
 			!slicesContain(report.Details, "goalcli governance runtime v2.9.3") {
 			t.Fatalf("report = %#v; want version gate report", report)
 		}
@@ -1640,7 +1661,8 @@ func TestRunExternalErrorPaths(t *testing.T) {
 }
 
 func TestFactAuditStrictPassesCanonicalFacts(t *testing.T) {
-	root := repoRoot(t)
+	root := t.TempDir()
+	writeCanonicalFactAuditFixture(t, root)
 	var stdout, stderr bytes.Buffer
 
 	got := run([]string{"fact", "audit", "--strict", "--root", root}, strings.NewReader(""), &stdout, &stderr)
@@ -1648,7 +1670,25 @@ func TestFactAuditStrictPassesCanonicalFacts(t *testing.T) {
 	if got != 0 {
 		t.Fatalf("fact audit exit = %d, stderr %q, stdout %q; want 0", got, stderr.String(), stdout.String())
 	}
-	for _, needle := range []string{`"command": "fact audit"`, `"status": "passed"`, "v0.6.1", ".xlib/facts/xlib.yaml"} {
+	for _, needle := range []string{`"command": "fact audit"`, `"status": "passed"`, xlibfacts.CurrentReleaseVersion, ".xlib/facts/xlib.yaml"} {
+		if !strings.Contains(stdout.String(), needle) {
+			t.Fatalf("stdout = %q; want %q", stdout.String(), needle)
+		}
+	}
+}
+
+func TestFactAuditStrictFailsWhenCurrentReleaseTagAlreadyExists(t *testing.T) {
+	root := t.TempDir()
+	writeCanonicalFactAuditFixture(t, root)
+	initGitRepoWithTag(t, root, xlibfacts.CurrentReleaseVersion)
+	var stdout, stderr bytes.Buffer
+
+	got := run([]string{"fact", "audit", "--strict", "--root", root}, strings.NewReader(""), &stdout, &stderr)
+
+	if got != 1 {
+		t.Fatalf("fact audit exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+	}
+	for _, needle := range []string{`"status": "failed"`, "current_release.version " + xlibfacts.CurrentReleaseVersion + " already exists as local git tag refs/tags/" + xlibfacts.CurrentReleaseVersion} {
 		if !strings.Contains(stdout.String(), needle) {
 			t.Fatalf("stdout = %q; want %q", stdout.String(), needle)
 		}
@@ -1667,11 +1707,68 @@ func TestFactStrictProjectionGapsReportsReleaseRequiredGateDrift(t *testing.T) {
 	}
 }
 
+func TestFactStrictProjectionGapsReportsReleaseManifestTemplateDrift(t *testing.T) {
+	root := t.TempDir()
+	writeFactStrictProjectionFixture(t, root, xlibfacts.CurrentReleaseVersion)
+	writeTestFiles(t, root, map[string]string{
+		"release/manifest/template.json": "{\n  \"version\": \"v0.4.3\"\n}\n",
+	})
+
+	gaps := factStrictProjectionGaps(root)
+
+	want := `release/manifest/template.json missing "version": "` + xlibfacts.CurrentReleaseVersion + `"`
+	if !slicesContain(gaps, want) {
+		t.Fatalf("factStrictProjectionGaps() = %v; want %q", gaps, want)
+	}
+}
+
+func writeCanonicalFactAuditFixture(t *testing.T, root string) {
+	t.Helper()
+	writeFactStrictProjectionFixture(t, root, xlibfacts.CurrentReleaseVersion)
+	writeTestFiles(t, root, map[string]string{
+		xlibfacts.Path: fmt.Sprintf(`schema_version: xlib-facts/v1
+module: github.com/ZoneCNH/xlib-standard
+current_release:
+  version: %s
+  commit: 216ef50cead9ab20437566845b3446d6dbd07ec9
+  released_at: 2026-06-07T05:33:38Z
+runtime:
+  goal_runtime_version: v3.1
+  governance_runtime_version: v2.9.3
+tools:
+  go: "1.23.0"
+  golangci_lint: "v2.1.6"
+  govulncheck: "v1.1.4"
+`, xlibfacts.CurrentReleaseVersion),
+	})
+}
+
+func initGitRepoWithTag(t *testing.T, root, tag string) {
+	t.Helper()
+	runGit := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", append([]string{"-C", root}, args...)...)
+		if output, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, output)
+		}
+	}
+	if output, err := exec.Command("git", "init", root).CombinedOutput(); err != nil {
+		t.Fatalf("git init: %v\n%s", err, output)
+	}
+	runGit("config", "user.email", "test@example.invalid")
+	runGit("config", "user.name", "Test User")
+	writeTestFiles(t, root, map[string]string{"tag-anchor.txt": "anchor\n"})
+	runGit("add", "tag-anchor.txt")
+	runGit("commit", "-m", "anchor")
+	runGit("tag", tag)
+}
+
 func writeFactStrictProjectionFixture(t *testing.T, root string, releaseRequiredGateVersion string) {
 	t.Helper()
 	writeTestFiles(t, root, map[string]string{
 		"cmd/goalcli/governance.go":                       "xlibfacts.CurrentReleaseVersion\nxlibfacts.GovernanceRuntimeVersion\n\"fact\"\n",
 		"internal/tools/releasemanifest/main.go":          "xlibfacts.CurrentReleaseVersion\n",
+		"release/manifest/template.json":                  "{\n  \"version\": \"" + xlibfacts.CurrentReleaseVersion + "\"\n}\n",
 		".agent/harness/harness.yaml":                     "release-preflight VERSION=" + xlibfacts.CurrentReleaseVersion + "\n",
 		".agent/release/release-required-gates.yaml":      "release-preflight VERSION=" + releaseRequiredGateVersion + "\n",
 		".agent/registries/makefile-baseline.yaml":        "fact-audit: \"$(GOALCLI) fact audit --strict\"\n",
@@ -2237,7 +2334,7 @@ func TestRunInternalGovernanceCommands(t *testing.T) {
 	}{
 		{name: "version", args: []string{"version"}, wantStdout: `"command": "version"`},
 		{name: "doctor", args: []string{"doctor"}, wantStdout: `"status": "passed"`},
-		{name: "fact audit strict", args: []string{"fact", "audit", "--strict"}, wantStdout: `"command": "fact audit"`},
+		{name: "fact audit strict", args: []string{"fact", "audit", "--strict"}, wantStdout: `"status": "passed"`},
 		{name: "main guard", args: []string{"main-guard", "--context", "local_readonly"}, wantStdout: `"command": "main-guard"`},
 		{name: "worktree guard", args: []string{"worktree-guard", "--context", "local_readonly"}, wantStdout: `"command": "worktree-guard"`},
 		{name: "worktree check", args: []string{"worktree-check", "--context", "local_readonly"}, wantStdout: `"command": "worktree-check"`},
@@ -3255,11 +3352,15 @@ func TestVersionConstantsTrackChangelogRelease(t *testing.T) {
 	}
 
 	for _, rel := range []string{
+		".xlib/facts/xlib.yaml",
+		"pkg/templatex/version.go",
 		"release/manifest/template.json",
-		"internal/tools/releasemanifest/main.go",
 		".agent/harness/harness.yaml",
+		".agent/release/release-required-gates.yaml",
 		"README.md",
 		"docs/release.md",
+		"docs/generation.md",
+		"scripts/render_template_test.go",
 		"AGENTS.md",
 	} {
 		path := filepath.Join(root, filepath.FromSlash(rel))
@@ -3277,6 +3378,11 @@ func TestVersionConstantsTrackChangelogRelease(t *testing.T) {
 		if !strings.Contains(content, latest) {
 			t.Fatalf("%s does not contain latest release version %s", rel, latest)
 		}
+	}
+
+	releasemanifestMain := readText(t, filepath.Join(root, "internal", "tools", "releasemanifest", "main.go"))
+	if !strings.Contains(releasemanifestMain, "xlibfacts.CurrentReleaseVersion") {
+		t.Fatalf("internal/tools/releasemanifest/main.go must source release version from xlibfacts.CurrentReleaseVersion")
 	}
 }
 

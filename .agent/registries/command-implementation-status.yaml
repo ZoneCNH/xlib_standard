@@ -80,7 +80,6 @@ groups:
       - release-evidence-checksum-check
       - release-evidence-hash
       - release-final-check
-      - render-check
       - score
       - secrets
       - security
@@ -88,6 +87,19 @@ groups:
       - dashboard-generate
       - rules-consistency-check
       - rules-verify
+
+  - id: p0_parameterized_helpers
+    phase: P0
+    implementation_status: implemented
+    execution_status: not_run
+    release_usable: false
+    evidence_state: requires_parameterized_fixture_output
+    evidence_strength: helper_contract_documented
+    proof_depth: command_registered
+    proof_depth_level: D3
+    note: "render-check is a parameterized helper requiring RENDER_CHECK_DIR, RENDER_CHECK_MODULE_NAME, RENDER_CHECK_MODULE_PATH and RENDER_CHECK_PACKAGE_NAME; command-registry and makefile-baseline audit the target, while integration or an explicit fixture-backed invocation supplies live proof."
+    commands:
+      - render-check
 
   - id: ctx_context_profiles
     phase: CTX

@@ -4,6 +4,10 @@ GOAL_ID ?= GOAL-20260603-XLIB-GOALCLI-001
 GOAL_RUNTIME_MODE ?= FULL
 DOCKER_IMAGE ?= $(notdir $(CURDIR))-toolchain:local
 DOCKER_GATE ?= GITHUB_ACTIONS=$${GITHUB_ACTIONS:-} GOLANGCI_LINT_VERSION=$${GOLANGCI_LINT_VERSION:-v2.1.6} GOVULNCHECK_VERSION=$${GOVULNCHECK_VERSION:-v1.1.4} GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.directory GIT_CONFIG_VALUE_0=/workspace ./scripts/docker/docker_gate.sh
+RENDER_CHECK_DIR ?=
+RENDER_CHECK_MODULE_NAME ?=
+RENDER_CHECK_MODULE_PATH ?=
+RENDER_CHECK_PACKAGE_NAME ?=
 
 .PHONY: require-gowork-off
 require-gowork-off:
@@ -58,6 +62,14 @@ lint:
 .PHONY: integration
 integration:
 	$(GOALCLI) integration
+
+.PHONY: render-check
+render-check:
+	@test -n "$(RENDER_CHECK_DIR)" || { echo "RENDER_CHECK_DIR is required"; exit 2; }
+	@test -n "$(RENDER_CHECK_MODULE_NAME)" || { echo "RENDER_CHECK_MODULE_NAME is required"; exit 2; }
+	@test -n "$(RENDER_CHECK_MODULE_PATH)" || { echo "RENDER_CHECK_MODULE_PATH is required"; exit 2; }
+	@test -n "$(RENDER_CHECK_PACKAGE_NAME)" || { echo "RENDER_CHECK_PACKAGE_NAME is required"; exit 2; }
+	$(GOALCLI) render-check "$(RENDER_CHECK_DIR)" "$(RENDER_CHECK_MODULE_NAME)" "$(RENDER_CHECK_MODULE_PATH)" "$(RENDER_CHECK_PACKAGE_NAME)"
 
 .PHONY: docker-toolchain-check
 docker-toolchain-check:

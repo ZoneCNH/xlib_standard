@@ -444,7 +444,7 @@ commands:
   release-evidence-hash
   release-final-check
   release-ready
-  render-check <rendered-dir>
+  render-check <rendered-dir> <module-name> <module-path> <package-name>
   retro-check [--root <path>] [--strict]
   rules-consistency-check
   rules-verify

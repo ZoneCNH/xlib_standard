@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -61,12 +62,25 @@ func runFactAudit(args []string, stdout io.Writer, stderr io.Writer) int {
 	if *strict {
 		details = append(details, "strict=true")
 		gaps = append(gaps, factStrictProjectionGaps(*root)...)
+		gaps = append(gaps, factStrictLocalTagGaps(*root, facts.CurrentRelease.Version)...)
 	}
 	if len(gaps) > 0 {
 		write(stderr, "ERROR: fact audit found %d gap(s)\n", len(gaps))
 		return emitReport(stdout, "fact audit", "failed", details, gaps)
 	}
 	return emitReport(stdout, "fact audit", "passed", details, nil)
+}
+
+func factStrictLocalTagGaps(root, version string) []string {
+	version = strings.TrimSpace(version)
+	if version == "" {
+		return nil
+	}
+	ref := "refs/tags/" + version
+	if err := exec.Command("git", "-C", root, "rev-parse", "-q", "--verify", ref).Run(); err == nil {
+		return []string{"current_release.version " + version + " already exists as local git tag " + ref}
+	}
+	return nil
 }
 
 func factStrictProjectionGaps(root string) []string {
@@ -76,6 +90,7 @@ func factStrictProjectionGaps(root string) []string {
 	}{
 		{path: "cmd/goalcli/governance.go", needles: []string{"xlibfacts.CurrentReleaseVersion", "xlibfacts.GovernanceRuntimeVersion", "\"fact\""}},
 		{path: "internal/tools/releasemanifest/main.go", needles: []string{"xlibfacts.CurrentReleaseVersion"}},
+		{path: "release/manifest/template.json", needles: []string{`"version": "` + xlibfacts.CurrentReleaseVersion + `"`}},
 		{path: ".agent/harness/harness.yaml", needles: []string{"release-preflight VERSION=" + xlibfacts.CurrentReleaseVersion}},
 		{path: ".agent/release/release-required-gates.yaml", needles: []string{"release-preflight VERSION=" + xlibfacts.CurrentReleaseVersion}},
 		{path: ".agent/registries/makefile-baseline.yaml", needles: []string{"fact-audit: \"$(GOALCLI) fact audit --strict\""}},

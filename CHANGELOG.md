@@ -2,6 +2,17 @@
 
 ## 未发布
 
+## v0.6.6 - 2026-06-07
+
+### 治理
+
+- 将当前发布事实、Agent release marker、template version、release preflight 示例和 governance pack 标准版本示例对齐到未打 tag 的 `v0.6.6`。
+- 将 strict fact audit 的本地 tag 防重约束落到当前未发布版本，保留历史 release manifest 模板和 Evidence 引用。
+
+### 兼容性
+
+- 本版本不改变 `pkg/templatex` 公共 API 形状；`Version` 元数据同步到 `v0.6.6`。
+
 ## v0.6.1 - 2026-06-07
 
 ### 治理
