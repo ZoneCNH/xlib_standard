@@ -1,4 +1,4 @@
-.PHONY: fmt vet lint test race contracts boundary render-smoke security ci release-check
+.PHONY: fmt vet lint test race contracts boundary render-smoke security ci release-check release-final-check
 
 ## Gate pipeline: fmt → vet → lint → test → race → contracts → boundary → render-smoke → security
 
@@ -32,9 +32,8 @@ security:
 
 ci: fmt vet lint test race contracts boundary render-smoke security
 
-release-check:
-	@echo "Checking release readiness..."
-	GOWORK=off go build ./...
-	GOWORK=off go test -count=1 ./...
-	./scripts/generate_manifest.sh
-	@echo "Release check passed"
+release-check: ci
+	./scripts/release_check.sh
+
+release-final-check: release-check
+	./scripts/release_final_check.sh

@@ -7,6 +7,7 @@ REQUIRED_FILES=(
   "contracts/config.schema.json"
   "contracts/health.schema.json"
   "contracts/error.schema.json"
+  "contracts/metrics.json"
   "contracts/metrics.md"
 )
 

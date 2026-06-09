@@ -1,0 +1,48 @@
+{
+  "version": "1.0",
+  "metrics": [
+    {
+      "name": "client_created_total",
+      "type": "counter",
+      "labels": []
+    },
+    {
+      "name": "client_closed_total",
+      "type": "counter",
+      "labels": []
+    },
+    {
+      "name": "client_errors_total",
+      "type": "counter",
+      "labels": ["op", "kind"]
+    },
+    {
+      "name": "client_health_status",
+      "type": "gauge",
+      "labels": ["status"]
+    },
+    {
+      "name": "client_health_latency_ms",
+      "type": "histogram",
+      "labels": ["status"]
+    }
+  ],
+  "allowed_labels": ["op", "kind", "status"],
+  "forbidden_labels": [
+    "user_id",
+    "request_id",
+    "trace_id",
+    "span_id",
+    "order_id",
+    "tenant_id",
+    "account_id",
+    "email",
+    "phone",
+    "token",
+    "secret",
+    "password",
+    "dsn",
+    "url",
+    "endpoint"
+  ]
+}
