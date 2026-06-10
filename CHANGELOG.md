@@ -2,6 +2,17 @@
 
 ## 未发布
 
+## v0.7.0 - 2026-06-10
+
+### 治理
+
+- 将当前发布事实、Agent release marker、template version、release preflight 示例和 governance pack 标准版本示例对齐到待发布的 `v0.7.0`。
+- 补齐 `v0.7.0` changelog 发布标题，使 release preflight 能在版本候选材料齐备后继续校验 clean main、tag 缺失、release-final gate 与 GitHub Release 对象。
+
+### 兼容性
+
+- 本版本不改变 `pkg/templatex` 公共 API 形状；`Version` 元数据同步到 `v0.7.0`。
+
 ## v0.6.6 - 2026-06-07
 
 ### 治理
