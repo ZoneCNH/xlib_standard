@@ -1,2 +1,12 @@
 schema_version: "2.9.3"
-formula: "release-check && release-final-check evidence"
+formula: "release-check && release-final-check && evidence"
+required_inputs:
+  - "release-check"
+  - "release-final-check"
+  - "evidence"
+  - "strict evidence replay"
+  - "release_verify context"
+  - "all required gates release_usable"
+forbidden_interpretations:
+  - "release-ready --dry-run --verify proves dry_run_contract only, not publication readiness"
+  - "CHECK_STATUS=passed != release-ready evidence"

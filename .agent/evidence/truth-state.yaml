@@ -27,12 +27,14 @@ observable_states:
   - baseline_scanned
   - planned
   - dry_run_ready
+  - partial_implemented
   - implemented
   - executed
   - artifact_exists
   - checksum_verified
   - usable
   - adopted
+  - not_generated_in_mva
   - not_run
 
 state_mapping:
@@ -52,6 +54,10 @@ state_mapping:
     strength: dry_run_verified
     passed_gate_evidence: conditional
     meaning: "可执行 dry-run 或 contract 检查，只能证明 dry-run gate。"
+  partial_implemented:
+    strength: real_executed
+    passed_gate_evidence: conditional
+    meaning: "已有局部真实实现，但 proof depth 或 lifecycle coverage 仍不足以支撑 release-usable 结论；必须披露剩余 gap。"
   implemented:
     strength: real_executed
     passed_gate_evidence: conditional
@@ -76,6 +82,10 @@ state_mapping:
     strength: release_usable
     passed_gate_evidence: true
     meaning: "downstream 有 proof-based adoption 证据。"
+  not_generated_in_mva:
+    strength: planned
+    passed_gate_evidence: false
+    meaning: "first-PR/MVA 范围内未生成该 artifact；不得声明 manifest available、checksum verified 或 release usable。"
   not_run:
     strength: planned
     passed_gate_evidence: false
@@ -91,9 +101,15 @@ forbidden_upgrades:
   - from: dry_run_verified
     to: release_usable
     rule: "dry_run_verified != release_usable"
+  - from: partial_implemented
+    to: release_usable
+    rule: "partial_implemented != release_usable"
   - from: not_run
     to: passed
     rule: "not_run != passed"
+  - from: not_generated_in_mva
+    to: release_manifest_available
+    rule: "not_generated_in_mva != release manifest available"
   - from: registered
     to: adopted
     rule: "registered != adopted"

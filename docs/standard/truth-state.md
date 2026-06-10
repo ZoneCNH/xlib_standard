@@ -41,6 +41,8 @@ first-PR/MVA 必须至少区分：
 | `checksum_verified` | artifact 校验和与记录一致。 | 只证明完整性，不证明 usable。 |
 | `usable` | artifact 可被目标流程消费，且有 replay 或 contract 证据。 | 是，限对应 gate。 |
 | `adopted` | downstream 有 proof-based 使用证据。 | 是，限 downstream adoption gate。 |
+| `not_generated_in_mva` | first-PR/MVA 范围内未生成该 artifact。 | 否，且不得声明 manifest available、checksum verified 或 release usable。 |
+| `not_run` | 本次 Evidence 中未执行对应命令。 | 否，不得报告为 passed。 |
 
 ## Gate 关系
 
@@ -50,8 +52,10 @@ first-PR/MVA 必须至少区分：
 registered != adopted
 baseline_scanned != implemented
 dry_run_ready != executed
+partial_implemented != release_usable
 artifact_exists != usable
 CHECK_STATUS=passed != release-ready evidence
+not_generated_in_mva != release manifest available
 ```
 
 first-PR/MVA 的通过条件是：状态文件存在、语义清晰、docs-check 可发现本标准，并且 `GOWORK=off make governance-check` 不因缺少该标准失败。
@@ -61,6 +65,7 @@ first-PR/MVA 的通过条件是：状态文件存在、语义清晰、docs-check
 涉及 Truth-State 的完成声明必须记录：
 
 - 修改的 `.agent/*status*.yaml` 或 `truth-state.yaml` 文件。
+- `truth-state.yaml` 的 `observable_states` / `state_mapping` 必须覆盖 command implementation status 与 release required gates 中使用的状态词汇。
 - 是否触达 release manifest 或 release-check；first-PR/MVA 应明确写为未触达。
 - 至少一个本地命令证据，例如 `GOWORK=off make governance-check`。
 - 已知缺口：后续 gate-result runtime、release manifest cutover、artifact provenance、downstream migration-wave 若未实现必须继续列为 follow-up。
