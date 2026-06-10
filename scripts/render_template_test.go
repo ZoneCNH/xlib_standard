@@ -109,7 +109,7 @@ func TestRenderTemplateIncludesGovernancePack(t *testing.T) {
 		"L0",
 		"--enable-governance",
 		"--standard-version",
-		"v0.7.0",
+		"v1.0.0",
 		"--standard-commit",
 		"abcdef1234567890",
 		"--out",
@@ -140,7 +140,7 @@ func TestRenderTemplateIncludesGovernancePack(t *testing.T) {
 		t.Fatalf("read governance lock: %v", err)
 	}
 	for _, needle := range []string{
-		`standard_version: "v0.7.0"`,
+		`standard_version: "v1.0.0"`,
 		`standard_commit: "abcdef1234567890"`,
 		`module_name: "kernel"`,
 		`module_path: "github.com/ZoneCNH/kernel"`,
