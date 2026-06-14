@@ -1,0 +1,16 @@
+schema_version: repo-contract/v1
+repo:
+  name: xlib-standard
+  owner: ZoneCNH
+  url: https://github.com/ZoneCNH/xlib-standard
+  module: github.com/ZoneCNH/xlib-standard
+identity:
+  layer: L1
+  public_package: github.com/ZoneCNH/xlib-standard/pkg/xlib
+  standard_source: github.com/ZoneCNH/xlib-standard
+  is_standard_source: true
+  is_generator: false
+versions:
+  table_version: v1.0.0
+  latest_git_tag: v1.0.0
+  all_aligned: true
