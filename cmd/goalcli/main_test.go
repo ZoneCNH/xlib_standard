@@ -1751,8 +1751,8 @@ func writeCanonicalFactAuditFixture(t *testing.T, root string) {
 module: github.com/ZoneCNH/xlib-standard
 current_release:
   version: %s
-  commit: 555aae077f94ba7ecfe390bc8252171666787592
-  released_at: 2026-06-10T11:04:00Z
+  commit: %s
+  released_at: %s
 runtime:
   goal_runtime_version: v3.1
   governance_runtime_version: v2.9.3
@@ -1760,7 +1760,7 @@ tools:
   go: "1.23.0"
   golangci_lint: "v2.1.6"
   govulncheck: "v1.1.4"
-`, xlibfacts.CurrentReleaseVersion),
+`, xlibfacts.CurrentReleaseVersion, xlibfacts.CurrentReleaseCommit, xlibfacts.CurrentReleaseReleasedAt),
 	})
 }
 
