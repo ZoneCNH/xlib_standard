@@ -168,10 +168,17 @@ copy_from_git_archive() {
   prune_render_omissions
 }
 
+can_use_git_archive() {
+  git -C "$repo_root" rev-parse --is-inside-work-tree >/dev/null 2>&1 &&
+    git -C "$repo_root" cat-file -e "HEAD^{commit}" >/dev/null 2>&1
+}
+
 use_git_archive=0
 if [[ "${XLIB_RENDER_FORCE_GIT_ARCHIVE:-0}" == "1" ]]; then
-  use_git_archive=1
-elif git -C "$repo_root" rev-parse --is-inside-work-tree >/dev/null 2>&1 && \
+  if can_use_git_archive; then
+    use_git_archive=1
+  fi
+elif can_use_git_archive && \
   [[ -z "$(git -C "$repo_root" status --porcelain=v1 --untracked-files=no)" ]]; then
   use_git_archive=1
 fi

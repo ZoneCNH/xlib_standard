@@ -2,6 +2,17 @@
 
 ## 未发布
 
+## v1.0.0 - 2026-06-10
+
+### 治理
+
+- 将当前发布事实、release manifest、template version、Agent release marker 和发布验收锚点同步到已打 tag 的 `v1.0.0`。
+- 记录 `xlib-standard` 当前发布 commit `555aae077f94ba7ecfe390bc8252171666787592`，保持模板渲染后的 fact audit 与源码常量一致。
+
+### 兼容性
+
+- 本版本不改变 `pkg/templatex` 公共 API 形状；`Version` 元数据同步到 `v1.0.0`。
+
 ## v0.6.6 - 2026-06-07
 
 ### 治理

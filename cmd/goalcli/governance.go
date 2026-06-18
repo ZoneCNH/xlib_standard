@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"os/exec"
 	pathpkg "path"
@@ -243,10 +244,29 @@ func runSpecCheck(args []string, stdout io.Writer, stderr io.Writer) int {
 }
 
 func trackedDocsMarkdownFiles() ([]string, error) {
-	out, err := exec.Command("git", "ls-files", "-z", "--", "docs").Output()
+	out, err := exec.Command("git", "ls-files", "-z", "--", "docs").CombinedOutput()
 	if err != nil {
+		if shouldScanDocsFromFilesystem(err, out) {
+			return filesystemDocsMarkdownFiles("docs")
+		}
+		if message := strings.TrimSpace(string(out)); message != "" {
+			return nil, fmt.Errorf("%w: %s", err, message)
+		}
 		return nil, err
 	}
+	return markdownPathsFromNULList(out), nil
+}
+
+func shouldScanDocsFromFilesystem(err error, output []byte) bool {
+	var exitErr *exec.ExitError
+	if !errors.As(err, &exitErr) || exitErr.ExitCode() != 128 {
+		return false
+	}
+	message := string(output)
+	return strings.Contains(message, "not a git repository") || strings.Contains(message, "not in a git directory")
+}
+
+func markdownPathsFromNULList(out []byte) []string {
 	var paths []string
 	for _, path := range strings.Split(string(out), "\x00") {
 		if path == "" || filepath.Ext(path) != ".md" {
@@ -255,7 +275,25 @@ func trackedDocsMarkdownFiles() ([]string, error) {
 		paths = append(paths, path)
 	}
 	sort.Strings(paths)
-	return paths, nil
+	return paths
+}
+
+func filesystemDocsMarkdownFiles(root string) ([]string, error) {
+	var paths []string
+	err := filepath.WalkDir(root, func(path string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if entry.IsDir() {
+			return nil
+		}
+		if filepath.Ext(path) == ".md" {
+			paths = append(paths, path)
+		}
+		return nil
+	})
+	sort.Strings(paths)
+	return paths, err
 }
 
 func runDesignCheck(args []string, stdout io.Writer, stderr io.Writer) int {

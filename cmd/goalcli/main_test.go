@@ -852,7 +852,7 @@ func TestGoalGovernanceCommandSurface(t *testing.T) {
 	}{
 		{command: "version"},
 		{command: "doctor"},
-		{command: "fact", args: []string{"audit", "--strict"}, wantReportCommand: "fact audit"},
+		{command: "fact", args: []string{"audit"}, wantReportCommand: "fact audit"},
 		{command: "minimal-kernel"},
 		{command: "main-guard", args: []string{"--context", "local_readonly"}},
 		{command: "worktree-guard", args: []string{"--context", "local_readonly"}},
@@ -1661,6 +1661,7 @@ func TestRunExternalErrorPaths(t *testing.T) {
 }
 
 func TestFactAuditStrictPassesCanonicalFacts(t *testing.T) {
+	t.Setenv("XLIB_CONTEXT", "local_write")
 	root := t.TempDir()
 	writeCanonicalFactAuditFixture(t, root)
 	var stdout, stderr bytes.Buffer
@@ -1678,6 +1679,7 @@ func TestFactAuditStrictPassesCanonicalFacts(t *testing.T) {
 }
 
 func TestFactAuditStrictFailsWhenCurrentReleaseTagAlreadyExists(t *testing.T) {
+	t.Setenv("XLIB_CONTEXT", "local_write")
 	root := t.TempDir()
 	writeCanonicalFactAuditFixture(t, root)
 	initGitRepoWithTag(t, root, xlibfacts.CurrentReleaseVersion)
@@ -1689,6 +1691,25 @@ func TestFactAuditStrictFailsWhenCurrentReleaseTagAlreadyExists(t *testing.T) {
 		t.Fatalf("fact audit exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
 	}
 	for _, needle := range []string{`"status": "failed"`, "current_release.version " + xlibfacts.CurrentReleaseVersion + " already exists as local git tag refs/tags/" + xlibfacts.CurrentReleaseVersion} {
+		if !strings.Contains(stdout.String(), needle) {
+			t.Fatalf("stdout = %q; want %q", stdout.String(), needle)
+		}
+	}
+}
+
+func TestFactAuditStrictSkipsCurrentReleaseTagInPullRequestContext(t *testing.T) {
+	t.Setenv("XLIB_CONTEXT", "ci_pull_request")
+	root := t.TempDir()
+	writeCanonicalFactAuditFixture(t, root)
+	initGitRepoWithTag(t, root, xlibfacts.CurrentReleaseVersion)
+	var stdout, stderr bytes.Buffer
+
+	got := run([]string{"fact", "audit", "--strict", "--root", root}, strings.NewReader(""), &stdout, &stderr)
+
+	if got != 0 {
+		t.Fatalf("fact audit exit = %d, stderr %q, stdout %q; want 0", got, stderr.String(), stdout.String())
+	}
+	for _, needle := range []string{`"status": "passed"`, "context=ci_pull_request", "local_tag_check=skipped"} {
 		if !strings.Contains(stdout.String(), needle) {
 			t.Fatalf("stdout = %q; want %q", stdout.String(), needle)
 		}
@@ -1730,8 +1751,8 @@ func writeCanonicalFactAuditFixture(t *testing.T, root string) {
 module: github.com/ZoneCNH/xlib-standard
 current_release:
   version: %s
-  commit: 216ef50cead9ab20437566845b3446d6dbd07ec9
-  released_at: 2026-06-07T05:33:38Z
+  commit: 555aae077f94ba7ecfe390bc8252171666787592
+  released_at: 2026-06-10T11:04:00Z
 runtime:
   goal_runtime_version: v3.1
   governance_runtime_version: v2.9.3
@@ -2334,7 +2355,7 @@ func TestRunInternalGovernanceCommands(t *testing.T) {
 	}{
 		{name: "version", args: []string{"version"}, wantStdout: `"command": "version"`},
 		{name: "doctor", args: []string{"doctor"}, wantStdout: `"status": "passed"`},
-		{name: "fact audit strict", args: []string{"fact", "audit", "--strict"}, wantStdout: `"status": "passed"`},
+		{name: "fact audit", args: []string{"fact", "audit"}, wantStdout: `"status": "passed"`},
 		{name: "main guard", args: []string{"main-guard", "--context", "local_readonly"}, wantStdout: `"command": "main-guard"`},
 		{name: "worktree guard", args: []string{"worktree-guard", "--context", "local_readonly"}, wantStdout: `"command": "worktree-guard"`},
 		{name: "worktree check", args: []string{"worktree-check", "--context", "local_readonly"}, wantStdout: `"command": "worktree-check"`},
@@ -2401,6 +2422,30 @@ func TestRunTaskCheckRequiresCanonicalCommandRegistry(t *testing.T) {
 	}
 	if !strings.Contains(stdout.String(), `"status": "passed"`) {
 		t.Fatalf("stdout = %q; want passed status", stdout.String())
+	}
+}
+
+func TestRunSpecCheckFallsBackToFilesystemDocsOutsideGit(t *testing.T) {
+	root := t.TempDir()
+	docsDir := filepath.Join(root, "docs")
+	if err := os.MkdirAll(docsDir, 0o755); err != nil {
+		t.Fatalf("create docs dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(docsDir, "spec.md"), []byte("# Spec\n\nREQ-001 is present.\n"), 0o644); err != nil {
+		t.Fatalf("write docs spec: %v", err)
+	}
+	chdir(t, root)
+
+	var stdout, stderr bytes.Buffer
+	got := run([]string{"spec-check"}, strings.NewReader(""), &stdout, &stderr)
+	if got != 0 {
+		t.Fatalf("run spec-check = %d, stderr %q; want 0", got, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), `"status": "passed"`) {
+		t.Fatalf("stdout = %q; want passed status", stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "scanned_markdown=1") {
+		t.Fatalf("stdout = %q; want scanned_markdown=1", stdout.String())
 	}
 }
 
