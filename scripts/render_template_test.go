@@ -109,7 +109,7 @@ func TestRenderTemplateIncludesGovernancePack(t *testing.T) {
 		"L0",
 		"--enable-governance",
 		"--standard-version",
-		"v1.0.0",
+		"v1.0.1",
 		"--standard-commit",
 		"abcdef1234567890",
 		"--out",
@@ -140,7 +140,7 @@ func TestRenderTemplateIncludesGovernancePack(t *testing.T) {
 		t.Fatalf("read governance lock: %v", err)
 	}
 	for _, needle := range []string{
-		`standard_version: "v1.0.0"`,
+		`standard_version: "v1.0.1"`,
 		`standard_commit: "abcdef1234567890"`,
 		`module_name: "kernel"`,
 		`module_path: "github.com/ZoneCNH/kernel"`,
@@ -296,6 +296,8 @@ func TestRenderTemplatePrunesOmittedAgentInboxIndexEntries(t *testing.T) {
 }
 
 func TestRenderTemplateGitArchivePrunesRuntimeState(t *testing.T) {
+	requireGitArchiveSource(t)
+
 	outDir := filepath.Join(t.TempDir(), "redisx")
 	cmd := exec.Command(
 		"bash",
@@ -335,6 +337,8 @@ func TestRenderTemplateGitArchivePrunesRuntimeState(t *testing.T) {
 }
 
 func TestRenderTemplateGitArchiveSkipsUntrackedFiles(t *testing.T) {
+	requireGitArchiveSource(t)
+
 	markerPath := filepath.Join("..", ".xlib-render-untracked-marker-test")
 	if err := os.WriteFile(markerPath, []byte("untracked marker"), 0o600); err != nil {
 		t.Fatalf("write untracked marker: %v", err)
@@ -365,5 +369,20 @@ func TestRenderTemplateGitArchiveSkipsUntrackedFiles(t *testing.T) {
 
 	if _, err := os.Stat(filepath.Join(outDir, ".xlib-render-untracked-marker-test")); !os.IsNotExist(err) {
 		t.Fatalf("expected git archive render to skip untracked marker, stat err=%v", err)
+	}
+}
+
+func requireGitArchiveSource(t *testing.T) {
+	t.Helper()
+
+	cmd := exec.Command("git", "-C", "..", "rev-parse", "--is-inside-work-tree")
+	output, err := cmd.CombinedOutput()
+	if err != nil || strings.TrimSpace(string(output)) != "true" {
+		t.Skipf("git archive render test requires git worktree source: %v\n%s", err, output)
+	}
+
+	cmd = exec.Command("git", "-C", "..", "cat-file", "-e", "HEAD^{commit}")
+	if output, err = cmd.CombinedOutput(); err != nil {
+		t.Skipf("git archive render test requires committed HEAD: %v\n%s", err, output)
 	}
 }

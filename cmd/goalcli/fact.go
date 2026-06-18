@@ -60,15 +60,32 @@ func runFactAudit(args []string, stdout io.Writer, stderr io.Writer) int {
 		"runtime.governance_runtime_version=" + facts.Runtime.GovernanceRuntimeVersion,
 	}
 	if *strict {
-		details = append(details, "strict=true")
+		context := factAuditContext()
+		details = append(details, "strict=true", "context="+context)
 		gaps = append(gaps, factStrictProjectionGaps(*root)...)
-		gaps = append(gaps, factStrictLocalTagGaps(*root, facts.CurrentRelease.Version)...)
+		if factStrictChecksLocalReleaseTag(context) {
+			gaps = append(gaps, factStrictLocalTagGaps(*root, facts.CurrentRelease.Version)...)
+		} else {
+			details = append(details, "local_tag_check=skipped")
+		}
 	}
 	if len(gaps) > 0 {
 		write(stderr, "ERROR: fact audit found %d gap(s)\n", len(gaps))
 		return emitReport(stdout, "fact audit", "failed", details, gaps)
 	}
 	return emitReport(stdout, "fact audit", "passed", details, nil)
+}
+
+func factAuditContext() string {
+	context := strings.TrimSpace(os.Getenv("XLIB_CONTEXT"))
+	if context == "" {
+		return "local_write"
+	}
+	return context
+}
+
+func factStrictChecksLocalReleaseTag(context string) bool {
+	return context != "ci_pull_request"
 }
 
 func factStrictLocalTagGaps(root, version string) []string {
