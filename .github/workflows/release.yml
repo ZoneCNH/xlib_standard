@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   release-check:
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: [self-hosted, Linux, X64, sre/deploy]
     env:
       XLIB_ENABLE_VULNCHECK: "0"
 

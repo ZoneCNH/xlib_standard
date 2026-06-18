@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   security:
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: [self-hosted, Linux, X64, sre/gate]
     env:
       XLIB_ENABLE_VULNCHECK: ${{ github.event_name == 'schedule' && '1' || vars.XLIB_ENABLE_VULNCHECK }}
       XLIB_VULNCHECK_INTERVAL_HOURS: "168"
