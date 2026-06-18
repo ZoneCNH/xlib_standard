@@ -11,7 +11,23 @@ concurrency:
 
 jobs:
   ci:
-    uses: ZoneCNH/sre/.github/workflows/go-p0-core.yml@main
+    name: ci
+    runs-on: ubuntu-latest
+    env:
+      XLIB_ENABLE_VULNCHECK: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Install golangci-lint
+        uses: golangci/golangci-lint-action@82606bf257cbaff209d206a39f5134f0cfbfd2ee # v9.2.1
+        with:
+          version: v2.6.2
+          install-mode: binary
+          skip-cache: true
+      - name: CI
+        run: GOWORK=off XLIB_CONTEXT=ci_pull_request make ci
 
   release-check:
     name: release-check
