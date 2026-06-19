@@ -73,7 +73,7 @@ func TestBuildDashboardReport(t *testing.T) {
 	}
 	// In empty dir many checks fail.
 	if report.Status != "failed" {
-		// could pass if no checks fail, but components should exist
+		t.Logf("status = %q; expected failed for empty dir", report.Status)
 	}
 	if len(report.Components) == 0 {
 		t.Fatalf("components empty; want entries")
@@ -103,10 +103,10 @@ func TestRenderDashboardMarkdown(t *testing.T) {
 	})
 	t.Run("with gaps", func(t *testing.T) {
 		report := dashboardReport{
-			Command: "dashboard-generate",
-			Status:  "failed",
+			Command:    "dashboard-generate",
+			Status:     "failed",
 			Components: []dashboardComponent{{Name: "c", Status: "failed", Summary: "boom"}},
-			Gaps:    []string{"gap one"},
+			Gaps:       []string{"gap one"},
 		}
 		md := renderDashboardMarkdown(report)
 		if !strings.Contains(md, "- gap one") {

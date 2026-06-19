@@ -122,7 +122,9 @@ func TestWriteSchemaCheckReport(t *testing.T) {
 	}
 	root := t.TempDir()
 	blocker := filepath.Join(root, "blocker")
-	os.WriteFile(blocker, []byte("x"), 0o644)
+	if err := os.WriteFile(blocker, []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	if err := writeSchemaCheckReport(filepath.Join(blocker, "report.json"), []byte("x")); err == nil {
 		t.Fatalf("want mkdir error")
 	}
@@ -140,7 +142,9 @@ func TestLoadJSONSchema(t *testing.T) {
 	}
 	root := t.TempDir()
 	path := filepath.Join(root, "bad.json")
-	os.WriteFile(path, []byte("{bad"), 0o644)
+	if err := os.WriteFile(path, []byte("{bad"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	_, gaps = loadJSONSchema(path)
 	if len(gaps) == 0 {
 		t.Fatalf("want gaps for invalid JSON")
@@ -154,12 +158,16 @@ func TestReadJSONValue(t *testing.T) {
 	}
 	root := t.TempDir()
 	path := filepath.Join(root, "bad.json")
-	os.WriteFile(path, []byte("{bad"), 0o644)
+	if err := os.WriteFile(path, []byte("{bad"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := readJSONValue(path); err == nil {
 		t.Fatalf("want error")
 	}
 	path2 := filepath.Join(root, "ok.json")
-	os.WriteFile(path2, []byte(`{"a":1}`), 0o644)
+	if err := os.WriteFile(path2, []byte(`{"a":1}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := readJSONValue(path2); err != nil {
 		t.Fatalf("err = %v", err)
 	}
@@ -168,8 +176,8 @@ func TestReadJSONValue(t *testing.T) {
 // TestSelectFixtureSchema covers direct stem match and fallback to sorted first key.
 func TestSelectFixtureSchema(t *testing.T) {
 	schemas := map[string]jsonSchema{
-		"thing":   {Schema: "http://x"},
-		"apple":   {Schema: "http://y"},
+		"thing": {Schema: "http://x"},
+		"apple": {Schema: "http://y"},
 	}
 	t.Run("stem match", func(t *testing.T) {
 		ref, _ := selectFixtureSchema(filepath.Join("valid", "thing.json"), schemas)
@@ -240,7 +248,9 @@ func TestParseBaselineYAMLFile(t *testing.T) {
 	}
 	root := t.TempDir()
 	path := filepath.Join(root, "ok.yaml")
-	os.WriteFile(path, []byte("key: value\n"), 0o644)
+	if err := os.WriteFile(path, []byte("key: value\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	v, err := parseBaselineYAMLFile(path)
 	if err != nil {
 		t.Fatalf("err = %v", err)

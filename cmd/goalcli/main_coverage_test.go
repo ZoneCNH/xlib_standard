@@ -32,7 +32,7 @@ func TestRunSecretCommandNoArgs(t *testing.T) {
 
 // TestVulncheckInterval covers empty env, valid hours, invalid hours.
 func TestVulncheckInterval(t *testing.T) {
-	os.Unsetenv(vulncheckIntervalHoursEnv)
+	_ = os.Unsetenv(vulncheckIntervalHoursEnv)
 	got, err := vulncheckInterval()
 	if err != nil || got != defaultVulncheckInterval {
 		t.Fatalf("default = %v %v; want %v nil", got, err, defaultVulncheckInterval)
@@ -87,7 +87,7 @@ func TestVulncheckDueError(t *testing.T) {
 		t.Fatalf("mkdir: %v", err)
 	}
 	t.Setenv(vulncheckStateEnv, statePath)
-	os.Unsetenv(forceVulncheckEnv)
+	_ = os.Unsetenv(forceVulncheckEnv)
 	_, _, _, err := vulncheckDue(time.Now().UTC())
 	if err == nil {
 		t.Fatalf("want error reading directory as file")

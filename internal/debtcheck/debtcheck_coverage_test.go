@@ -1,6 +1,7 @@
 package debtcheck
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,9 +15,9 @@ import (
 
 func TestParseOptionalBool(t *testing.T) {
 	cases := []struct {
-		in       string
-		wantVal  bool
-		wantOK   bool
+		in      string
+		wantVal bool
+		wantOK  bool
 	}{
 		{"true", true, true},
 		{"false", false, true},
@@ -39,8 +40,8 @@ func TestUnquoteYAMLScalar(t *testing.T) {
 		{`"double"`, "double"},
 		{`'single'`, "single"},
 		{"plain", "plain"},
-		{"x", "x"},         // len < 2 returns as-is
-		{"", ""},           // len < 2
+		{"x", "x"},             // len < 2 returns as-is
+		{"", ""},               // len < 2
 		{`"mixed'`, `"mixed'`}, // mismatched quotes returned as-is
 		{`'mixed"`, `'mixed"`},
 	}
@@ -273,7 +274,7 @@ func TestToMarkdownNoFindingsAndEmptyPath(t *testing.T) {
 		Status:        "passed",
 		Mode:          "enforce",
 		Sections: []SectionReport{
-			{Name: "docs", Status: "passed", Findings: nil},                       // "No findings." branch
+			{Name: "docs", Status: "passed", Findings: nil},                                                // "No findings." branch
 			{Name: "sec", Status: "warning", Findings: []Finding{{ID: "x", Severity: "P1", Message: "m"}}}, // empty Path → "policy"
 		},
 	}
@@ -439,7 +440,11 @@ func TestScanGoImportsReadError(t *testing.T) {
 	if err := os.Chmod(secret, 0o000); err != nil {
 		t.Fatal(err)
 	}
-	defer os.Chmod(secret, 0o644) // restore so TempDir cleanup works
+	defer func() {
+		if err := os.Chmod(secret, 0o644); err != nil { // restore so TempDir cleanup works
+			t.Errorf("restore chmod %s: %v", secret, err)
+		}
+	}()
 	// Skip the test if running as root (root bypasses 0o000).
 	if os.Geteuid() == 0 {
 		t.Skip("cannot simulate unreadable file as root")
@@ -559,8 +564,11 @@ func TestScanTrackedTextUnreadableFileReturnsError(t *testing.T) {
 	if err := os.Chmod(secret, 0o000); err != nil {
 		t.Fatal(err)
 	}
-	defer os.Chmod(secret, 0o644)
-	// Function returns whatever findings it had before the error; we only assert no panic.
+	defer func() {
+		if err := os.Chmod(secret, 0o644); err != nil {
+			t.Errorf("restore chmod %s: %v", secret, err)
+		}
+	}()
 	_ = scanTextMarker(root, "marker", "id", "msg")
 }
 
@@ -618,7 +626,9 @@ func TestScanDownstreamDebtBaselineEmptyTriggersRequireTokenSkip(t *testing.T) {
 	// Cover that branch by deleting baseline only.
 	root := t.TempDir()
 	writeDownstreamFiles(t, root)
-	os.Remove(filepath.Join(root, filepath.FromSlash(".agent/registries/downstream-baseline-scan.yaml")))
+	if err := os.Remove(filepath.Join(root, filepath.FromSlash(".agent/registries/downstream-baseline-scan.yaml"))); err != nil {
+		t.Fatalf("remove baseline: %v", err)
+	}
 	findings := scanDownstreamDebt(root)
 	// baseline-missing repo/mode must NOT appear (text=="" path), only file-missing.
 	for _, f := range findings {
@@ -679,7 +689,11 @@ func TestWalkDirOpenError(t *testing.T) {
 	if err := os.Chmod(sub, 0o000); err != nil {
 		t.Fatal(err)
 	}
-	defer os.Chmod(sub, 0o755)
+	defer func() {
+		if err := os.Chmod(sub, 0o755); err != nil {
+			t.Errorf("restore chmod %s: %v", sub, err)
+		}
+	}()
 	if err := walkDir(sub, func(string) error { return nil }); err == nil {
 		t.Error("walkDir unreadable err = nil; want error")
 	}
@@ -707,7 +721,7 @@ func TestWalkDirRecursiveError(t *testing.T) {
 	err := walkDir(root, func(p string) error {
 		return wantErr // any visit error exercises both file-visit and nested-walkDir propagation
 	})
-	if err != wantErr {
+	if !errors.Is(err, wantErr) {
 		t.Errorf("walkDir recursive err = %v; want %v", err, wantErr)
 	}
 }
@@ -720,7 +734,7 @@ func TestWalkFilesVisitError(t *testing.T) {
 	}
 	wantErr := os.ErrNotExist
 	err := walkFiles(root, func(p string) error { return wantErr })
-	if err != wantErr {
+	if !errors.Is(err, wantErr) {
 		t.Errorf("walkFiles visit err = %v; want %v", err, wantErr)
 	}
 }

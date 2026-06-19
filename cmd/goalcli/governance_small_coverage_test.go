@@ -12,14 +12,14 @@ func TestContextGateProfile(t *testing.T) {
 		profile string
 		ok      bool
 	}{
-		"context-lite":         {"lite", true},
-		"context-fast-check":   {"lite", true},
-		"context-standard":     {"standard", true},
+		"context-lite":           {"lite", true},
+		"context-fast-check":     {"lite", true},
+		"context-standard":       {"standard", true},
 		"context-standard-check": {"standard", true},
-		"context-full":         {"full", true},
-		"context-full-check":   {"full", true},
-		"context-release":      {"release", true},
-		"bogus":                {"", false},
+		"context-full":           {"full", true},
+		"context-full-check":     {"full", true},
+		"context-release":        {"release", true},
+		"bogus":                  {"", false},
 	}
 	for gate, want := range cases {
 		got, ok := contextGateProfile(gate)
@@ -217,10 +217,10 @@ func TestKnownEnforcementRef(t *testing.T) {
 // TestTrimYAMLScalar covers trimming quotes and whitespace.
 func TestTrimYAMLScalar(t *testing.T) {
 	cases := map[string]string{
-		`"quoted"`: "quoted",
-		`'single'`: "single",
+		`"quoted"`:  "quoted",
+		`'single'`:  "single",
 		"  plain  ": "plain",
-		"plain":    "plain",
+		"plain":     "plain",
 	}
 	for in, want := range cases {
 		if got := trimYAMLScalar(in); got != want {

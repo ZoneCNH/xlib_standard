@@ -60,7 +60,7 @@ func TestRunFactAuditFlagBranches(t *testing.T) {
 
 // TestFactAuditContext covers empty env -> default and explicit env.
 func TestFactAuditContext(t *testing.T) {
-	os.Unsetenv("XLIB_CONTEXT")
+	_ = os.Unsetenv("XLIB_CONTEXT")
 	if got := factAuditContext(); got != "local_write" {
 		t.Fatalf("got = %q; want local_write", got)
 	}

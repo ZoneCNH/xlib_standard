@@ -53,7 +53,7 @@ func TestRunGoalRuntimeCommandBranches(t *testing.T) {
 			t.Fatalf("got = %d; want 2", got)
 		}
 		if !strings.Contains(stderr.String(), "ERROR:") {
-			// goalruntime.Evaluate likely errors on unknown command.
+			t.Errorf("stderr = %q; want to contain ERROR:", stderr.String())
 		}
 	})
 }

@@ -561,7 +561,7 @@ func TestEnvDefault(t *testing.T) {
 	if got := envDefault("MY_TEST_ENV_VAR", "fallback"); got != "value" {
 		t.Fatalf("got = %q; want value", got)
 	}
-	os.Unsetenv("MY_TEST_ENV_VAR")
+	_ = os.Unsetenv("MY_TEST_ENV_VAR")
 	if got := envDefault("MY_TEST_ENV_VAR", "fallback"); got != "fallback" {
 		t.Fatalf("got = %q; want fallback", got)
 	}
@@ -651,8 +651,8 @@ func TestNormalizeContextProfile(t *testing.T) {
 // TestCanonicalRepoPath covers all branches.
 func TestCanonicalRepoPath(t *testing.T) {
 	cases := []struct {
-		raw     string
-		want    string
+		raw       string
+		want      string
 		canonical bool
 	}{
 		{"", "", false},

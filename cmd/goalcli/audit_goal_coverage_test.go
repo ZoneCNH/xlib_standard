@@ -3,8 +3,6 @@ package main
 import (
 	"bytes"
 	"io"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -111,17 +109,5 @@ func TestNewAuditGoalChecksVariableOverride(t *testing.T) {
 	_ = runAuditGoal(nil, &stdout, &stderr)
 	if !called {
 		t.Fatalf("custom newAuditGoalChecks was not invoked")
-	}
-}
-
-// helper writeEmptyFile writes an empty file at root/rel.
-func writeEmptyFile(t *testing.T, root, rel string) {
-	t.Helper()
-	full := filepath.Join(root, filepath.FromSlash(rel))
-	if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
-		t.Fatalf("mkdir %s: %v", rel, err)
-	}
-	if err := os.WriteFile(full, []byte{}, 0o644); err != nil {
-		t.Fatalf("write %s: %v", rel, err)
 	}
 }

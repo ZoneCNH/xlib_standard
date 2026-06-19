@@ -13,7 +13,9 @@ func TestVerifyArtifactExists(t *testing.T) {
 
 	t.Run("existing file", func(t *testing.T) {
 		path := filepath.Join(root, "file.md")
-		os.WriteFile(path, []byte("x"), 0o644)
+		if err := os.WriteFile(path, []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
 		if err := verifyArtifactExists("file.md"); err != nil {
 			t.Fatalf("err = %v", err)
 		}
@@ -37,13 +39,17 @@ func TestVerifyArtifactExists(t *testing.T) {
 		}
 	})
 	t.Run("directory glob but file", func(t *testing.T) {
-		os.WriteFile(filepath.Join(root, "afile"), []byte("x"), 0o644)
+		if err := os.WriteFile(filepath.Join(root, "afile"), []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
 		if err := verifyArtifactExists("afile/*"); err == nil {
 			t.Fatalf("want not-a-directory error")
 		}
 	})
 	t.Run("glob with matches", func(t *testing.T) {
-		os.WriteFile(filepath.Join(root, "match1.md"), []byte("x"), 0o644)
+		if err := os.WriteFile(filepath.Join(root, "match1.md"), []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
 		if err := verifyArtifactExists("match*.md"); err != nil {
 			t.Fatalf("err = %v", err)
 		}

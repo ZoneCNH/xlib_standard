@@ -166,7 +166,9 @@ func TestParseDownstreamImpactReport(t *testing.T) {
 	t.Run("missing downstream_sync_required", func(t *testing.T) {
 		root := t.TempDir()
 		path := filepath.Join(root, "bad.md")
-		os.WriteFile(path, []byte("- primary_downstream: `k`\n- changed_file_count: `1`\n"), 0o644)
+		if err := os.WriteFile(path, []byte("- primary_downstream: `k`\n- changed_file_count: `1`\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
 		_, err := parseDownstreamImpactReport(path)
 		if err == nil || !strings.Contains(err.Error(), "missing downstream_sync_required") {
 			t.Fatalf("err = %v", err)
@@ -175,7 +177,9 @@ func TestParseDownstreamImpactReport(t *testing.T) {
 	t.Run("invalid bool", func(t *testing.T) {
 		root := t.TempDir()
 		path := filepath.Join(root, "bad.md")
-		os.WriteFile(path, []byte("- downstream_sync_required: `maybe`\n"), 0o644)
+		if err := os.WriteFile(path, []byte("- downstream_sync_required: `maybe`\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
 		_, err := parseDownstreamImpactReport(path)
 		if err == nil || !strings.Contains(err.Error(), "invalid downstream_sync_required") {
 			t.Fatalf("err = %v", err)
@@ -184,7 +188,9 @@ func TestParseDownstreamImpactReport(t *testing.T) {
 	t.Run("invalid release decision", func(t *testing.T) {
 		root := t.TempDir()
 		path := filepath.Join(root, "bad.md")
-		os.WriteFile(path, []byte("- downstream_sync_required: `true`\n- downstream_release_decision: `bogus`\n"), 0o644)
+		if err := os.WriteFile(path, []byte("- downstream_sync_required: `true`\n- downstream_release_decision: `bogus`\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
 		_, err := parseDownstreamImpactReport(path)
 		if err == nil || !strings.Contains(err.Error(), "invalid downstream_release_decision") {
 			t.Fatalf("err = %v", err)
@@ -193,7 +199,9 @@ func TestParseDownstreamImpactReport(t *testing.T) {
 	t.Run("sync true but decision not required", func(t *testing.T) {
 		root := t.TempDir()
 		path := filepath.Join(root, "bad.md")
-		os.WriteFile(path, []byte("- downstream_sync_required: `true`\n- downstream_release_decision: `not_required`\n"), 0o644)
+		if err := os.WriteFile(path, []byte("- downstream_sync_required: `true`\n- downstream_release_decision: `not_required`\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
 		_, err := parseDownstreamImpactReport(path)
 		if err == nil || !strings.Contains(err.Error(), "requires downstream_release_decision=required") {
 			t.Fatalf("err = %v", err)
@@ -202,7 +210,9 @@ func TestParseDownstreamImpactReport(t *testing.T) {
 	t.Run("sync false but decision required", func(t *testing.T) {
 		root := t.TempDir()
 		path := filepath.Join(root, "bad.md")
-		os.WriteFile(path, []byte("- downstream_sync_required: `false`\n- downstream_release_decision: `required`\n"), 0o644)
+		if err := os.WriteFile(path, []byte("- downstream_sync_required: `false`\n- downstream_release_decision: `required`\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
 		_, err := parseDownstreamImpactReport(path)
 		if err == nil || !strings.Contains(err.Error(), "requires downstream_release_decision=not_required") {
 			t.Fatalf("err = %v", err)
@@ -211,7 +221,9 @@ func TestParseDownstreamImpactReport(t *testing.T) {
 	t.Run("invalid repo rules decision", func(t *testing.T) {
 		root := t.TempDir()
 		path := filepath.Join(root, "bad.md")
-		os.WriteFile(path, []byte("- downstream_sync_required: `false`\n- downstream_release_decision: `not_required`\n- repository_rules_release_decision: `bogus`\n"), 0o644)
+		if err := os.WriteFile(path, []byte("- downstream_sync_required: `false`\n- downstream_release_decision: `not_required`\n- repository_rules_release_decision: `bogus`\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
 		_, err := parseDownstreamImpactReport(path)
 		if err == nil || !strings.Contains(err.Error(), "invalid repository_rules_release_decision") {
 			t.Fatalf("err = %v", err)
@@ -220,7 +232,9 @@ func TestParseDownstreamImpactReport(t *testing.T) {
 	t.Run("missing primary_downstream", func(t *testing.T) {
 		root := t.TempDir()
 		path := filepath.Join(root, "bad.md")
-		os.WriteFile(path, []byte("- downstream_sync_required: `false`\n- downstream_release_decision: `not_required`\n- repository_rules_release_decision: `not_required`\n"), 0o644)
+		if err := os.WriteFile(path, []byte("- downstream_sync_required: `false`\n- downstream_release_decision: `not_required`\n- repository_rules_release_decision: `not_required`\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
 		_, err := parseDownstreamImpactReport(path)
 		if err == nil || !strings.Contains(err.Error(), "missing primary_downstream") {
 			t.Fatalf("err = %v", err)
@@ -229,7 +243,9 @@ func TestParseDownstreamImpactReport(t *testing.T) {
 	t.Run("missing changed_file_count", func(t *testing.T) {
 		root := t.TempDir()
 		path := filepath.Join(root, "bad.md")
-		os.WriteFile(path, []byte("- downstream_sync_required: `false`\n- downstream_release_decision: `not_required`\n- repository_rules_release_decision: `not_required`\n- primary_downstream: `k`\n"), 0o644)
+		if err := os.WriteFile(path, []byte("- downstream_sync_required: `false`\n- downstream_release_decision: `not_required`\n- repository_rules_release_decision: `not_required`\n- primary_downstream: `k`\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
 		_, err := parseDownstreamImpactReport(path)
 		if err == nil || !strings.Contains(err.Error(), "missing changed_file_count") {
 			t.Fatalf("err = %v", err)
@@ -238,7 +254,9 @@ func TestParseDownstreamImpactReport(t *testing.T) {
 	t.Run("invalid changed_file_count", func(t *testing.T) {
 		root := t.TempDir()
 		path := filepath.Join(root, "bad.md")
-		os.WriteFile(path, []byte("- downstream_sync_required: `false`\n- downstream_release_decision: `not_required`\n- repository_rules_release_decision: `not_required`\n- primary_downstream: `k`\n- changed_file_count: `abc`\n"), 0o644)
+		if err := os.WriteFile(path, []byte("- downstream_sync_required: `false`\n- downstream_release_decision: `not_required`\n- repository_rules_release_decision: `not_required`\n- primary_downstream: `k`\n- changed_file_count: `abc`\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
 		_, err := parseDownstreamImpactReport(path)
 		if err == nil || !strings.Contains(err.Error(), "invalid changed_file_count") {
 			t.Fatalf("err = %v", err)
