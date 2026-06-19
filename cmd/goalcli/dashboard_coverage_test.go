@@ -91,7 +91,7 @@ func TestRenderDashboardMarkdown(t *testing.T) {
 			Matrix:        "matrix.md",
 			Scope:         []string{"goal", "req"},
 			Mode:          "local-readonly",
-			Components:    []dashboardComponent{{Name: "c", Status: "passed", Summary: "ok"}},
+			Components:    []dashboardComponent{dashboardComponent{Name: "c", Status: "passed", Summary: "ok"}},
 		}
 		md := renderDashboardMarkdown(report)
 		if !strings.Contains(md, "| goal_id | GOAL-1 |") {
@@ -105,7 +105,7 @@ func TestRenderDashboardMarkdown(t *testing.T) {
 		report := dashboardReport{
 			Command:    "dashboard-generate",
 			Status:     "failed",
-			Components: []dashboardComponent{{Name: "c", Status: "failed", Summary: "boom"}},
+			Components: []dashboardComponent{dashboardComponent{Name: "c", Status: "failed", Summary: "boom"}},
 			Gaps:       []string{"gap one"},
 		}
 		md := renderDashboardMarkdown(report)

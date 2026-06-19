@@ -202,12 +202,12 @@ func TestStatus(t *testing.T) {
 
 func TestBuildSectionStatuses(t *testing.T) {
 	// P2-only → warning branch (P0==0, but P1==0 and P2>0 → status warning).
-	s := buildSection("docs", []Finding{{Severity: "P2"}})
+	s := buildSection("docs", []Finding{Finding{Severity: "P2"}})
 	if s.Status != "warning" || s.P2 != 1 {
 		t.Fatalf("buildSection P2 = %+v; want status=warning P2=1", s)
 	}
 	// unknown severity → P2 bucket default.
-	s2 := buildSection("docs", []Finding{{Severity: "weird"}})
+	s2 := buildSection("docs", []Finding{Finding{Severity: "weird"}})
 	if s2.P2 != 1 {
 		t.Fatalf("buildSection weird = %+v; want P2=1", s2)
 	}
@@ -249,7 +249,7 @@ func TestValidateEvidenceClean(t *testing.T) {
 		Status:              "passed",
 		Score:               10,
 		MinScore:            9,
-		Sections:            []SectionEvidence{{Name: "docs", P0: 0, Status: "passed"}},
+		Sections:            []SectionEvidence{SectionEvidence{Name: "docs", P0: 0, Status: "passed"}},
 	}
 	if problems := ValidateEvidence(e, 9); len(problems) != 0 {
 		t.Fatalf("problems = %v; want none", problems)
@@ -275,7 +275,7 @@ func TestToMarkdownNoFindingsAndEmptyPath(t *testing.T) {
 		Mode:          "enforce",
 		Sections: []SectionReport{
 			{Name: "docs", Status: "passed", Findings: nil},                                                // "No findings." branch
-			{Name: "sec", Status: "warning", Findings: []Finding{{ID: "x", Severity: "P1", Message: "m"}}}, // empty Path → "policy"
+			{Name: "sec", Status: "warning", Findings: []Finding{Finding{ID: "x", Severity: "P1", Message: "m"}}}, // empty Path → "policy"
 		},
 	}
 	markdown := ToMarkdown(report)
@@ -354,7 +354,7 @@ func TestReadRuleMetadataUnmatchedIDNotFlushed(t *testing.T) {
 
 func TestAnnotateFindingsMetadataMissing(t *testing.T) {
 	// Finding whose ID is not in metadata → skipped continue branch.
-	findings := []Finding{{ID: "unknown.id", Severity: "P1"}}
+	findings := []Finding{Finding{ID: "unknown.id", Severity: "P1"}}
 	out := annotateFindings(findings, map[string]Finding{"other": {Owner: "x"}})
 	if len(out) != 1 || out[0].Owner != "" {
 		t.Fatalf("out = %#v; want unchanged finding", out)
@@ -364,7 +364,7 @@ func TestAnnotateFindingsMetadataMissing(t *testing.T) {
 func TestAnnotateFindingsEmptyMetadataShortCircuit(t *testing.T) {
 	// Empty metadata → early return, findings unchanged (already covered indirectly via
 	// Run without registry, but exercise directly for the len==0 branch).
-	in := []Finding{{ID: "x"}}
+	in := []Finding{Finding{ID: "x"}}
 	out := annotateFindings(in, nil)
 	if len(out) != 1 {
 		t.Fatalf("out = %#v; want input unchanged", out)

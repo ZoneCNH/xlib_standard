@@ -101,7 +101,7 @@ func TestNewAuditGoalChecksVariableOverride(t *testing.T) {
 	called := false
 	newAuditGoalChecks = func(matrixPath string) []auditGoalCheck {
 		called = true
-		return []auditGoalCheck{{name: "custom", run: func(w1, w2 io.Writer) int { return 0 }}}
+		return []auditGoalCheck{auditGoalCheck{name: "custom", run: func(w1, w2 io.Writer) int { return 0 }}}
 	}
 	root := t.TempDir()
 	chdir(t, root)
