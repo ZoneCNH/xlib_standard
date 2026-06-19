@@ -1,7 +1,7 @@
 ---
-Release version: v1.0.1
+Release version: v1.0.2
 
-agent_protocol_version: v1.0.1
+agent_protocol_version: v1.0.2
 status: normative
 scope:
   - xlib-standard

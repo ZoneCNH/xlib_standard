@@ -1,9 +1,9 @@
 schema_version: xlib-facts/v1
 module: github.com/ZoneCNH/xlib-standard
 current_release:
-  version: v1.0.1
+  version: v1.0.2
   commit: ef9f842da2b908485b879980be1bc95f2f1e90e2
-  released_at: 2026-06-18T00:00:00Z
+  released_at: 2026-06-20T00:00:00Z
 runtime:
   goal_runtime_version: v3.1
   governance_runtime_version: v2.9.3
