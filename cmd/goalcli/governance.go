@@ -27,6 +27,8 @@ const (
 	governanceRuntimeVersion = xlibfacts.GovernanceRuntimeVersion
 )
 
+var governanceMarshalIndent = json.MarshalIndent
+
 type gateReport struct {
 	Command string   `json:"command"`
 	Status  string   `json:"status"`
@@ -36,7 +38,7 @@ type gateReport struct {
 
 func emitReport(stdout io.Writer, command, status string, details []string, gaps []string) int {
 	report := gateReport{Command: command, Status: status, Details: details, Gaps: gaps}
-	data, err := json.MarshalIndent(report, "", "  ")
+	data, err := governanceMarshalIndent(report, "", "  ")
 	if err != nil {
 		write(stdout, "{\"command\":%q,\"status\":%q}\n", command, status)
 	} else {
@@ -218,12 +220,12 @@ func runSpecCheck(args []string, stdout io.Writer, stderr io.Writer) int {
 	}
 	found := false
 	var gaps []string
-	paths, err := trackedDocsMarkdownFiles()
+	paths, err := runSpecCheckTrackedDocsMarkdownFiles()
 	if err != nil {
 		gaps = append(gaps, "scan docs: "+err.Error())
 	}
 	for _, path := range paths {
-		data, readErr := os.ReadFile(path)
+		data, readErr := runSpecCheckReadFile(path)
 		if readErr != nil {
 			gaps = append(gaps, "read "+path+": "+readErr.Error())
 			continue
@@ -242,6 +244,11 @@ func runSpecCheck(args []string, stdout io.Writer, stderr io.Writer) int {
 	}
 	return emitReport(stdout, "spec-check", "passed", details, nil)
 }
+
+var (
+	runSpecCheckTrackedDocsMarkdownFiles = trackedDocsMarkdownFiles
+	runSpecCheckReadFile                 = os.ReadFile
+)
 
 func trackedDocsMarkdownFiles() ([]string, error) {
 	out, err := exec.Command("git", "ls-files", "-z", "--", "docs").CombinedOutput()
@@ -890,17 +897,10 @@ func makefileTargetDependencies(content, target string) []string {
 		return nil
 	}
 	lines := strings.Split(block, "\n")
-	if len(lines) == 0 {
-		return nil
-	}
 	var dependencyLines []string
 	for i, line := range lines {
 		if i == 0 {
-			parts := strings.SplitN(line, ":", 2)
-			if len(parts) != 2 {
-				return nil
-			}
-			line = parts[1]
+			line = strings.SplitN(line, ":", 2)[1]
 		} else {
 			if strings.HasPrefix(line, "\t") {
 				break
@@ -1347,12 +1347,14 @@ func readPlannedCommandFile(path string) ([]byte, string, bool) {
 	if info.IsDir() {
 		return nil, path + " must be a file", false
 	}
-	content, err := os.ReadFile(path)
+	content, err := readPlannedCommandFileReadFile(path)
 	if err != nil {
 		return nil, path + " unreadable: " + err.Error(), false
 	}
 	return content, "", true
 }
+
+var readPlannedCommandFileReadFile = os.ReadFile
 
 func validatePlannedCommandFile(command string, path string, content []byte) []string {
 	var gaps []string
@@ -2496,9 +2498,6 @@ func knownEnforcementRef(ref string, commandNames map[string]bool, makeTargets m
 	}
 	if strings.HasPrefix(ref, "make ") {
 		fields := strings.Fields(ref)
-		if len(fields) < 2 {
-			return false
-		}
 		return makeTargets[fields[len(fields)-1]]
 	}
 	if strings.HasPrefix(ref, "scripts/") || strings.HasPrefix(ref, ".githooks/") {
@@ -2870,14 +2869,7 @@ func appendRulesRegistryEnforcedByGaps(registryPath string, registryText string,
 			continue
 		}
 		fields := strings.Fields(ref)
-		if len(fields) == 0 {
-			continue
-		}
 		if fields[0] == "goalcli" {
-			if len(fields) < 2 {
-				*gaps = append(*gaps, registryPath+" enforced_by "+ref+" is missing a goalcli command")
-				continue
-			}
 			command := fields[1]
 			if !rulesRegistryGoalCLICommands()[command] {
 				*gaps = append(*gaps, registryPath+" enforced_by "+ref+" references unknown goalcli command "+command)

@@ -43,6 +43,67 @@ func TestSelfImprovingCheck_Lenient_Passes(t *testing.T) {
 	}
 }
 
+func TestSelfImprovingCheckSkipsUnreadablePatchRegistry(t *testing.T) {
+	root := setupRetroFixture(t, false)
+	registry := filepath.Join(root, ".agent/policies/rule-patches.yaml")
+	if err := os.Remove(registry); err != nil {
+		t.Fatalf("remove rule patches registry: %v", err)
+	}
+	if err := os.Mkdir(registry, 0o755); err != nil {
+		t.Fatalf("mkdir rule patches registry: %v", err)
+	}
+
+	var out, errBuf bytes.Buffer
+	code := runSelfImprovingCheck("self-improving-check", []string{"--root", root}, &out, &errBuf)
+	if code != 0 {
+		t.Fatalf("expected 0, got %d; stdout=%s stderr=%s", code, out.String(), errBuf.String())
+	}
+}
+
+func TestSelfImprovingCheckArgumentBranches(t *testing.T) {
+	root := setupRetroFixture(t, false)
+	cases := []struct {
+		name     string
+		args     []string
+		wantCode int
+		wantOut  string
+		wantErr  string
+	}{
+		{
+			name:     "help",
+			args:     []string{"--help"},
+			wantCode: 0,
+		},
+		{
+			name:     "invalid flag",
+			args:     []string{"--root", root, "--missing"},
+			wantCode: 2,
+			wantErr:  "flag provided but not defined",
+		},
+		{
+			name:     "positional argument",
+			args:     []string{"--root", root, "extra"},
+			wantCode: 2,
+			wantErr:  "unexpected positional argument",
+		},
+	}
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			var out, errBuf bytes.Buffer
+			code := runSelfImprovingCheck("self-improving-check", tt.args, &out, &errBuf)
+			if code != tt.wantCode {
+				t.Fatalf("exit=%d want %d; stdout=%s stderr=%s", code, tt.wantCode, out.String(), errBuf.String())
+			}
+			if tt.wantOut != "" && !bytes.Contains(out.Bytes(), []byte(tt.wantOut)) {
+				t.Fatalf("stdout missing %q: %s", tt.wantOut, out.String())
+			}
+			if tt.wantErr != "" && !bytes.Contains(errBuf.Bytes(), []byte(tt.wantErr)) {
+				t.Fatalf("stderr missing %q: %s", tt.wantErr, errBuf.String())
+			}
+		})
+	}
+}
+
 func TestSelfImprovingCheck_Strict_FailsWithoutEntries(t *testing.T) {
 	root := setupRetroFixture(t, false)
 	var out, errBuf bytes.Buffer
@@ -61,6 +122,76 @@ func TestSelfImprovingCheck_Strict_PassesWithEntry(t *testing.T) {
 	code := runSelfImprovingCheck("self-improving-check", []string{"--root", root, "--strict"}, &out, &errBuf)
 	if code != 0 {
 		t.Fatalf("expected 0, got %d; stdout=%s", code, out.String())
+	}
+}
+
+func TestSelfImprovingCheckReportsRetrospectiveTemplateAndSchemaGaps(t *testing.T) {
+	root := setupRetroFixture(t, false)
+	plainRetro := "# Notes\nNo keyword coverage here.\n"
+	if err := os.WriteFile(filepath.Join(root, ".agent/archive/retrospective.md"), []byte(plainRetro), 0o644); err != nil {
+		t.Fatalf("write retrospective: %v", err)
+	}
+	shortTemplate := "# Retrospective Template\n## Failure\n"
+	if err := os.WriteFile(filepath.Join(root, ".agent/docs/retrospective-template.md"), []byte(shortTemplate), 0o644); err != nil {
+		t.Fatalf("write template: %v", err)
+	}
+	badPatch := "status: PROPOSED\n"
+	if err := os.WriteFile(filepath.Join(root, ".agent/policies/rule-patches.yaml"), []byte(badPatch), 0o644); err != nil {
+		t.Fatalf("write patch registry: %v", err)
+	}
+
+	var out, errBuf bytes.Buffer
+	code := runSelfImprovingCheck("self-improving-check", []string{"--root", root}, &out, &errBuf)
+	if code != 1 {
+		t.Fatalf("expected 1, got %d; stdout=%s stderr=%s", code, out.String(), errBuf.String())
+	}
+	for _, needle := range []string{
+		"RULE-RETRO-001",
+		"RULE-RETRO-002",
+		"RULE-RETRO-CHECK-001",
+		"RULE-SI-003",
+	} {
+		if !bytes.Contains(out.Bytes(), []byte(needle)) {
+			t.Fatalf("expected %s in output: %s", needle, out.String())
+		}
+	}
+}
+
+func TestSelfImprovingCheckAcceptsKnownPatchStatuses(t *testing.T) {
+	root := setupRetroFixture(t, false)
+	registries := map[string]string{
+		".agent/harness/harness-patches.yaml": `schema: harness-patches
+entries:
+  - patch_id: PATCH-ACCEPTED
+    status: ACCEPTED
+  - patch_id: PATCH-REJECTED
+    status: REJECTED
+`,
+		".agent/policies/prompt-patches.yaml": `schema: prompt-patches
+entries:
+  - patch_id: PATCH-SUPERSEDED
+    status: SUPERSEDED
+  - patch_id: PATCH-IMPLEMENTED
+    status: IMPLEMENTED
+`,
+		".agent/policies/rule-patches.yaml": `schema: rule-patches
+entries:
+  - patch_id: PATCH-RECONCILED
+    status: reconciled_stub
+`,
+	}
+	for rel, content := range registries {
+		if err := os.WriteFile(filepath.Join(root, rel), []byte(content), 0o644); err != nil {
+			t.Fatalf("write %s: %v", rel, err)
+		}
+	}
+	var out, errBuf bytes.Buffer
+	code := runSelfImprovingCheck("self-improving-check", []string{"--root", root, "--strict"}, &out, &errBuf)
+	if code != 0 {
+		t.Fatalf("expected 0, got %d; stdout=%s stderr=%s", code, out.String(), errBuf.String())
+	}
+	if !bytes.Contains(out.Bytes(), []byte("5 patch entries")) {
+		t.Fatalf("expected patch entry count in output: %s", out.String())
 	}
 }
 

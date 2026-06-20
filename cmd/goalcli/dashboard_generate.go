@@ -12,6 +12,8 @@ import (
 
 const dashboardGenerateSchemaVersion = "1.0"
 
+var dashboardGenerateMarshalIndent = json.MarshalIndent
+
 type dashboardComponent struct {
 	Name    string `json:"name"`
 	Status  string `json:"status"`
@@ -60,7 +62,7 @@ func runDashboardGenerate(args []string, stdout io.Writer, stderr io.Writer) int
 	if *format == "markdown" {
 		write(stdout, "%s", renderDashboardMarkdown(report))
 	} else {
-		data, err := json.MarshalIndent(report, "", "  ")
+		data, err := dashboardGenerateMarshalIndent(report, "", "  ")
 		if err != nil {
 			write(stderr, "ERROR: dashboard-generate failed to marshal JSON: %v\n", err)
 			return 1

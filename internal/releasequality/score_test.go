@@ -186,6 +186,38 @@ release-final-check: score-check
 	}
 }
 
+func TestScoreGateDimensionReportsMissingMakefile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "missing-Makefile")
+
+	dimension := scoreGateDimension(path)
+	if dimension.Passed {
+		t.Fatal("expected missing Makefile to fail")
+	}
+	if dimension.Name != "score_gate" {
+		t.Fatalf("dimension name = %q; want score_gate", dimension.Name)
+	}
+	if !strings.Contains(dimension.Detail, "missing "+path) {
+		t.Fatalf("dimension detail = %q; want missing path", dimension.Detail)
+	}
+}
+
+func TestScoreGateDimensionReportsMissingTargets(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "Makefile")
+	if err := os.WriteFile(path, []byte("score:\n\tscore --min 9.8\n"), 0o644); err != nil {
+		t.Fatalf("write Makefile fixture: %v", err)
+	}
+
+	dimension := scoreGateDimension(path)
+	if dimension.Passed {
+		t.Fatal("expected missing score gate targets to fail")
+	}
+	for _, want := range []string{"score-check", "release-final-check"} {
+		if !strings.Contains(dimension.Detail, want) {
+			t.Fatalf("dimension detail = %q; want missing %s", dimension.Detail, want)
+		}
+	}
+}
+
 func TestTextDimensionReportsMissingNeedles(t *testing.T) {
 	root := t.TempDir()
 	path := filepath.Join(root, "doc.txt")

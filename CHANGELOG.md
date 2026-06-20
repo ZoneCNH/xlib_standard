@@ -2,6 +2,17 @@
 
 ## 未发布
 
+## v1.0.2 - 2026-06-20
+
+### 治理
+
+- 将默认覆盖率发布门槛提升到 100.0%，并同步 harness、release gate 注册表和 CI/CD 覆盖率证据路径。
+- 补齐 `goalcli`、release manifest、debt、runtime facts 等分支覆盖，确保 `GOWORK=off go test ./... -covermode=atomic` 的所有函数报告 100.0%。
+
+### 兼容性
+
+- 不改变 `pkg/templatex` 公共 API；仅同步 release facts、模板版本和治理门禁。
+
 ## v1.0.1 - 2026-06-18
 
 ### 治理

@@ -28,6 +28,13 @@ jobs:
           skip-cache: true
       - name: CI
         run: GOWORK=off XLIB_CONTEXT=ci_pull_request make ci
+      - name: Upload coverage evidence
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ github.run_id }}
+          path: coverage.out
+          if-no-files-found: error
 
   release-check:
     name: release-check
@@ -60,4 +67,4 @@ jobs:
           path: |
             release/manifest/latest.json
             release/manifest/latest.json.sha256
-          if-no-files-found: ignore
+          if-no-files-found: error

@@ -2,6 +2,8 @@ GOALCLI ?= go run ./cmd/goalcli
 XLIB_CONTEXT ?= local_write
 GOAL_ID ?= GOAL-20260603-XLIB-GOALCLI-001
 GOAL_RUNTIME_MODE ?= FULL
+COVERAGE_PROFILE ?= coverage.out
+COVERAGE_MIN ?= 100.0
 DOCKER_IMAGE ?= $(notdir $(CURDIR))-toolchain:local
 DOCKER_GATE ?= GITHUB_ACTIONS=$${GITHUB_ACTIONS:-} GOLANGCI_LINT_VERSION=$${GOLANGCI_LINT_VERSION:-v2.1.6} GOVULNCHECK_VERSION=$${GOVULNCHECK_VERSION:-v1.1.4} GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.directory GIT_CONFIG_VALUE_0=/workspace ./scripts/docker/docker_gate.sh
 RENDER_CHECK_DIR ?=
@@ -45,6 +47,16 @@ vet:
 .PHONY: test
 test:
 	go test ./...
+
+.PHONY: coverage-check
+coverage-check: require-gowork-off
+	GOWORK=off go test ./... -covermode=atomic -coverprofile="$(COVERAGE_PROFILE)"
+	@total="$$(go tool cover -func="$(COVERAGE_PROFILE)" | awk '/^total:/ {gsub("%","",$$3); print $$3}')"; \
+	if ! awk -v got="$$total" -v min="$(COVERAGE_MIN)" 'BEGIN { if (got+0 < min+0) exit 1 }'; then \
+		printf 'coverage %s%% < %s%%\n' "$$total" "$(COVERAGE_MIN)"; \
+		exit 1; \
+	fi; \
+	printf 'coverage %s%% >= %s%%\n' "$$total" "$(COVERAGE_MIN)"
 
 .PHONY: race
 race:
@@ -537,7 +549,7 @@ context-standard-check: context-standard
 context-full-check: context-full
 
 .PHONY: ci
-ci: doctor-hooks-local fmt vet lint test race boundary architecture domain secret-check security security-debt contracts governance-check debt score rules-verify
+ci: doctor-hooks-local fmt vet lint test coverage-check race boundary architecture domain secret-check security security-debt contracts governance-check debt score rules-verify
 
 .PHONY: ci-extended
 ci-extended: ci property golden fuzz-smoke docs-drift

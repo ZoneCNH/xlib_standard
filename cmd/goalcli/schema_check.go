@@ -18,6 +18,8 @@ import (
 
 const defaultSchemaCheckReportPath = "reports/schema-check.json"
 
+var schemaCheckMarshalIndent = json.MarshalIndent
+
 type schemaCheckReport struct {
 	SchemaVersion string            `json:"schema_version"`
 	Command       string            `json:"command"`
@@ -131,7 +133,7 @@ func runSchemaValidate(args []string, stdout io.Writer, stderr io.Writer) int {
 		}
 	}
 
-	data, err := json.MarshalIndent(report, "", "  ")
+	data, err := schemaCheckMarshalIndent(report, "", "  ")
 	if err != nil {
 		write(stderr, "ERROR: schema-check marshal report: %v\n", err)
 		return 1
