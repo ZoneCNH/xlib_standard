@@ -15,6 +15,11 @@ import (
 	"github.com/ZoneCNH/xlib-standard/internal/debtcheck"
 )
 
+var (
+	debtCheckRun      = debtcheck.Run
+	debtMarshalIndent = json.MarshalIndent
+)
+
 func runDebt(args []string, stdout, stderr io.Writer) int {
 	if len(args) > 0 {
 		switch args[0] {
@@ -35,14 +40,14 @@ func runDebt(args []string, stdout, stderr io.Writer) int {
 	if err := fs.Parse(args); err != nil {
 		return 2
 	}
-	report, err := debtcheck.Run(debtcheck.Options{ConfigPath: *config, RegistryPath: *registry, ExceptionsPath: *exceptions, DependencyPurposePath: *purpose, Section: *section, Mode: *mode, MinScore: *minScore})
+	report, err := debtCheckRun(debtcheck.Options{ConfigPath: *config, RegistryPath: *registry, ExceptionsPath: *exceptions, DependencyPurposePath: *purpose, Section: *section, Mode: *mode, MinScore: *minScore})
 	if err != nil {
 		_, _ = fmt.Fprintln(stderr, err)
 		return 2
 	}
 	switch *output {
 	case "json":
-		encoded, err := json.MarshalIndent(report, "", "  ")
+		encoded, err := debtMarshalIndent(report, "", "  ")
 		if err != nil {
 			_, _ = fmt.Fprintln(stderr, err)
 			return 2
@@ -90,7 +95,7 @@ func runDebtHelper(command string, args []string, stdout, stderr io.Writer) int 
 		return 2
 	}
 
-	report, err := debtcheck.Run(debtcheck.Options{
+	report, err := debtCheckRun(debtcheck.Options{
 		ConfigPath:            *config,
 		RegistryPath:          *registry,
 		ExceptionsPath:        *exceptions,
@@ -105,7 +110,7 @@ func runDebtHelper(command string, args []string, stdout, stderr io.Writer) int 
 	}
 
 	artifact := buildDebtHelperArtifact(command, report)
-	encoded, err := json.MarshalIndent(artifact, "", "  ")
+	encoded, err := debtMarshalIndent(artifact, "", "  ")
 	if err != nil {
 		_, _ = fmt.Fprintln(stderr, err)
 		return 2
@@ -224,7 +229,7 @@ func runDebtEvidence(args []string, stdout, stderr io.Writer) int {
 		return 2
 	}
 
-	report, err := debtcheck.Run(debtcheck.Options{
+	report, err := debtCheckRun(debtcheck.Options{
 		ConfigPath:            debtcheck.DefaultRulesPath,
 		RegistryPath:          debtcheck.DefaultRegistryPath,
 		ExceptionsPath:        debtcheck.DefaultExceptions,
@@ -246,7 +251,7 @@ func runDebtEvidence(args []string, stdout, stderr io.Writer) int {
 		return 2
 	}
 
-	encoded, err := json.MarshalIndent(report, "", "  ")
+	encoded, err := debtMarshalIndent(report, "", "  ")
 	if err != nil {
 		_, _ = fmt.Fprintln(stderr, err)
 		return 2

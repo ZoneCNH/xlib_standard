@@ -26,6 +26,18 @@ const (
 	privateKeyPrefix    = "-----BEGIN " + "PRIVATE KEY-----"
 )
 
+type dirReader interface {
+	Readdirnames(n int) ([]string, error)
+	Close() error
+}
+
+var (
+	debtcheckOpenDir = func(name string) (dirReader, error) {
+		return os.Open(name)
+	}
+	debtcheckLstat = os.Lstat
+)
+
 type Options struct {
 	Root                  string
 	ConfigPath            string
@@ -219,9 +231,6 @@ func readRuleMetadata(root, path string) map[string]Finding {
 			flush()
 			inRule = true
 			trimmed = strings.TrimSpace(strings.TrimPrefix(trimmed, "- "))
-			if trimmed == "" {
-				continue
-			}
 		}
 		if !inRule {
 			continue
@@ -756,7 +765,7 @@ func scanTrackedText(root string, inspect func(path, text string) []Finding) []F
 }
 
 func walkFiles(root string, visit func(path string) error) error {
-	info, err := os.Lstat(root)
+	info, err := debtcheckLstat(root)
 	if err != nil {
 		return err
 	}
@@ -767,7 +776,7 @@ func walkFiles(root string, visit func(path string) error) error {
 }
 
 func walkDir(dir string, visit func(path string) error) error {
-	file, err := os.Open(dir)
+	file, err := debtcheckOpenDir(dir)
 	if err != nil {
 		return err
 	}
@@ -782,7 +791,7 @@ func walkDir(dir string, visit func(path string) error) error {
 	sort.Strings(names)
 	for _, name := range names {
 		path := filepath.Join(dir, name)
-		info, err := os.Lstat(path)
+		info, err := debtcheckLstat(path)
 		if err != nil {
 			return err
 		}

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -245,6 +246,106 @@ func TestAdoptionCheckBlocksRulesetBypass(t *testing.T) {
 	}
 }
 
+func TestAdoptionCheckRejectsInvalidArguments(t *testing.T) {
+	tests := []struct {
+		name       string
+		args       []string
+		wantCode   int
+		wantStderr string
+	}{
+		{name: "help", args: []string{"--help"}, wantCode: 0},
+		{name: "unknown flag", args: []string{"--bogus"}, wantCode: 2, wantStderr: "flag provided but not defined"},
+		{name: "positional", args: []string{"unexpected"}, wantCode: 2, wantStderr: "unexpected positional argument"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var stdout, stderr bytes.Buffer
+			got := runAdoptionCheck(tt.args, &stdout, &stderr)
+			if got != tt.wantCode {
+				t.Fatalf("runAdoptionCheck(%v) = %d, stderr %q, stdout %q; want %d", tt.args, got, stderr.String(), stdout.String(), tt.wantCode)
+			}
+			if tt.wantStderr != "" && !strings.Contains(stderr.String(), tt.wantStderr) {
+				t.Fatalf("stderr = %q; want %q", stderr.String(), tt.wantStderr)
+			}
+		})
+	}
+}
+
+func TestAdoptionCheckReportsRulesetShapeGaps(t *testing.T) {
+	root := adoptionCheckFixture(t)
+	rulesetPath := filepath.Join(root, ".github", "rulesets", "protect-main.json")
+	ruleset := `{
+  "name": "wrong",
+  "target": "tag",
+  "enforcement": "disabled",
+  "bypass_actors": [{"actor_id": 1}],
+  "conditions": {"ref_name": {"include": ["refs/heads/dev"]}},
+  "rules": [
+    {"type": "required_status_checks", "parameters": "bad"}
+  ]
+}
+`
+	if err := os.WriteFile(rulesetPath, []byte(ruleset), 0o644); err != nil {
+		t.Fatalf("write malformed ruleset fixture: %v", err)
+	}
+	var stdout, stderr bytes.Buffer
+
+	got := run([]string{"adoption-check", "--verify", "--root", root}, strings.NewReader(""), &stdout, &stderr)
+
+	if got != 1 {
+		t.Fatalf("adoption-check exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+	}
+	for _, want := range []string{
+		"protect-main.json missing protect-main name",
+		"protect-main.json must target branch",
+		"protect-main.json enforcement must be active",
+		"protect-main.json must not allow bypass actors",
+		"protect-main.json must protect default branch",
+		"protect-main.json required_status_checks parameters are invalid",
+		"protect-main.json missing pull_request rule",
+		"protect-main.json missing non_fast_forward rule",
+		"protect-main.json missing deletion rule",
+		"protect-main.json required checks missing adoption-check",
+		"protect-main.json required checks missing governance-check",
+		"protect-main.json required checks missing release-check",
+	} {
+		if !strings.Contains(stdout.String(), want) {
+			t.Fatalf("stdout = %q; want ruleset gap %q", stdout.String(), want)
+		}
+	}
+}
+
+func TestAdoptionCheckReportsMissingAndInvalidRulesetFiles(t *testing.T) {
+	root := adoptionCheckFixture(t)
+	rulesetPath := filepath.Join(root, ".github", "rulesets", "protect-main.json")
+	if err := os.Remove(rulesetPath); err != nil {
+		t.Fatalf("remove ruleset fixture: %v", err)
+	}
+	var stdout, stderr bytes.Buffer
+
+	got := run([]string{"adoption-check", "--verify", "--root", root}, strings.NewReader(""), &stdout, &stderr)
+
+	if got != 1 {
+		t.Fatalf("adoption-check without ruleset exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "missing .github/rulesets/protect-main.json") {
+		t.Fatalf("stdout = %q; want missing ruleset gap", stdout.String())
+	}
+
+	stdout.Reset()
+	stderr.Reset()
+	if err := os.WriteFile(rulesetPath, []byte("{"), 0o644); err != nil {
+		t.Fatalf("write invalid ruleset fixture: %v", err)
+	}
+	got = run([]string{"adoption-check", "--verify", "--root", root}, strings.NewReader(""), &stdout, &stderr)
+	if got != 1 {
+		t.Fatalf("adoption-check invalid ruleset exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+	}
+	if !strings.Contains(stdout.String(), ".github/rulesets/protect-main.json is not valid JSON") {
+		t.Fatalf("stdout = %q; want invalid JSON gap", stdout.String())
+	}
+}
+
 func TestGoalCLISyncContractDocumentsRequiredSurfaces(t *testing.T) {
 	root := repoRoot(t)
 	files := map[string][]string{
@@ -432,6 +533,104 @@ func TestRunDispatchesExternalCommands(t *testing.T) {
 	}
 }
 
+func TestRunDispatchesRemainingInternalErrorBranches(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+		want string
+	}{
+		{name: "debt evidence arguments", args: []string{"debt-evidence", "unexpected"}, want: "does not accept arguments"},
+		{name: "rules consistency invalid flag", args: []string{"rules-consistency-check", "--missing"}, want: "flag provided but not defined"},
+		{name: "traceability invalid flag", args: []string{"traceability-check", "--missing"}, want: "flag provided but not defined"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var stdout, stderr bytes.Buffer
+			got := run(tt.args, strings.NewReader(""), &stdout, &stderr)
+			if got != 2 {
+				t.Fatalf("run(%v) = %d stdout = %q stderr = %q; want 2", tt.args, got, stdout.String(), stderr.String())
+			}
+			if !strings.Contains(stderr.String(), tt.want) {
+				t.Fatalf("stderr = %q; want %q", stderr.String(), tt.want)
+			}
+		})
+	}
+}
+
+func TestRunDispatchesAuditDashboardAndDebtAliases(t *testing.T) {
+	root := t.TempDir()
+	writeDebtCLICleanFixture(t, root)
+	chdir(t, root)
+
+	oldNewAuditGoalChecks := newAuditGoalChecks
+	t.Cleanup(func() { newAuditGoalChecks = oldNewAuditGoalChecks })
+	newAuditGoalChecks = func(matrixPath string) []auditGoalCheck {
+		return []auditGoalCheck{
+			{
+				name: "matrix-path",
+				run: func(stdout io.Writer, stderr io.Writer) int {
+					write(stdout, "matrix=%s\n", matrixPath)
+					return 0
+				},
+			},
+			{
+				name: "goal-id",
+				run: func(stdout io.Writer, stderr io.Writer) int {
+					write(stdout, "goal-ok\n")
+					return 0
+				},
+			},
+		}
+	}
+
+	var stdout, stderr bytes.Buffer
+	got := run([]string{"audit-goal", "--goal-id", "G-1"}, strings.NewReader(""), &stdout, &stderr)
+	if got != 0 {
+		t.Fatalf("audit-goal exit = %d, stderr %q, stdout %q; want 0", got, stderr.String(), stdout.String())
+	}
+	if !strings.Contains(stdout.String(), `"command": "audit-goal"`) ||
+		!strings.Contains(stdout.String(), `"status": "passed"`) ||
+		!strings.Contains(stdout.String(), "goal_id=G-1") {
+		t.Fatalf("audit-goal stdout = %q; want passed audit report", stdout.String())
+	}
+
+	stdout.Reset()
+	stderr.Reset()
+	got = run([]string{"dashboard-generate", "--format", "markdown", "--goal-id", "G-1"}, strings.NewReader(""), &stdout, &stderr)
+	if got != 0 {
+		t.Fatalf("dashboard-generate exit = %d, stderr %q, stdout %q; want 0", got, stderr.String(), stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "# Goal Dashboard") ||
+		!strings.Contains(stdout.String(), "| goal_id | G-1 |") ||
+		!strings.Contains(stdout.String(), "| matrix-path | passed |") {
+		t.Fatalf("dashboard-generate stdout = %q; want markdown dashboard", stdout.String())
+	}
+
+	for _, command := range []string{
+		"architecture",
+		"domain",
+		"docs-drift",
+		"dependency-debt",
+		"testing-debt",
+		"implementation-debt",
+		"security-debt",
+		"downstream-debt",
+	} {
+		t.Run(command, func(t *testing.T) {
+			stdout.Reset()
+			stderr.Reset()
+			got := run([]string{command, "--output", "json"}, strings.NewReader(""), &stdout, &stderr)
+			if got != 0 {
+				t.Fatalf("%s exit = %d, stderr %q, stdout %q; want 0", command, got, stderr.String(), stdout.String())
+			}
+			if !strings.Contains(stdout.String(), `"status": "passed"`) {
+				t.Fatalf("%s stdout = %q; want passed debt report", command, stdout.String())
+			}
+		})
+	}
+}
+
 func TestRunSecretCommandRejectsUnknownSubcommand(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 
@@ -443,6 +642,217 @@ func TestRunSecretCommandRejectsUnknownSubcommand(t *testing.T) {
 	if !strings.Contains(stderr.String(), `unknown secret command "scan"`) {
 		t.Fatalf("stderr = %q; want unknown secret subcommand", stderr.String())
 	}
+}
+
+func TestRunSecretCommandUsageBranches(t *testing.T) {
+	tests := []struct {
+		name       string
+		args       []string
+		wantCode   int
+		wantStdout string
+		wantStderr string
+	}{
+		{name: "missing subcommand", wantCode: 2, wantStderr: "usage: goalcli secret"},
+		{name: "help", args: []string{"help"}, wantCode: 0, wantStdout: "usage: goalcli secret"},
+		{name: "short help", args: []string{"-h"}, wantCode: 0, wantStdout: "usage: goalcli secret"},
+		{name: "long help", args: []string{"--help"}, wantCode: 0, wantStdout: "usage: goalcli secret"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var stdout, stderr bytes.Buffer
+
+			got := runSecretCommand(tt.args, strings.NewReader(""), &stdout, &stderr)
+
+			if got != tt.wantCode {
+				t.Fatalf("runSecretCommand(%v) = %d, stderr %q, stdout %q; want %d", tt.args, got, stderr.String(), stdout.String(), tt.wantCode)
+			}
+			if tt.wantStdout != "" && !strings.Contains(stdout.String(), tt.wantStdout) {
+				t.Fatalf("stdout = %q; want %q", stdout.String(), tt.wantStdout)
+			}
+			if tt.wantStderr != "" && !strings.Contains(stderr.String(), tt.wantStderr) {
+				t.Fatalf("stderr = %q; want %q", stderr.String(), tt.wantStderr)
+			}
+		})
+	}
+}
+
+func TestRecordVulncheckRunReportsFilesystemErrors(t *testing.T) {
+	now := time.Date(2026, time.June, 20, 12, 0, 0, 0, time.UTC)
+	root := t.TempDir()
+	parentFile := filepath.Join(root, "parent-file")
+	if err := os.WriteFile(parentFile, []byte("not a directory"), 0o644); err != nil {
+		t.Fatalf("write parent file: %v", err)
+	}
+
+	err := recordVulncheckRun(filepath.Join(parentFile, "state"), now)
+	if err == nil || !strings.Contains(err.Error(), "create govulncheck state directory") {
+		t.Fatalf("mkdir error = %v; want create govulncheck state directory", err)
+	}
+
+	err = recordVulncheckRun(root, now)
+	if err == nil || !strings.Contains(err.Error(), "write govulncheck state") {
+		t.Fatalf("write error = %v; want write govulncheck state", err)
+	}
+}
+
+func TestHooksStatusDetailBranches(t *testing.T) {
+	root := t.TempDir()
+	chdir(t, root)
+
+	if got := hooksStatusDetail(); !strings.Contains(got, ".githooks/pre-commit 不存在") {
+		t.Fatalf("hooksStatusDetail without hook = %q; want missing hook detail", got)
+	}
+	if err := os.MkdirAll(filepath.Join(root, ".githooks"), 0o755); err != nil {
+		t.Fatalf("mkdir .githooks: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(root, ".githooks", "pre-commit"), []byte("#!/bin/sh\n"), 0o755); err != nil {
+		t.Fatalf("write pre-commit hook: %v", err)
+	}
+
+	runGit := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", args...)
+		cmd.Dir = root
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	runGit("init")
+
+	if got := hooksStatusDetail(); !strings.Contains(got, "core.hooksPath 未设置") {
+		t.Fatalf("hooksStatusDetail unset = %q; want unset detail", got)
+	}
+
+	runGit("config", "core.hooksPath", ".githooks")
+	if got := hooksStatusDetail(); !strings.Contains(got, "已启用") {
+		t.Fatalf("hooksStatusDetail enabled = %q; want enabled detail", got)
+	}
+
+	runGit("config", "core.hooksPath", "custom-hooks")
+	if got := hooksStatusDetail(); !strings.Contains(got, "custom-hooks") {
+		t.Fatalf("hooksStatusDetail custom = %q; want custom hooks path", got)
+	}
+}
+
+func TestGovernanceCheckCommandBranches(t *testing.T) {
+	t.Run("context check", func(t *testing.T) {
+		root := t.TempDir()
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		if got := runContextCheck([]string{"unexpected"}, &stdout, &stderr); got != 2 || !strings.Contains(stderr.String(), "invalid arguments") {
+			t.Fatalf("context-check invalid = %d stderr %q; want invalid argument exit", got, stderr.String())
+		}
+
+		stdout.Reset()
+		stderr.Reset()
+		if got := runContextCheck(nil, &stdout, &stderr); got != 1 || !strings.Contains(stdout.String(), "missing docs/goal") {
+			t.Fatalf("context-check missing = %d stdout %q stderr %q; want missing docs/goal", got, stdout.String(), stderr.String())
+		}
+
+		if err := os.MkdirAll(filepath.Join(root, "docs", "goal"), 0o755); err != nil {
+			t.Fatalf("mkdir docs/goal: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(root, "docs", "goal", "goal.md"), []byte("# Goal\n"), 0o644); err != nil {
+			t.Fatalf("write goal doc: %v", err)
+		}
+		stdout.Reset()
+		stderr.Reset()
+		if got := runContextCheck(nil, &stdout, &stderr); got != 0 || !strings.Contains(stdout.String(), `"status": "passed"`) {
+			t.Fatalf("context-check present = %d stdout %q stderr %q; want passed", got, stdout.String(), stderr.String())
+		}
+	})
+
+	t.Run("spec check", func(t *testing.T) {
+		root := t.TempDir()
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		if got := runSpecCheck([]string{"unexpected"}, &stdout, &stderr); got != 2 || !strings.Contains(stderr.String(), "invalid arguments") {
+			t.Fatalf("spec-check invalid = %d stderr %q; want invalid argument exit", got, stderr.String())
+		}
+
+		stdout.Reset()
+		stderr.Reset()
+		if got := runSpecCheck(nil, &stdout, &stderr); got != 1 || !strings.Contains(stdout.String(), "missing docs") {
+			t.Fatalf("spec-check missing docs = %d stdout %q stderr %q; want missing docs", got, stdout.String(), stderr.String())
+		}
+
+		if err := os.MkdirAll(filepath.Join(root, "docs"), 0o755); err != nil {
+			t.Fatalf("mkdir docs: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(root, "docs", "notes.md"), []byte("# Notes\n"), 0o644); err != nil {
+			t.Fatalf("write notes: %v", err)
+		}
+		stdout.Reset()
+		stderr.Reset()
+		if got := runSpecCheck(nil, &stdout, &stderr); got != 0 || !strings.Contains(stdout.String(), "warning: no docs markdown file contains REQ-") {
+			t.Fatalf("spec-check no req = %d stdout %q stderr %q; want no REQ warning", got, stdout.String(), stderr.String())
+		}
+	})
+
+	t.Run("design check", func(t *testing.T) {
+		root := t.TempDir()
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		if got := runDesignCheck([]string{"unexpected"}, &stdout, &stderr); got != 2 || !strings.Contains(stderr.String(), "invalid arguments") {
+			t.Fatalf("design-check invalid = %d stderr %q; want invalid argument exit", got, stderr.String())
+		}
+
+		stdout.Reset()
+		stderr.Reset()
+		if got := runDesignCheck(nil, &stdout, &stderr); got != 0 || !strings.Contains(stdout.String(), "warning: optional docs/adr not present") {
+			t.Fatalf("design-check missing adr = %d stdout %q stderr %q; want optional warning", got, stdout.String(), stderr.String())
+		}
+
+		if err := os.MkdirAll(filepath.Join(root, "docs", "adr"), 0o755); err != nil {
+			t.Fatalf("mkdir docs/adr: %v", err)
+		}
+		stdout.Reset()
+		stderr.Reset()
+		if got := runDesignCheck(nil, &stdout, &stderr); got != 0 || !strings.Contains(stdout.String(), "docs/adr is present") {
+			t.Fatalf("design-check adr = %d stdout %q stderr %q; want present detail", got, stdout.String(), stderr.String())
+		}
+	})
+
+	t.Run("task check", func(t *testing.T) {
+		root := t.TempDir()
+		chdir(t, root)
+
+		var stdout, stderr bytes.Buffer
+		if got := runTaskCheck([]string{"unexpected"}, &stdout, &stderr); got != 2 || !strings.Contains(stderr.String(), "invalid arguments") {
+			t.Fatalf("task-check invalid = %d stderr %q; want invalid argument exit", got, stderr.String())
+		}
+
+		stdout.Reset()
+		stderr.Reset()
+		if got := runTaskCheck(nil, &stdout, &stderr); got != 1 || !strings.Contains(stdout.String(), "missing .agent/registries/command-registry.yaml") {
+			t.Fatalf("task-check missing registry = %d stdout %q stderr %q; want missing registry", got, stdout.String(), stderr.String())
+		}
+
+		if err := os.MkdirAll(filepath.Join(root, ".agent", "registries"), 0o755); err != nil {
+			t.Fatalf("mkdir registries: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(root, ".agent", "registries", "commands.yaml"), []byte("commands: []\n"), 0o644); err != nil {
+			t.Fatalf("write compatibility registry: %v", err)
+		}
+		stdout.Reset()
+		stderr.Reset()
+		if got := runTaskCheck(nil, &stdout, &stderr); got != 1 || !strings.Contains(stdout.String(), "compatibility coverage only") {
+			t.Fatalf("task-check compatibility registry = %d stdout %q stderr %q; want compatibility gap", got, stdout.String(), stderr.String())
+		}
+
+		if err := os.WriteFile(filepath.Join(root, ".agent", "registries", "command-registry.yaml"), []byte("commands: []\n"), 0o644); err != nil {
+			t.Fatalf("write canonical registry: %v", err)
+		}
+		stdout.Reset()
+		stderr.Reset()
+		if got := runTaskCheck(nil, &stdout, &stderr); got != 0 || !strings.Contains(stdout.String(), ".agent/registries/command-registry.yaml is present") {
+			t.Fatalf("task-check canonical registry = %d stdout %q stderr %q; want passed", got, stdout.String(), stderr.String())
+		}
+	})
 }
 
 func TestSecretCheckScriptWritesReportsAndUsesExitSeven(t *testing.T) {
@@ -643,6 +1053,219 @@ func TestRunSecurityOptInStopsWhenVulnerabilityScanFails(t *testing.T) {
 	}
 	if calls := readText(t, callLog); calls != "govulncheck ./...\n" {
 		t.Fatalf("security calls = %q; want short-circuit after opt-in govulncheck", calls)
+	}
+}
+
+func TestRunSecurityReportsVulncheckStateWriteError(t *testing.T) {
+	root, callLog := setupSecurityFixture(t)
+	t.Setenv(enableVulncheckEnv, "1")
+	t.Setenv(forceVulncheckEnv, "1")
+	stateDir := filepath.Join(root, "state-dir")
+	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+		t.Fatalf("mkdir state dir: %v", err)
+	}
+	t.Setenv(vulncheckStateEnv, stateDir)
+	var stdout, stderr bytes.Buffer
+
+	got := run([]string{"security"}, strings.NewReader(""), &stdout, &stderr)
+
+	if got != 1 {
+		t.Fatalf("security exit = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+	}
+	if !strings.Contains(stderr.String(), "write govulncheck state") {
+		t.Fatalf("stderr = %q; want state write error", stderr.String())
+	}
+	if calls := readText(t, callLog); calls != "govulncheck ./...\n" {
+		t.Fatalf("security calls = %q; want no secret scan after state write error", calls)
+	}
+}
+
+func TestRunSecurityReturnsIntervalErrorsBeforeCommands(t *testing.T) {
+	_, callLog := setupSecurityFixture(t)
+	t.Setenv(enableVulncheckEnv, "1")
+	t.Setenv(vulncheckIntervalHoursEnv, "not-hours")
+	var stdout, stderr bytes.Buffer
+
+	got := run([]string{"security"}, strings.NewReader(""), &stdout, &stderr)
+
+	if got != 2 {
+		t.Fatalf("security exit = %d, stderr %q, stdout %q; want 2", got, stderr.String(), stdout.String())
+	}
+	if !strings.Contains(stderr.String(), vulncheckIntervalHoursEnv) {
+		t.Fatalf("stderr = %q; want interval validation error", stderr.String())
+	}
+	if calls, err := os.ReadFile(callLog); err == nil {
+		t.Fatalf("security calls = %q; want no commands before interval validation", string(calls))
+	} else if !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("read call log error = %v; want not-exist or no commands", err)
+	}
+}
+
+func ptrString(value string) *string {
+	return &value
+}
+
+func TestVulncheckDueBranches(t *testing.T) {
+	now := time.Date(2026, 6, 20, 10, 0, 0, 0, time.UTC)
+
+	tests := []struct {
+		name       string
+		interval   string
+		force      string
+		stateBody  *string
+		stateAsDir bool
+		wantDue    bool
+		wantErr    string
+	}{
+		{
+			name:     "missing state is due",
+			interval: "1",
+			wantDue:  true,
+		},
+		{
+			name:      "invalid timestamp is due",
+			interval:  "1",
+			stateBody: ptrString("not-a-timestamp\n"),
+			wantDue:   true,
+		},
+		{
+			name:      "recent timestamp is not due",
+			interval:  "1",
+			stateBody: ptrString(now.Add(-30 * time.Minute).Format(time.RFC3339Nano)),
+			wantDue:   false,
+		},
+		{
+			name:      "stale timestamp is due",
+			interval:  "1",
+			stateBody: ptrString(now.Add(-2 * time.Hour).Format(time.RFC3339Nano)),
+			wantDue:   true,
+		},
+		{
+			name:      "force ignores recent timestamp",
+			interval:  "1",
+			force:     "1",
+			stateBody: ptrString(now.Add(-30 * time.Minute).Format(time.RFC3339Nano)),
+			wantDue:   true,
+		},
+		{
+			name:       "state read error is returned",
+			interval:   "1",
+			stateAsDir: true,
+			wantErr:    "read govulncheck state",
+		},
+		{
+			name:     "invalid interval is returned before state read",
+			interval: "not-hours",
+			wantErr:  vulncheckIntervalHoursEnv,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			root := t.TempDir()
+			statePath := filepath.Join(root, "govulncheck-last-run")
+			t.Setenv(vulncheckIntervalHoursEnv, tt.interval)
+			t.Setenv(vulncheckStateEnv, statePath)
+			t.Setenv(forceVulncheckEnv, tt.force)
+			if tt.stateAsDir {
+				if err := os.MkdirAll(statePath, 0o755); err != nil {
+					t.Fatalf("mkdir state path: %v", err)
+				}
+			} else if tt.stateBody != nil {
+				if err := os.WriteFile(statePath, []byte(*tt.stateBody), 0o644); err != nil {
+					t.Fatalf("write state path: %v", err)
+				}
+			}
+
+			gotDue, gotPath, gotInterval, err := vulncheckDue(now)
+			if tt.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+					t.Fatalf("vulncheckDue error = %v; want substring %q", err, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("vulncheckDue error = %v", err)
+			}
+			if gotDue != tt.wantDue {
+				t.Fatalf("vulncheckDue due = %v; want %v", gotDue, tt.wantDue)
+			}
+			if gotPath != statePath {
+				t.Fatalf("vulncheckDue state path = %q; want %q", gotPath, statePath)
+			}
+			if gotInterval != time.Hour {
+				t.Fatalf("vulncheckDue interval = %s; want 1h", gotInterval)
+			}
+		})
+	}
+}
+
+func TestVulncheckIntervalUsesDefaultAndValidatesOverride(t *testing.T) {
+	t.Run("default", func(t *testing.T) {
+		t.Setenv(vulncheckIntervalHoursEnv, "")
+
+		got, err := vulncheckInterval()
+		if err != nil {
+			t.Fatalf("vulncheckInterval default error = %v", err)
+		}
+		if got != defaultVulncheckInterval {
+			t.Fatalf("vulncheckInterval default = %s; want %s", got, defaultVulncheckInterval)
+		}
+	})
+
+	t.Run("override", func(t *testing.T) {
+		t.Setenv(vulncheckIntervalHoursEnv, "12")
+
+		got, err := vulncheckInterval()
+		if err != nil {
+			t.Fatalf("vulncheckInterval override error = %v", err)
+		}
+		if got != 12*time.Hour {
+			t.Fatalf("vulncheckInterval override = %s; want 12h", got)
+		}
+	})
+
+	for _, raw := range []string{"0", "-1", "not-hours"} {
+		t.Run("invalid "+raw, func(t *testing.T) {
+			t.Setenv(vulncheckIntervalHoursEnv, raw)
+
+			if _, err := vulncheckInterval(); err == nil {
+				t.Fatalf("vulncheckInterval(%q) error = nil; want validation error", raw)
+			}
+		})
+	}
+}
+
+func TestRecordVulncheckRunWritesStateTimestamp(t *testing.T) {
+	statePath := filepath.Join(t.TempDir(), ".cache", "security", "govulncheck-last-run")
+	now := time.Date(2026, 6, 19, 11, 50, 0, 123456789, time.UTC)
+
+	if err := recordVulncheckRun(statePath, now); err != nil {
+		t.Fatalf("recordVulncheckRun error = %v", err)
+	}
+
+	got := strings.TrimSpace(readText(t, statePath))
+	if got != now.Format(time.RFC3339Nano) {
+		t.Fatalf("recorded vulncheck timestamp = %q; want %q", got, now.Format(time.RFC3339Nano))
+	}
+}
+
+func TestFormatDuration(t *testing.T) {
+	tests := []struct {
+		name string
+		in   time.Duration
+		want string
+	}{
+		{name: "whole hours", in: 48 * time.Hour, want: "48h"},
+		{name: "fractional hours", in: 90 * time.Minute, want: "1h30m0s"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := formatDuration(tt.in); got != tt.want {
+				t.Fatalf("formatDuration(%s) = %q; want %q", tt.in, got, tt.want)
+			}
+		})
 	}
 }
 
@@ -1080,6 +1703,108 @@ func TestGoalcliRuntimeFinalWritesEvidenceWhenRequested(t *testing.T) {
 	}
 	if !strings.Contains(string(ledger), report.EvidencePackPath) || !strings.Contains(string(ledger), `"mva_status":"complete"`) {
 		t.Fatalf("ledger = %s; want complete entry for evidence pack %s", ledger, report.EvidencePackPath)
+	}
+}
+
+func TestRunGoalRuntimeCommandRejectsInvalidArguments(t *testing.T) {
+	tests := []struct {
+		name       string
+		args       []string
+		wantCode   int
+		wantStderr string
+	}{
+		{name: "help", args: []string{"--help"}, wantCode: 0},
+		{name: "unknown flag", args: []string{"--bogus"}, wantCode: 2, wantStderr: "flag provided but not defined"},
+		{name: "positional", args: []string{"unexpected"}, wantCode: 2, wantStderr: "unexpected positional argument"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var stdout, stderr bytes.Buffer
+			got := runGoalRuntimeCommand("goal-runtime-final", tt.args, &stdout, &stderr)
+			if got != tt.wantCode {
+				t.Fatalf("runGoalRuntimeCommand(%v) = %d, stderr %q, stdout %q; want %d", tt.args, got, stderr.String(), stdout.String(), tt.wantCode)
+			}
+			if tt.wantStderr != "" && !strings.Contains(stderr.String(), tt.wantStderr) {
+				t.Fatalf("stderr = %q; want %q", stderr.String(), tt.wantStderr)
+			}
+		})
+	}
+}
+
+func TestRunGoalRuntimeCommandRoutesPlannedChecksAndEvaluationErrors(t *testing.T) {
+	chdir(t, repoRoot(t))
+	var stdout, stderr bytes.Buffer
+	got := runGoalRuntimeCommand("goal-runtime-final", []string{"--dry-run", "--verify"}, &stdout, &stderr)
+	if got != 0 {
+		t.Fatalf("goal-runtime-final dry-run verify = %d, stderr %q, stdout %q; want 0", got, stderr.String(), stdout.String())
+	}
+
+	stdout.Reset()
+	stderr.Reset()
+	got = runGoalRuntimeCommand("not-a-runtime-command", nil, &stdout, &stderr)
+	if got != 2 {
+		t.Fatalf("unsupported runtime command = %d, stderr %q, stdout %q; want 2", got, stderr.String(), stdout.String())
+	}
+	if !strings.Contains(stderr.String(), "unsupported goalcli command") {
+		t.Fatalf("stderr = %q; want unsupported command error", stderr.String())
+	}
+}
+
+func TestRunGoalRuntimeCommandReportsMarshalErrorAndFailedStatus(t *testing.T) {
+	t.Run("failed status", func(t *testing.T) {
+		root := t.TempDir()
+		chdir(t, root)
+		var stdout bytes.Buffer
+		var stderr bytes.Buffer
+		got := runGoalRuntimeCommand("goal-acceptance", nil, &stdout, &stderr)
+		if got != 1 {
+			t.Fatalf("goal-acceptance = %d, want 1; stderr %q stdout %q", got, stderr.String(), stdout.String())
+		}
+		if stderr.Len() != 0 {
+			t.Fatalf("stderr = %q, want empty", stderr.String())
+		}
+		if !strings.Contains(stdout.String(), `"status": "failed"`) {
+			t.Fatalf("stdout = %q; want failed status", stdout.String())
+		}
+	})
+
+	t.Run("marshal error", func(t *testing.T) {
+		root := t.TempDir()
+		chdir(t, root)
+		old := goalRuntimeMarshalIndent
+		goalRuntimeMarshalIndent = func(any, string, string) ([]byte, error) {
+			return nil, errors.New("marshal failed")
+		}
+		t.Cleanup(func() { goalRuntimeMarshalIndent = old })
+
+		var stdout bytes.Buffer
+		var stderr bytes.Buffer
+		got := runGoalRuntimeCommand("goal-acceptance", nil, &stdout, &stderr)
+		if got != 1 {
+			t.Fatalf("goal-acceptance = %d, want 1; stderr %q stdout %q", got, stderr.String(), stdout.String())
+		}
+		if stdout.Len() != 0 {
+			t.Fatalf("stdout = %q, want empty", stdout.String())
+		}
+		if !strings.Contains(stderr.String(), "marshal failed") {
+			t.Fatalf("stderr = %q; want marshal failure", stderr.String())
+		}
+	})
+}
+
+func TestRunGoalRuntimeCommandReportsWriteEvidenceErrors(t *testing.T) {
+	root := t.TempDir()
+	writeGoalcliAuthorityFixture(t, root)
+	chdir(t, root)
+	var stdout, stderr bytes.Buffer
+
+	got := runGoalRuntimeCommand("goal-runtime-final", []string{"--write-evidence"}, &stdout, &stderr)
+
+	if got != 1 {
+		t.Fatalf("goal-runtime-final write evidence = %d, stderr %q, stdout %q; want 1", got, stderr.String(), stdout.String())
+	}
+	if !strings.Contains(stderr.String(), "write goal-runtime-final evidence") {
+		t.Fatalf("stderr = %q; want write evidence error", stderr.String())
 	}
 }
 
@@ -1660,6 +2385,102 @@ func TestRunExternalErrorPaths(t *testing.T) {
 	})
 }
 
+func TestRunFactRejectsMissingAndUnknownSubcommands(t *testing.T) {
+	tests := []struct {
+		name       string
+		args       []string
+		wantStderr string
+	}{
+		{name: "missing", wantStderr: "usage: goalcli fact audit"},
+		{name: "unknown", args: []string{"missing"}, wantStderr: `unknown fact subcommand "missing"`},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var stdout, stderr bytes.Buffer
+
+			got := runFact(tt.args, &stdout, &stderr)
+
+			if got != 2 {
+				t.Fatalf("runFact(%v) = %d; want 2", tt.args, got)
+			}
+			if stdout.Len() != 0 {
+				t.Fatalf("stdout = %q; want empty", stdout.String())
+			}
+			if !strings.Contains(stderr.String(), tt.wantStderr) {
+				t.Fatalf("stderr = %q; want containing %q", stderr.String(), tt.wantStderr)
+			}
+		})
+	}
+}
+
+func TestRunFactAuditArgumentAndLoadFailures(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		args       []string
+		wantCode   int
+		wantStdout string
+		wantStderr string
+	}{
+		{
+			name:       "unknown flag",
+			args:       []string{"--missing"},
+			wantCode:   2,
+			wantStderr: "flag provided but not defined",
+		},
+		{
+			name:       "positional argument",
+			args:       []string{"extra"},
+			wantCode:   2,
+			wantStderr: "unexpected positional",
+		},
+		{
+			name:       "missing facts",
+			args:       []string{"--root", filepath.Join(t.TempDir(), "missing")},
+			wantCode:   1,
+			wantStdout: `"status": "failed"`,
+			wantStderr: "could not load",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var stdout, stderr bytes.Buffer
+
+			got := runFactAudit(tt.args, &stdout, &stderr)
+
+			if got != tt.wantCode {
+				t.Fatalf("runFactAudit(%v) = %d; want %d; stderr=%q stdout=%q", tt.args, got, tt.wantCode, stderr.String(), stdout.String())
+			}
+			if !strings.Contains(stdout.String(), tt.wantStdout) {
+				t.Fatalf("stdout = %q; want containing %q", stdout.String(), tt.wantStdout)
+			}
+			if !strings.Contains(stderr.String(), tt.wantStderr) {
+				t.Fatalf("stderr = %q; want containing %q", stderr.String(), tt.wantStderr)
+			}
+		})
+	}
+}
+
+func TestFactAuditContextDefaultsAndHonorsEnv(t *testing.T) {
+	t.Setenv("XLIB_CONTEXT", "")
+	if got, want := factAuditContext(), "local_write"; got != want {
+		t.Fatalf("factAuditContext() = %q, want %q", got, want)
+	}
+	t.Setenv("XLIB_CONTEXT", "ci_pull_request")
+	if got, want := factAuditContext(), "ci_pull_request"; got != want {
+		t.Fatalf("factAuditContext() = %q, want %q", got, want)
+	}
+}
+
+func TestFactStrictLocalTagGapsIgnoresEmptyVersion(t *testing.T) {
+	t.Parallel()
+	if gaps := factStrictLocalTagGaps(t.TempDir(), ""); len(gaps) != 0 {
+		t.Fatalf("factStrictLocalTagGaps(empty version) = %v; want none", gaps)
+	}
+}
+
 func TestFactAuditStrictPassesCanonicalFacts(t *testing.T) {
 	t.Setenv("XLIB_CONTEXT", "local_write")
 	root := t.TempDir()
@@ -1738,6 +2559,57 @@ func TestFactStrictProjectionGapsReportsReleaseManifestTemplateDrift(t *testing.
 	gaps := factStrictProjectionGaps(root)
 
 	want := `release/manifest/template.json missing "version": "` + xlibfacts.CurrentReleaseVersion + `"`
+	if !slicesContain(gaps, want) {
+		t.Fatalf("factStrictProjectionGaps() = %v; want %q", gaps, want)
+	}
+}
+
+func TestFactStrictProjectionGapsReportsMissingProjectionFilesAndMakefile(t *testing.T) {
+	root := t.TempDir()
+
+	gaps := factStrictProjectionGaps(root)
+
+	for _, want := range []string{
+		"missing cmd/goalcli/governance.go",
+		"missing Makefile",
+	} {
+		if !slicesContain(gaps, want) {
+			t.Fatalf("factStrictProjectionGaps() = %v; want %q", gaps, want)
+		}
+	}
+}
+
+func TestFactStrictProjectionGapsReportsFactAuditMakefileDrift(t *testing.T) {
+	root := t.TempDir()
+	writeFactStrictProjectionFixture(t, root, xlibfacts.CurrentReleaseVersion)
+	writeTestFiles(t, root, map[string]string{
+		"Makefile": ".PHONY: fact-audit\nfact-audit:\n\t$(GOALCLI) fact audit\n\ncontext-release:\nrelease-check:\nrelease-check-extended:\n",
+	})
+
+	gaps := factStrictProjectionGaps(root)
+
+	for _, want := range []string{
+		"Makefile fact-audit must run $(GOALCLI) fact audit --strict",
+		"Makefile context-release must depend on fact-audit",
+		"Makefile release-check must depend on fact-audit",
+		"Makefile release-check-extended must depend on fact-audit",
+	} {
+		if !slicesContain(gaps, want) {
+			t.Fatalf("factStrictProjectionGaps() = %v; want %q", gaps, want)
+		}
+	}
+}
+
+func TestFactStrictProjectionGapsReportsMissingFactAuditTarget(t *testing.T) {
+	root := t.TempDir()
+	writeFactStrictProjectionFixture(t, root, xlibfacts.CurrentReleaseVersion)
+	writeTestFiles(t, root, map[string]string{
+		"Makefile": "context-release: fact-audit\nrelease-check: fact-audit\nrelease-check-extended: fact-audit\n",
+	})
+
+	gaps := factStrictProjectionGaps(root)
+
+	want := "Makefile missing fact-audit target"
 	if !slicesContain(gaps, want) {
 		t.Fatalf("factStrictProjectionGaps() = %v; want %q", gaps, want)
 	}
@@ -3719,6 +4591,7 @@ func writeTestFiles(t *testing.T, root string, files map[string]string) {
 func adoptionCheckFixture(t *testing.T) string {
 	t.Helper()
 	root := t.TempDir()
+	workflowIf := "$" + "{" + "{ github.event.repository.name != format('{0}{1}', 'xlib-', 'standard') " + "}" + "}"
 	writeTestFiles(t, root, map[string]string{
 		"xlib-" + "standard.lock": "schema_version: \"1\"\n" +
 			"standard_version: \"v0.6.0\"\n" +
@@ -3737,7 +4610,7 @@ func adoptionCheckFixture(t *testing.T) string {
 			"jobs:\n" +
 			"  adoption-check:\n" +
 			"    steps:\n" +
-			"      - if: ${{ github.event.repository.name != format('{0}{1}', 'xlib-', 'standard') }}\n" +
+			"      - if: " + workflowIf + "\n" +
 			"        run: GOWORK=off make adoption-check\n",
 		".github/rulesets/protect-main.json": validProtectMainRulesetFixture(),
 		"mk/governance.mk": ".PHONY: require-gowork-off\n" +

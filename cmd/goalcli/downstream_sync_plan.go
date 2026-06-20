@@ -24,6 +24,12 @@ var protectedDownstreamSyncPlanOutputPaths = map[string]struct{}{
 	".agent/evidence/truth-state.yaml":                  {},
 }
 
+var (
+	downstreamSyncPlanMarshalIndent = json.MarshalIndent
+	downstreamSyncPlanMkdirAll      = os.MkdirAll
+	downstreamSyncPlanWriteFile     = os.WriteFile
+)
+
 var downstreamImpactCategories = []string{
 	"contracts",
 	"context_runtime",
@@ -120,7 +126,7 @@ func runDownstreamSyncPlan(args []string, stdout io.Writer, stderr io.Writer) in
 	plan := buildDownstreamSyncPlan(impact, *outputPath, *workspaceRoot)
 	var rendered []byte
 	if *format == "json" {
-		rendered, err = json.MarshalIndent(plan, "", "  ")
+		rendered, err = downstreamSyncPlanMarshalIndent(plan, "", "  ")
 		if err == nil {
 			rendered = append(rendered, '\n')
 		}
@@ -136,11 +142,11 @@ func runDownstreamSyncPlan(args []string, stdout io.Writer, stderr io.Writer) in
 		write(stdout, "%s", rendered)
 		return 0
 	}
-	if err := os.MkdirAll(filepath.Dir(*outputPath), 0o755); err != nil {
+	if err := downstreamSyncPlanMkdirAll(filepath.Dir(*outputPath), 0o755); err != nil {
 		write(stderr, "ERROR: create downstream sync plan directory: %v\n", err)
 		return emitReport(stdout, "downstream-sync-plan", "failed", nil, []string{err.Error()})
 	}
-	if err := os.WriteFile(*outputPath, rendered, 0o644); err != nil {
+	if err := downstreamSyncPlanWriteFile(*outputPath, rendered, 0o644); err != nil {
 		write(stderr, "ERROR: write downstream sync plan: %v\n", err)
 		return emitReport(stdout, "downstream-sync-plan", "failed", nil, []string{err.Error()})
 	}

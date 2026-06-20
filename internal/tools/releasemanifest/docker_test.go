@@ -338,6 +338,58 @@ func TestBuildDebtEvidenceParsesReport(t *testing.T) {
 	}
 }
 
+func TestBuildDebtEvidenceReportsInvalidJSON(t *testing.T) {
+	root := t.TempDir()
+	reportPath := filepath.Join(root, filepath.FromSlash(debtReportPath))
+	if err := os.MkdirAll(filepath.Dir(reportPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(reportPath, []byte("{"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	chdir(t, root)
+
+	if _, err := buildDebtEvidence(); err == nil {
+		t.Fatal("buildDebtEvidence succeeded for invalid JSON, want error")
+	}
+}
+
+func TestBuildDebtEvidenceUsesSectionCountWhenChecksEmpty(t *testing.T) {
+	root := t.TempDir()
+	reportPath := filepath.Join(root, filepath.FromSlash(debtReportPath))
+	if err := os.MkdirAll(filepath.Dir(reportPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	report := `{
+		"status": "passed",
+		"score": 9.9,
+		"min_score": 9.7,
+		"sections": [{ "name": "architecture" }, { "name": "testing" }]
+	}`
+	if err := os.WriteFile(reportPath, []byte(report), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	chdir(t, root)
+
+	got, err := buildDebtEvidence()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if got.Status != "passed" {
+		t.Fatalf("status = %q, want passed", got.Status)
+	}
+	if got.Score != 9.9 {
+		t.Fatalf("score = %f, want 9.9", got.Score)
+	}
+	if got.MinScore != 9.7 {
+		t.Fatalf("min_score = %f, want 9.7", got.MinScore)
+	}
+	if got.CheckCount != 2 {
+		t.Fatalf("check_count = %d, want 2", got.CheckCount)
+	}
+}
+
 func TestBuildDebtEvidenceReportsDirectoryError(t *testing.T) {
 	root := t.TempDir()
 	reportPath := filepath.Join(root, filepath.FromSlash(debtReportPath))
