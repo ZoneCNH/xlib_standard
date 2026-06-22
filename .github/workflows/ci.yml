@@ -54,7 +54,7 @@ jobs:
         run: GOWORK=off XLIB_CONTEXT=ci_pull_request make release-check
       - name: Upload release manifest evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-manifest-${{ github.run_id }}
           path: |
