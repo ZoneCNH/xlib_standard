@@ -265,9 +265,9 @@ func TestValidateDownstreamAdoptionEvidenceRequiresCoreFields(t *testing.T) {
 
 // --- buildDebtEvidence + buildManifest coverage ---
 
-// TestBuildDebtEvidenceReportsInvalidJSON covers the json.Unmarshal error
+// TestBuildDebtEvidenceReportsInvalidJSONCoverage covers the json.Unmarshal error
 // branch in buildDebtEvidence.
-func TestBuildDebtEvidenceReportsInvalidJSON(t *testing.T) {
+func TestBuildDebtEvidenceReportsInvalidJSONCoverage(t *testing.T) {
 	root := t.TempDir()
 	reportPath := filepath.Join(root, filepath.FromSlash(debtReportPath))
 	if err := os.MkdirAll(filepath.Dir(reportPath), 0o755); err != nil {

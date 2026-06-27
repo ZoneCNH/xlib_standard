@@ -92,9 +92,9 @@ func TestModulePathForRootReportsMissingGoMod(t *testing.T) {
 	}
 }
 
-// TestWriteEvidenceRejectsUnsupportedCommand covers the unsupported-command
+// TestWriteEvidenceRejectsUnsupportedCommandCoverage covers the unsupported-command
 // rejection branch.
-func TestWriteEvidenceRejectsUnsupportedCommand(t *testing.T) {
+func TestWriteEvidenceRejectsUnsupportedCommandCoverage(t *testing.T) {
 	root := t.TempDir()
 	if err := WriteEvidence(root, Report{Command: "not-a-goalcli-command"}); err == nil {
 		t.Fatal("WriteEvidence returned nil error for unsupported command")
