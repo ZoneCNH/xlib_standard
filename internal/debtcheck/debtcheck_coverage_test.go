@@ -274,7 +274,7 @@ func TestToMarkdownNoFindingsAndEmptyPath(t *testing.T) {
 		Status:        "passed",
 		Mode:          "enforce",
 		Sections: []SectionReport{
-			{Name: "docs", Status: "passed", Findings: nil},                                                // "No findings." branch
+			{Name: "docs", Status: "passed", Findings: nil},                                                       // "No findings." branch
 			{Name: "sec", Status: "warning", Findings: []Finding{Finding{ID: "x", Severity: "P1", Message: "m"}}}, // empty Path → "policy"
 		},
 	}
