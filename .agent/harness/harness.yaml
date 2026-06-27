@@ -67,6 +67,11 @@ required_gates:
     purpose: "unit tests and example smoke"
     proof_depth: live_run
     target_depth: live_run
+  - id: coverage_check
+    command: "GOWORK=off make coverage-check"
+    purpose: "unit coverage threshold; fails when total coverage is below 100.0%"
+    proof_depth: live_run
+    target_depth: live_run
   - id: race
     command: "make race"
     purpose: "race detector"
@@ -306,7 +311,7 @@ final_gates:
   - id: release_final_check
     command: "XLIB_CONTEXT=release_verify GOWORK=off make release-final-check"
   - id: release_preflight
-    command: "XLIB_CONTEXT=release_verify GOWORK=off make release-preflight VERSION=v1.0.1"
+    command: "XLIB_CONTEXT=release_verify GOWORK=off make release-preflight VERSION=v1.0.2"
   - id: score
     command: "goalcli score --min 9.8"
   - id: kernel_downstream

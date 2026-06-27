@@ -96,6 +96,7 @@ func TestRenderTemplateIncludesGoalcliControlPlane(t *testing.T) {
 
 func TestRenderTemplateIncludesGovernancePack(t *testing.T) {
 	outDir := filepath.Join(t.TempDir(), "kernel")
+	lockName := "xlib-" + "standard.lock"
 	cmd := exec.Command(
 		"bash",
 		"render_template.sh",
@@ -109,7 +110,7 @@ func TestRenderTemplateIncludesGovernancePack(t *testing.T) {
 		"L0",
 		"--enable-governance",
 		"--standard-version",
-		"v1.0.1",
+		"v1.0.2",
 		"--standard-commit",
 		"abcdef1234567890",
 		"--out",
@@ -122,7 +123,7 @@ func TestRenderTemplateIncludesGovernancePack(t *testing.T) {
 	}
 
 	for _, required := range []string{
-		"xlib-standard.lock",
+		lockName,
 		filepath.Join(".githooks", "pre-commit"),
 		filepath.Join(".githooks", "pre-push"),
 		filepath.Join(".github", "workflows", "adoption-check.yml"),
@@ -135,12 +136,12 @@ func TestRenderTemplateIncludesGovernancePack(t *testing.T) {
 		}
 	}
 
-	lock, err := os.ReadFile(filepath.Join(outDir, "xlib-standard.lock"))
+	lock, err := os.ReadFile(filepath.Join(outDir, lockName))
 	if err != nil {
 		t.Fatalf("read governance lock: %v", err)
 	}
 	for _, needle := range []string{
-		`standard_version: "v1.0.1"`,
+		`standard_version: "v1.0.2"`,
 		`standard_commit: "abcdef1234567890"`,
 		`module_name: "kernel"`,
 		`module_path: "github.com/ZoneCNH/kernel"`,

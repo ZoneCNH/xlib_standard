@@ -16,9 +16,9 @@ const (
 	SchemaVersion = "xlib-facts/v1"
 	Module        = "github.com/ZoneCNH/xlib-standard"
 
-	CurrentReleaseVersion    = "v1.0.1"
-	CurrentReleaseCommit     = "ef9f842da2b908485b879980be1bc95f2f1e90e2"
-	CurrentReleaseReleasedAt = "2026-06-18T00:00:00Z"
+	CurrentReleaseVersion    = "v1.0.2"
+	CurrentReleaseCommit     = "26792dc01317794fb337a0dc81bd732285e49100"
+	CurrentReleaseReleasedAt = "2026-06-20T00:00:00Z"
 
 	GoalRuntimeVersion       = "v3.1"
 	GovernanceRuntimeVersion = "v2.9.3"

@@ -20,8 +20,14 @@ type Metrics interface {
 
 type NoopMetrics struct{}
 
-func (NoopMetrics) IncCounter(name string, labels map[string]string) {}
+func (NoopMetrics) IncCounter(name string, labels map[string]string) {
+	_, _ = name, labels
+}
 
-func (NoopMetrics) ObserveHistogram(name string, value float64, labels map[string]string) {}
+func (NoopMetrics) ObserveHistogram(name string, value float64, labels map[string]string) {
+	_, _, _ = name, value, labels
+}
 
-func (NoopMetrics) SetGauge(name string, value float64, labels map[string]string) {}
+func (NoopMetrics) SetGauge(name string, value float64, labels map[string]string) {
+	_, _, _ = name, value, labels
+}

@@ -22,6 +22,11 @@ const (
 
 var standardModulePath = "github.com/ZoneCNH/" + strings.Join([]string{"xlib", "standard"}, "-")
 
+var (
+	goalruntimeMarshal       = json.Marshal
+	goalruntimeMarshalIndent = json.MarshalIndent
+)
+
 var commandGates = map[string]string{
 	"goal-acceptance":          "G12",
 	"goal-delivery":            "G13",
@@ -285,7 +290,7 @@ func WriteEvidence(root string, report Report) error {
 	if err := os.MkdirAll(filepath.Dir(packPath), 0o755); err != nil {
 		return fmt.Errorf("create evidence pack directory: %w", err)
 	}
-	pack, err := json.MarshalIndent(report, "", "  ")
+	pack, err := goalruntimeMarshalIndent(report, "", "  ")
 	if err != nil {
 		return fmt.Errorf("marshal evidence pack: %w", err)
 	}
@@ -380,7 +385,7 @@ func upsertLedgerEntry(path string, entry LedgerEntry) error {
 		next = append(next, line...)
 		next = append(next, '\n')
 	}
-	data, err := json.Marshal(entry)
+	data, err := goalruntimeMarshal(entry)
 	if err != nil {
 		return fmt.Errorf("marshal evidence ledger entry: %w", err)
 	}

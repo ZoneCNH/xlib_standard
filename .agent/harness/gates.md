@@ -6,6 +6,7 @@
 - Static Check Gate：`GOWORK=off make vet`
 - Lint Gate：`GOWORK=off make lint`，缺少 `golangci-lint` 时失败
 - Unit Test Gate：`GOWORK=off make test`
+- Coverage Gate：`GOWORK=off make coverage-check`，强制总覆盖率不低于 100.0%。
 - Race Test Gate：`GOWORK=off make race`
 - Boundary Gate：`GOWORK=off make boundary`
 - Secret Gate：`GOWORK=off make security`，必须委托 `goalcli security` 默认完成密钥扫描；仅当 `XLIB_ENABLE_VULNCHECK=1` 且一周窗口到期，或 `XLIB_FORCE_VULNCHECK=1` 时先执行漏洞扫描

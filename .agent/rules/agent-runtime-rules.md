@@ -329,7 +329,7 @@ Downstream adoption rate
 例如：
 
 ```text
-Evidence coverage < 95% → 阻断 Release
+Evidence coverage < 100% → 阻断 Release
 Traceability coverage < 100% → 阻断 Release
 Repeated issue count > 2 → 必须新增 Rule/Harness
 Gate false positive > 10% → 需要调参

@@ -339,6 +339,37 @@ func TestBuildWorkflowEvidencePrefersExplicitEnvironment(t *testing.T) {
 	}
 }
 
+func TestBuildManifestUsesGitHubWorkflowEnvironment(t *testing.T) {
+	t.Setenv("GOWORK", "off")
+	t.Setenv("CHECK_STATUS", "passed")
+	t.Setenv("WORKFLOW_RUN_ID", "")
+	t.Setenv("ARTIFACT_NAME", "")
+	t.Setenv("ARTIFACT_URL", "")
+	t.Setenv("GITHUB_RUN_ID", "987654321")
+	t.Setenv("GITHUB_SERVER_URL", "https://github.example/")
+	t.Setenv("GITHUB_REPOSITORY", "/ZoneCNH/xlib-standard/")
+	chdir(t, releaseManifestFixtureRepo(t))
+
+	manifest, err := buildManifest()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if manifest.Workflow.WorkflowRunID != "987654321" {
+		t.Fatalf("workflow_run_id = %q, want GitHub run id", manifest.Workflow.WorkflowRunID)
+	}
+	if manifest.Workflow.ArtifactName != "release-manifest-987654321" {
+		t.Fatalf("artifact_name = %q, want default from run id", manifest.Workflow.ArtifactName)
+	}
+	wantURL := "https://github.example/ZoneCNH/xlib-standard/actions/runs/987654321"
+	if manifest.Workflow.ArtifactURL != wantURL {
+		t.Fatalf("artifact_url = %q, want %q", manifest.Workflow.ArtifactURL, wantURL)
+	}
+	if manifest.Docker.WorkflowRunID != manifest.Workflow.WorkflowRunID {
+		t.Fatalf("docker workflow_run_id = %q, want workflow value %q", manifest.Docker.WorkflowRunID, manifest.Workflow.WorkflowRunID)
+	}
+}
+
 func TestBuildDockerEvidencePrefersExplicitEnvironment(t *testing.T) {
 	t.Setenv("WORKFLOW_RUN_ID", "12345")
 	t.Setenv("ARTIFACT_NAME", "manifest-artifact")
@@ -828,6 +859,24 @@ func TestBuildManifestReportsBuilderFailures(t *testing.T) {
 			wantError: "dependency command failed",
 		},
 		{
+			name: "contract digests",
+			setup: func(t *testing.T) string {
+				t.Setenv("GOWORK", "off")
+				repo := releaseManifestFixtureRepo(t)
+				if err := os.Remove(filepath.Join(repo, filepath.FromSlash(contractFiles[0]))); err != nil {
+					t.Fatal(err)
+				}
+				return repo
+			},
+			mock: func(name string, args ...string) ([]byte, error) {
+				if name == "git" && strings.Join(args, " ") == "ls-files -z" {
+					return []byte("go.mod\x00"), nil
+				}
+				return runRaw(name, args...)
+			},
+			wantError: contractFiles[0],
+		},
+		{
 			name: "standard impact",
 			setup: func(t *testing.T) string {
 				t.Setenv("GOWORK", "off")
@@ -853,6 +902,12 @@ func TestBuildManifestReportsBuilderFailures(t *testing.T) {
 					t.Fatal(err)
 				}
 				return repo
+			},
+			mock: func(name string, args ...string) ([]byte, error) {
+				if name == "git" && strings.Join(args, " ") == "ls-files -z" {
+					return []byte("go.mod\x00"), nil
+				}
+				return runRaw(name, args...)
 			},
 			wantError: "is a directory",
 		},
@@ -915,6 +970,9 @@ func TestVerifyManifestAcceptsFreshManifestAndRejectsDrift(t *testing.T) {
 	manifest.DownstreamAdoption.DownstreamAdoptionScope = "downstream_generated"
 	manifest.DownstreamAdoption.ProofBasedAdoption = true
 	manifest.GeneratorEvidence.Command = "make old-integration"
+	manifest.Debt.Score = 1.0
+	manifest.Debt.MinScore = 9.8
+	manifest.Debt.CheckCount = 0
 	badPath := filepath.Join(t.TempDir(), "stale.json")
 	if err := writeManifest(badPath, manifest); err != nil {
 		t.Fatal(err)
@@ -931,6 +989,8 @@ func TestVerifyManifestAcceptsFreshManifestAndRejectsDrift(t *testing.T) {
 		"artifacts must include release/manifest/latest.json.sha256",
 		"standard_impact does not match current standard impact evidence",
 		"debt does not match current debt evidence",
+		"debt.score 1.0 is below minimum 9.8",
+		"debt.check_count must be greater than zero",
 		"governance_runtime does not match current context runtime evidence",
 		"downstream_sync_required must match standard_impact.downstream_sync_required",
 		"downstream_adoption does not match current downstream adoption evidence",

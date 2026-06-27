@@ -2,6 +2,19 @@
 
 ## 未发布
 
+## v1.0.2 - 2026-06-20
+
+### 治理
+
+- 将默认覆盖率发布门槛提升到 100.0%，并同步 harness、release gate 注册表和 CI/CD 覆盖率证据路径。
+- 补齐 `goalcli`、release manifest、debt、runtime facts 等分支覆盖，确保 `GOWORK=off go test ./... -covermode=atomic` 的所有函数报告 100.0%。
+- 修复 `spec-check` 在非英文 locale 环境的误报：`git ls-files` 失败消息本地化导致文件系统回退匹配失败，新增 `gitCommand` 强制 `LC_ALL=C` 使诊断输出跨环境稳定。
+- CI/CD 供应链硬化：`ci.yml` 的 `checkout`/`setup-go`/`upload-artifact` 由浮动主版本标签改为 40 字符 SHA 锁定，与其余 8 个 workflow 一致；`ci.yml` 与 `release-auto-patch.yml` 的 `golangci-lint` 由 v2.6.2 对齐至 release/manifest 基线 v2.1.6，消除 PR 与 release 门禁的 lint 版本漂移。
+
+### 兼容性
+
+- 本版本不改变 `pkg/templatex` 公共 API 形状；变更聚焦 release facts、模板版本、治理门禁、CI/CD 与测试覆盖收敛。
+
 ## v1.0.1 - 2026-06-18
 
 ### 治理

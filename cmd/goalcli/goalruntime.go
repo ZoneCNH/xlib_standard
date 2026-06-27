@@ -9,6 +9,8 @@ import (
 	"github.com/ZoneCNH/xlib-standard/internal/goalruntime"
 )
 
+var goalRuntimeMarshalIndent = json.MarshalIndent
+
 func runGoalRuntimeCommand(command string, args []string, stdout io.Writer, stderr io.Writer) int {
 	flags := flag.NewFlagSet("goalcli "+command, flag.ContinueOnError)
 	flags.SetOutput(stderr)
@@ -50,7 +52,7 @@ func runGoalRuntimeCommand(command string, args []string, stdout io.Writer, stde
 			return 1
 		}
 	}
-	data, err := json.MarshalIndent(report, "", "  ")
+	data, err := goalRuntimeMarshalIndent(report, "", "  ")
 	if err != nil {
 		write(stderr, "ERROR: marshal %s report: %v\n", command, err)
 		return 1
