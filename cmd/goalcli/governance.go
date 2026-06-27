@@ -245,13 +245,24 @@ func runSpecCheck(args []string, stdout io.Writer, stderr io.Writer) int {
 	return emitReport(stdout, "spec-check", "passed", details, nil)
 }
 
+// gitCommand builds a git subprocess with a deterministic C locale so that
+// diagnostic messages (e.g. "not a git repository") are stable across
+// non-English developer environments and CI. Successful-command stdout is
+// locale-independent by default; fatal text is localized otherwise, which
+// would break callers that match on the English message.
+func gitCommand(args ...string) *exec.Cmd {
+	cmd := exec.Command("git", args...)
+	cmd.Env = append(os.Environ(), "LC_ALL=C", "LANG=C", "LANGUAGE=C")
+	return cmd
+}
+
 var (
 	runSpecCheckTrackedDocsMarkdownFiles = trackedDocsMarkdownFiles
 	runSpecCheckReadFile                 = os.ReadFile
 )
 
 func trackedDocsMarkdownFiles() ([]string, error) {
-	out, err := exec.Command("git", "ls-files", "-z", "--", "docs").CombinedOutput()
+	out, err := gitCommand("ls-files", "-z", "--", "docs").CombinedOutput()
 	if err != nil {
 		if shouldScanDocsFromFilesystem(err, out) {
 			return filesystemDocsMarkdownFiles("docs")
