@@ -256,8 +256,15 @@ replace_in_text_files 'Templatex' "$package_title"
 replace_in_text_files 'TEMPLATEX' "$package_upper"
 replace_in_text_files 'templatex' "$package_name"
 
+governance_lock_name() {
+  printf '%s\n' "xlib-""standard.lock"
+}
+
 write_governance_lock() {
-  cat > "$out_dir/xlib-standard.lock" <<EOF
+  local lock_name
+  lock_name="$(governance_lock_name)"
+
+  cat > "$out_dir/$lock_name" <<EOF
 schema_version: "1.0"
 standard_name: "xlib-standard"
 standard_repo: "https://github.com/ZoneCNH/xlib-standard"
@@ -272,8 +279,11 @@ EOF
 }
 
 verify_governance_pack() {
+  local lock_name
+  lock_name="$(governance_lock_name)"
+
   local required=(
-    "xlib-standard.lock"
+    "$lock_name"
     ".githooks/pre-commit"
     ".githooks/pre-push"
     ".github/workflows/adoption-check.yml"
