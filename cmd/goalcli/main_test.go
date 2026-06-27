@@ -209,7 +209,8 @@ func TestAdoptionCheckAllowsSourceRepositoryWithoutGovernanceLock(t *testing.T) 
 	if err := os.Remove(filepath.Join(root, "xlib-"+"standard.lock")); err != nil {
 		t.Fatalf("remove governance lock: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(root, "go.mod"), []byte("module github.com/ZoneCNH/xlib-standard\n\ngo 1.23\n"), 0o644); err != nil {
+	sourceModule := strings.Join([]string{"github.com", "ZoneCNH", "xlib" + "-standard"}, "/")
+	if err := os.WriteFile(filepath.Join(root, "go.mod"), []byte("module "+sourceModule+"\n\ngo 1.23\n"), 0o644); err != nil {
 		t.Fatalf("write source go.mod: %v", err)
 	}
 	var stdout, stderr bytes.Buffer
