@@ -25,6 +25,7 @@ var standardModulePath = "github.com/ZoneCNH/" + strings.Join([]string{"xlib", "
 var (
 	goalruntimeMarshal       = json.Marshal
 	goalruntimeMarshalIndent = json.MarshalIndent
+	goalruntimeWriteFile     = os.WriteFile
 )
 
 var commandGates = map[string]string{
@@ -294,7 +295,7 @@ func WriteEvidence(root string, report Report) error {
 	if err != nil {
 		return fmt.Errorf("marshal evidence pack: %w", err)
 	}
-	if err := os.WriteFile(packPath, append(pack, '\n'), 0o644); err != nil {
+	if err := goalruntimeWriteFile(packPath, append(pack, '\n'), 0o644); err != nil {
 		return fmt.Errorf("write evidence pack %s: %w", report.EvidencePackPath, err)
 	}
 	return upsertLedgerEntry(filepath.Join(root, filepath.FromSlash(report.LedgerPath)), ledgerEntryForReport(report))
@@ -391,7 +392,7 @@ func upsertLedgerEntry(path string, entry LedgerEntry) error {
 	}
 	next = append(next, data...)
 	next = append(next, '\n')
-	if err := os.WriteFile(path, next, 0o644); err != nil {
+	if err := goalruntimeWriteFile(path, next, 0o644); err != nil {
 		return fmt.Errorf("write evidence ledger: %w", err)
 	}
 	return nil

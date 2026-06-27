@@ -6,7 +6,7 @@
 
 - `make docker-toolchain-check`：检查宿主 Docker CLI、daemon 与 buildx/BuildKit 可用性，并写入 `release/docker/toolchain-check.md`。该 stage 只证明 Docker Toolchain Runtime 可启动，不声称源码 gate 已通过。
 - `make docker-build`、`make docker-build-check`、`make docker-shell`：分别构建 toolchain image、在容器内运行 `make build-check`、进入同一 bind-mounted 工作区 shell。
-- `make docker-ci`：使用 BuildKit 构建 toolchain image，并在 bind-mounted 工作区中运行既有 `make ci`。它不是新增的第二套 CI 规则。
+- `make docker-ci`：使用 BuildKit 构建 toolchain image，并在 bind-mounted 工作区中运行既有 `make ci`。它不是新增的第二套 CI 规则；未显式传入 `XLIB_CONTEXT` 时按 `ci_pull_request` 语境运行。
 - `make docker-release-check`、`make docker-release-final-check`：使用同一个运行时边界执行既有 release gate。发布语境仍必须显式带上 `XLIB_CONTEXT=release_verify GOWORK=off`。
 - `make docker-goalcli`、`make docker-goalcli-image`、`make docker-goalcli-version`、`make docker-runtime-check`、`make docker-drift-check`、`make docker-contract`：证明 goalcli 容器入口、runtime check、静态漂移检查和 Docker contract 聚合面没有分叉。
 

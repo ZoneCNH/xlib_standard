@@ -3,6 +3,7 @@ package goalruntime
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -372,13 +373,16 @@ func TestUpsertLedgerEntryDedupesAndPreservesUnrelated(t *testing.T) {
 // TestUpsertLedgerEntryReportsWriteFailure covers the os.WriteFile error branch.
 func TestUpsertLedgerEntryReportsWriteFailure(t *testing.T) {
 	root := t.TempDir()
-	// Make the target parent directory unwritable so WriteFile fails.
-	lockedDir := filepath.Join(root, "locked")
-	if err := os.MkdirAll(lockedDir, 0o500); err != nil {
-		t.Fatal(err)
+	path := filepath.Join(root, "ledger.jsonl")
+
+	old := goalruntimeWriteFile
+	goalruntimeWriteFile = func(name string, data []byte, perm os.FileMode) error {
+		if name == path {
+			return errors.New("write failed")
+		}
+		return old(name, data, perm)
 	}
-	t.Cleanup(func() { _ = os.Chmod(lockedDir, 0o755) })
-	path := filepath.Join(lockedDir, "ledger.jsonl")
+	t.Cleanup(func() { goalruntimeWriteFile = old })
 
 	err := upsertLedgerEntry(path, ledgerEntryForReport(Report{
 		SchemaVersion: "goalcli-mva/v1",
@@ -390,5 +394,8 @@ func TestUpsertLedgerEntryReportsWriteFailure(t *testing.T) {
 	}))
 	if err == nil {
 		t.Fatal("upsertLedgerEntry returned nil error for write failure")
+	}
+	if !strings.Contains(err.Error(), "write evidence ledger") {
+		t.Fatalf("upsertLedgerEntry error = %v; want write evidence ledger error", err)
 	}
 }
