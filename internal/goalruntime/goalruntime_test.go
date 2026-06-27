@@ -567,12 +567,14 @@ func TestUpsertLedgerEntryReportsFilesystemErrors(t *testing.T) {
 		if err := os.WriteFile(path, []byte(`{"goal_id":"other"}`+"\n"), 0o644); err != nil {
 			t.Fatalf("write readable ledger fixture: %v", err)
 		}
-		if err := os.Chmod(path, 0o444); err != nil {
-			t.Fatalf("chmod ledger fixture readonly: %v", err)
+		old := goalruntimeWriteFile
+		goalruntimeWriteFile = func(name string, data []byte, perm os.FileMode) error {
+			if name == path {
+				return errors.New("write failed")
+			}
+			return old(name, data, perm)
 		}
-		t.Cleanup(func() {
-			_ = os.Chmod(path, 0o644)
-		})
+		t.Cleanup(func() { goalruntimeWriteFile = old })
 
 		err := upsertLedgerEntry(path, entry)
 		if err == nil {
