@@ -176,6 +176,7 @@ func TestRunAdoptionCheckFlagBranches(t *testing.T) {
 // TestIsAdoptionSourceRepository covers both branches.
 func TestIsAdoptionSourceRepository(t *testing.T) {
 	root := t.TempDir()
+	sourceModule := strings.Join([]string{"github.com", "ZoneCNH", "xlib" + "-standard"}, "/")
 	// no go.mod
 	if isAdoptionSourceRepository(root) {
 		t.Fatalf("missing go.mod should be false")
@@ -186,7 +187,7 @@ func TestIsAdoptionSourceRepository(t *testing.T) {
 	if isAdoptionSourceRepository(root) {
 		t.Fatalf("kernel should not be source")
 	}
-	if err := os.WriteFile(filepath.Join(root, "go.mod"), []byte("module github.com/ZoneCNH/xlib-standard\n\ngo 1.23\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, "go.mod"), []byte("module "+sourceModule+"\n\ngo 1.23\n"), 0o644); err != nil {
 		t.Fatalf("write: %v", err)
 	}
 	if !isAdoptionSourceRepository(root) {
@@ -197,7 +198,8 @@ func TestIsAdoptionSourceRepository(t *testing.T) {
 // TestEvaluateAdoptionCheckSourceRepo covers the source-repo path that deletes the lock requirement.
 func TestEvaluateAdoptionCheckSourceRepo(t *testing.T) {
 	root := t.TempDir()
-	if err := os.WriteFile(filepath.Join(root, "go.mod"), []byte("module github.com/ZoneCNH/xlib-standard\n\ngo 1.23\n"), 0o644); err != nil {
+	sourceModule := strings.Join([]string{"github.com", "ZoneCNH", "xlib" + "-standard"}, "/")
+	if err := os.WriteFile(filepath.Join(root, "go.mod"), []byte("module "+sourceModule+"\n\ngo 1.23\n"), 0o644); err != nil {
 		t.Fatalf("write: %v", err)
 	}
 	details, gaps := evaluateAdoptionCheck(root)

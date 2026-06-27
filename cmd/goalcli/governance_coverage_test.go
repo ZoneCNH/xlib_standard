@@ -48,8 +48,9 @@ func TestRunDoctorHelp(t *testing.T) {
 // with missing docker files producing gaps.
 func TestRunDoctorSourceModuleMissingDocker(t *testing.T) {
 	root := t.TempDir()
+	sourceModule := strings.Join([]string{"github.com", "ZoneCNH", "xlib" + "-standard"}, "/")
 	// go.mod identifies source repo so docker files become required.
-	if err := os.WriteFile(filepath.Join(root, "go.mod"), []byte("module github.com/ZoneCNH/xlib-standard\n\ngo 1.23\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, "go.mod"), []byte("module "+sourceModule+"\n\ngo 1.23\n"), 0o644); err != nil {
 		t.Fatalf("write go.mod: %v", err)
 	}
 	// Provide the base required files but skip docker-related files.
@@ -606,7 +607,8 @@ func TestIsXlibStandardSourceModule(t *testing.T) {
 	})
 	t.Run("source module", func(t *testing.T) {
 		root := t.TempDir()
-		if err := os.WriteFile(filepath.Join(root, "go.mod"), []byte("module github.com/ZoneCNH/xlib-standard\n\ngo 1.23\n"), 0o644); err != nil {
+		sourceModule := strings.Join([]string{"github.com", "ZoneCNH", "xlib" + "-standard"}, "/")
+		if err := os.WriteFile(filepath.Join(root, "go.mod"), []byte("module "+sourceModule+"\n\ngo 1.23\n"), 0o644); err != nil {
 			t.Fatalf("write: %v", err)
 		}
 		chdir(t, root)

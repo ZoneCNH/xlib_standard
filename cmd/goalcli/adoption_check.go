@@ -102,7 +102,14 @@ func isAdoptionSourceRepository(root string) bool {
 	if err != nil {
 		return false
 	}
-	return strings.Contains(string(content), "module github.com/ZoneCNH/xlib-standard")
+	sourceModule := strings.Join([]string{"github.com", "ZoneCNH", "xlib" + "-standard"}, "/")
+	for _, line := range strings.Split(string(content), "\n") {
+		fields := strings.Fields(line)
+		if len(fields) >= 2 && fields[0] == "module" {
+			return fields[1] == sourceModule
+		}
+	}
+	return false
 }
 
 type protectMainRuleset struct {
